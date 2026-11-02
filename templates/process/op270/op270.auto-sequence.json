@@ -1,0 +1,576 @@
+{
+  "id": "op270.auto-sequence",
+  "kind": "knowledge",
+  "title": "自动 GRAPH 流程快照",
+  "summary": "保存源快照步骤名称、编号和时间设置，用于定位；不是可直接复用的完整流程。",
+  "tags": [
+    "GRAPH",
+    "自动",
+    "工步",
+    "气缸",
+    "MES",
+    "RFID",
+    "气密"
+  ],
+  "applicability": "Siemens TIA Portal V17; OP270 exported source conventions",
+  "provenance": {
+    "exported_at_utc": "2026-10-14T06:23:13.2205718Z",
+    "tia_version": "V17",
+    "plc": "S71500/ET200MP station_1 / PLC_CPU1513 / PLC_CPU1513",
+    "manifest_project_path": "E:\\plcdata\\OP270_Independent_V17\\OP270_Independent_V17\\HD2303_OP270_Independent\\HD2303_OP270_Independent.ap17",
+    "manifest_sha256": "ada0ac5f7c5e3a9a3390fb8307f6f757c42e97f63acef1951508da9a01f6e7ca",
+    "status": "offline_snapshot_not_live_project",
+    "file_count": 266,
+    "source_bytes": 9288872
+  },
+  "sources": [
+    {
+      "path": "blocks/HD2303-OP270Station/01 Graph/OP270_自动流程.xml",
+      "bytes": 304130,
+      "sha256": "06425859ecb54c085032909e1fbda0085e1979bc21571486cfc7ed5d0a0e3b5d"
+    },
+    {
+      "path": "types/Graph/UDT_Graph.udt",
+      "bytes": 677,
+      "sha256": "afd205f91d66894afd4d3dfe14ae9f326bcfb83868b503d209e9b5a8c556c585"
+    }
+  ],
+  "steps": [
+    {
+      "Number": "2",
+      "Init": "true",
+      "Name": "S2初始等待",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "9",
+      "Init": "false",
+      "Name": "S9等待托盘落下",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "3",
+      "Init": "false",
+      "Name": "S2托盘顶升气缸伸出",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "7",
+      "Init": "false",
+      "Name": "S7托盘顶升气缸伸出",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "13",
+      "Init": "false",
+      "Name": "S13等待托盘到位",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "20",
+      "Init": "false",
+      "Name": "S20档停缩回放行托盘",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "8",
+      "Init": "false",
+      "Name": "S8托盘支撑气缸伸出",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "4",
+      "Init": "false",
+      "Name": "S3托盘支撑气缸缩回",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "21",
+      "Init": "false",
+      "Name": "S21等待下一工位允许放行",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "22",
+      "Init": "false",
+      "Name": "S22托盘到位延时",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "24",
+      "Init": "false",
+      "Name": "S24顶升气缸下降",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "36",
+      "Init": "false",
+      "Name": "S36判断MES是否屏蔽",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "25",
+      "Init": "false",
+      "Name": "S25托盘水平检测",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "30",
+      "Init": "false",
+      "Name": "S30读取RFID信息",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "33",
+      "Init": "false",
+      "Name": "S33判断RFID是否屏蔽",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "6",
+      "Init": "false",
+      "Name": "S6托盘顶升气缸缩回",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "10",
+      "Init": "false",
+      "Name": "S10判断结果是否为270",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "31",
+      "Init": "false",
+      "Name": "S31写入RFID信息",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "32",
+      "Init": "false",
+      "Name": "S32请求MES校验条码",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "11",
+      "Init": "false",
+      "Name": "S11RFID数据赋值",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "12",
+      "Init": "false",
+      "Name": "S12下夹紧气缸下降",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "37",
+      "Init": "false",
+      "Name": "S37请求MES记录数据",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "34",
+      "Init": "false",
+      "Name": "S34RFID故障复位",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "35",
+      "Init": "false",
+      "Name": "S35RFID读取失败或读0报警",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "38",
+      "Init": "false",
+      "Name": "S38上夹紧气缸下降",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "39",
+      "Init": "false",
+      "Name": "S39下夹紧伸缩气缸伸出",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "40",
+      "Init": "false",
+      "Name": "S40下夹紧气缸上升",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "41",
+      "Init": "false",
+      "Name": "S41侧面封堵气缸伸出",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "42",
+      "Init": "false",
+      "Name": "S42启动气密测试",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "43",
+      "Init": "false",
+      "Name": "S43等待结束",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "44",
+      "Init": "false",
+      "Name": "S44侧面封堵气缸缩回",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "45",
+      "Init": "false",
+      "Name": "S45下夹紧气缸下降",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "46",
+      "Init": "false",
+      "Name": "S46下夹紧伸缩气缸,上夹紧气缸缩回",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "47",
+      "Init": "false",
+      "Name": "S47rfid信息确认",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "48",
+      "Init": "false",
+      "Name": "S48RFID复位",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "29",
+      "Init": "false",
+      "Name": "S29托盘不水平人工调整至水平",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    }
+  ],
+  "transitions": [
+    {
+      "IsMissing": "false",
+      "Name": "Trans48",
+      "Number": "48",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans38",
+      "Number": "38",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans50",
+      "Number": "50",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans19",
+      "Number": "19",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans20",
+      "Number": "20",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans47",
+      "Number": "47",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans44",
+      "Number": "44",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans45",
+      "Number": "45",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans46",
+      "Number": "46",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans9",
+      "Number": "9",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans54",
+      "Number": "54",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans55",
+      "Number": "55",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans57",
+      "Number": "57",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans58",
+      "Number": "58",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans56",
+      "Number": "56",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans74",
+      "Number": "74",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans53",
+      "Number": "53",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans21",
+      "Number": "21",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "是，继续工作",
+      "Number": "22",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans72",
+      "Number": "72",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans49",
+      "Number": "49",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "MES屏蔽",
+      "Number": "51",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans52",
+      "Number": "52",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans62",
+      "Number": "62",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans63",
+      "Number": "63",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans73",
+      "Number": "73",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans67",
+      "Number": "67",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans24",
+      "Number": "24",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans66",
+      "Number": "66",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans75",
+      "Number": "75",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans70",
+      "Number": "70",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans71",
+      "Number": "71",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans76",
+      "Number": "76",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans77",
+      "Number": "77",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans78",
+      "Number": "78",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans79",
+      "Number": "79",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans80",
+      "Number": "80",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans81",
+      "Number": "81",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans82",
+      "Number": "82",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans83",
+      "Number": "83",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans84",
+      "Number": "84",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans85",
+      "Number": "85",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans86",
+      "Number": "86",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans87",
+      "Number": "87",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans68",
+      "Number": "68",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans64",
+      "Number": "64",
+      "ProgrammingLanguage": "LAD"
+    }
+  ],
+  "step_count": 36,
+  "transition_count": 46,
+  "review_notes": [
+    "列表是 XML 存储顺序，不是执行路径；分支、跳转、动作和转换条件需读取原 XML。",
+    "步骤名称存在历史编号不一致，定位用 Number；时间属性有值不代表监控已启用。"
+  ]
+}

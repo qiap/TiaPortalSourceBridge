@@ -1,0 +1,71 @@
+{
+  "id": "op270.cylinder-db",
+  "kind": "template",
+  "title": "单气缸数据块",
+  "summary": "按 UDT_Cylinder 提供一个气缸成员与超时初始值；不占用现有 DB 地址。",
+  "tags": [
+    "气缸",
+    "数据块",
+    "超时",
+    "Z13"
+  ],
+  "applicability": "Siemens TIA Portal V17; OP270 exported source conventions",
+  "provenance": {
+    "exported_at_utc": "2026-10-14T06:23:13.2205718Z",
+    "tia_version": "V17",
+    "plc": "S71500/ET200MP station_1 / PLC_CPU1513 / PLC_CPU1513",
+    "manifest_project_path": "E:\\plcdata\\OP270_Independent_V17\\OP270_Independent_V17\\HD2303_OP270_Independent\\HD2303_OP270_Independent.ap17",
+    "manifest_sha256": "ada0ac5f7c5e3a9a3390fb8307f6f757c42e97f63acef1951508da9a01f6e7ca",
+    "status": "offline_snapshot_not_live_project",
+    "file_count": 266,
+    "source_bytes": 9288872
+  },
+  "sources": [
+    {
+      "path": "blocks/HD2303-OP270Station/05 Cylinder/DB_OP270Cylinder.db",
+      "bytes": 2373,
+      "sha256": "512af2c7d417a216b12ff58f59754761939f0a3115f6534dbba85907cf2779fa"
+    },
+    {
+      "path": "types/sCylinder/UDT_Cylinder.udt",
+      "bytes": 535,
+      "sha256": "6f18bd978326971b64cf029c172d6cb5cd198178b17d42205f6648f2d19e924f"
+    }
+  ],
+  "format": "SCL",
+  "body": "DATA_BLOCK \"{{block_name}}\"\n{ S7_Optimized_Access := 'FALSE' }\nVERSION : 0.1\n   STRUCT\n      {{cylinder_id}} : \"{{type_name}}\";\n   END_STRUCT;\nBEGIN\n   {{cylinder_id}}.TimeOut_Set := {{timeout_set}};\nEND_DATA_BLOCK\n",
+  "parameters": [
+    {
+      "name": "block_name",
+      "type": "identifier",
+      "description": ""
+    },
+    {
+      "name": "cylinder_id",
+      "type": "identifier",
+      "description": ""
+    },
+    {
+      "name": "type_name",
+      "type": "identifier",
+      "description": "",
+      "default": "UDT_Cylinder"
+    },
+    {
+      "name": "timeout_set",
+      "type": "integer",
+      "description": "1 秒脉冲计数阈值；必须结合目标标准块和现场确认",
+      "min": 1,
+      "max": 32000
+    }
+  ],
+  "dependencies": [
+    "目标工程存在同布局的 UDT_Cylinder，或先生成并导入气缸 UDT。"
+  ],
+  "review_notes": [
+    "源工程导出快照不等于当前工程，也没有现场或博途编译验收；生成内容仅为待审查草稿。",
+    "导入前实时读取目标、核对依赖和符号、备份并检查差异；导入后执行目标工程编译。",
+    "这是独立新 DB 草稿，不会自动给现有 DB 增加成员；对原 DB 插入字段可能改变 HMI 绝对地址。"
+  ],
+  "validation_status": "source_derived_not_tia_compiled"
+}

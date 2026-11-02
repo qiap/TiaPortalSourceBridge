@@ -1,0 +1,179 @@
+{
+  "id": "op270.cylinder-conventions",
+  "kind": "knowledge",
+  "title": "气缸接口、有效设备与差异",
+  "summary": "UDT_Cylinder、FB21、Z05~Z11 实际调用、Z12~Z32 预留、超时和原点差异。",
+  "tags": [
+    "气缸",
+    "Z05",
+    "Z06",
+    "Z09",
+    "Z13",
+    "超时",
+    "互锁",
+    "原点"
+  ],
+  "applicability": "Siemens TIA Portal V17; OP270 exported source conventions",
+  "provenance": {
+    "exported_at_utc": "2026-10-14T06:23:13.2205718Z",
+    "tia_version": "V17",
+    "plc": "S71500/ET200MP station_1 / PLC_CPU1513 / PLC_CPU1513",
+    "manifest_project_path": "E:\\plcdata\\OP270_Independent_V17\\OP270_Independent_V17\\HD2303_OP270_Independent\\HD2303_OP270_Independent.ap17",
+    "manifest_sha256": "ada0ac5f7c5e3a9a3390fb8307f6f757c42e97f63acef1951508da9a01f6e7ca",
+    "status": "offline_snapshot_not_live_project",
+    "file_count": 266,
+    "source_bytes": 9288872
+  },
+  "sources": [
+    {
+      "path": "types/sCylinder/UDT_Cylinder.udt",
+      "bytes": 535,
+      "sha256": "6f18bd978326971b64cf029c172d6cb5cd198178b17d42205f6648f2d19e924f"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/05 Cylinder/OP270_Cylinder.xml",
+      "bytes": 123657,
+      "sha256": "0ec3e1b0697eba69c64832c100a136b0e2f3d398862cf791e61fab2b19cb0a82"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/05 Cylinder/DB_OP270Cylinder.db",
+      "bytes": 2373,
+      "sha256": "512af2c7d417a216b12ff58f59754761939f0a3115f6534dbba85907cf2779fa"
+    },
+    {
+      "path": "blocks/Standard_Function/Cylinder/FB21_CylinderV1.1.xml",
+      "bytes": 93678,
+      "sha256": "8def2e1475c7c6a4547ebf12cf534ea1008797cf5726b292ede36d5c2bc6ce63"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/01 Graph/OP270_Graph启用与调用.xml",
+      "bytes": 36398,
+      "sha256": "8d60659d8a2902727943aefc8afebdeeb9100f7712b05e6c5eea302a12f8ddad"
+    }
+  ],
+  "facts": [
+    "DB 定义 Z01~Z32；本快照 OP270_Cylinder 实际有 Z05~Z11 七个 FB21_CylinderV1.1 调用。预留字段不代表设备已接入。",
+    "手动命令 Trigger_W_Man/Trigger_H_Man，自动命令 Trigger_W_Auto/Trigger_H_Auto；反馈 Wpos_SE/Hpos_SE，显示输出 Wpos_Valve/Hpos_Valve。",
+    "Interlock_W/H 在 UDT 中是显示字段；实际动作允许由 FB 输入 i_Interlock_Wpos/Hpos 提供。",
+    "FB21 超时网络使用 iFlags_1.0sFP 加一计数，TimeOut_Set 为 DInt；不能直接当 TIME 常量或毫秒。",
+    "Z05 的一侧反馈使用另一侧传感器取反，oOutput_W 开路；不能套用双传感器/双输出接线。",
+    "原点网络使用 Z08.Hpos_SE、Z09.Wpos_SE、Z10.Hpos_SE、Z11.Hpos_SE，以及两个现场输入；W/H 不统一等于伸/缩。"
+  ],
+  "timeout_initial_values": {
+    "Z01": "15",
+    "Z02": "30",
+    "Z03": "30",
+    "Z04": "15",
+    "Z05": "30",
+    "Z06": "5",
+    "Z07": "30",
+    "Z08": "10",
+    "Z09": "15",
+    "Z10": "15",
+    "Z11": "15",
+    "Z12": "15",
+    "Z13": "15",
+    "Z14": "15",
+    "Z15": "15",
+    "Z16": "15",
+    "Z17": "15",
+    "Z18": "15",
+    "Z19": "15",
+    "Z20": "15",
+    "Z21": "15",
+    "Z22": "15",
+    "Z23": "15",
+    "Z24": "15",
+    "Z25": "15",
+    "Z26": "15",
+    "Z27": "15",
+    "Z28": "15",
+    "Z29": "15",
+    "Z30": "15",
+    "Z31": "15",
+    "Z32": "15"
+  },
+  "source_networks": [
+    {
+      "titles": [
+        "Z05_OP270_托盘挡停气缸"
+      ],
+      "calls": [
+        {
+          "Name": "FB21_CylinderV1.1",
+          "BlockType": "FB"
+        }
+      ]
+    },
+    {
+      "titles": [
+        "Z06_OP270_托盘顶升气缸"
+      ],
+      "calls": [
+        {
+          "Name": "FB21_CylinderV1.1",
+          "BlockType": "FB"
+        }
+      ]
+    },
+    {
+      "titles": [
+        "Z07_OP270_托盘支撑气缸"
+      ],
+      "calls": [
+        {
+          "Name": "FB21_CylinderV1.1",
+          "BlockType": "FB"
+        }
+      ]
+    },
+    {
+      "titles": [
+        "Z08_OP270_上夹紧气缸"
+      ],
+      "calls": [
+        {
+          "Name": "FB21_CylinderV1.1",
+          "BlockType": "FB"
+        }
+      ]
+    },
+    {
+      "titles": [
+        "Z09_OP270_下夹紧气缸"
+      ],
+      "calls": [
+        {
+          "Name": "FB21_CylinderV1.1",
+          "BlockType": "FB"
+        }
+      ]
+    },
+    {
+      "titles": [
+        "Z10_OP270_下夹紧伸缩气缸"
+      ],
+      "calls": [
+        {
+          "Name": "FB21_CylinderV1.1",
+          "BlockType": "FB"
+        }
+      ]
+    },
+    {
+      "titles": [
+        "Z11_OP270_侧面封堵气缸"
+      ],
+      "calls": [
+        {
+          "Name": "FB21_CylinderV1.1",
+          "BlockType": "FB"
+        }
+      ]
+    }
+  ],
+  "review_notes": [
+    "初始值来自导出 DB，不代表 CPU 当前实际值；新设备超时必须确认。",
+    "尚未为预留气缸推断或分配任何 I/O、互锁或 HMI 地址。"
+  ]
+}

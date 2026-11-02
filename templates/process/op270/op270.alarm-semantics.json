@@ -1,0 +1,53 @@
+{
+  "id": "op270.alarm-semantics",
+  "kind": "knowledge",
+  "title": "报警数组、锁存与汇总限制",
+  "summary": "Timeout[1..32,1..2]、FC11 复位语义、Msg 不参与 Total、Sensor 参与 Hardware。",
+  "tags": [
+    "报警",
+    "复位",
+    "Timeout",
+    "锁存",
+    "FC11",
+    "Msg"
+  ],
+  "applicability": "Siemens TIA Portal V17; OP270 exported source conventions",
+  "provenance": {
+    "exported_at_utc": "2026-10-14T06:23:13.2205718Z",
+    "tia_version": "V17",
+    "plc": "S71500/ET200MP station_1 / PLC_CPU1513 / PLC_CPU1513",
+    "manifest_project_path": "E:\\plcdata\\OP270_Independent_V17\\OP270_Independent_V17\\HD2303_OP270_Independent\\HD2303_OP270_Independent.ap17",
+    "manifest_sha256": "ada0ac5f7c5e3a9a3390fb8307f6f757c42e97f63acef1951508da9a01f6e7ca",
+    "status": "offline_snapshot_not_live_project",
+    "file_count": 266,
+    "source_bytes": 9288872
+  },
+  "sources": [
+    {
+      "path": "blocks/Standard_Function/BasicSign/FC11_Alarm.scl",
+      "bytes": 3351,
+      "sha256": "f21f4770028d495b6caac29a3d3366d1c354ac285a6c29ce7a26faaf4d094dee"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/04 模式 辅助 报警/DB_OP270Alarm.db",
+      "bytes": 1244,
+      "sha256": "6276a1884c298c0c445a5a52ed38d3e8ef99a32d0f06631793b3d4286e61f855"
+    },
+    {
+      "path": "types/StationSystem/UDT_Alarm.udt",
+      "bytes": 1244,
+      "sha256": "58481bdecf5f3b83803ff03fec545942c7cda99ac59d8f8ff795443b933f0fd0"
+    }
+  ],
+  "facts": [
+    "Safety/Hardware/Comm/Msg/Sensor/Reserved 各为 [1..32] Bool；Timeout 为 [1..32,1..2] Bool。",
+    "FC11 在 iFirstCycle 或 iReset 时清除所有上述数组和各汇总输出，然后继续扫描并重新汇总。",
+    "各汇总位在正常扫描中只置 TRUE，没有每扫描清零；这是已有锁存行为。",
+    "oTotal_Alarm 包含 Safety、Hardware、Comm、TimeOut、Reserved，未包含 Msg。",
+    "Hardware 汇总检测 Hardware 或 Sensor；气缸调用 Timeout 第二维 1 为工作位方向，2 为原位方向。"
+  ],
+  "review_notes": [
+    "这些是现状提炼，不代表报警规范；新模板复用前确认是否保留锁存和 Msg 排除行为。",
+    "Bool 报警命名不代表实现了功能安全。"
+  ]
+}

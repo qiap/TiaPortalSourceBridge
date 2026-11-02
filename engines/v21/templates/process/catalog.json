@@ -1,0 +1,22 @@
+{
+  "library_version": "4.0.0-v21",
+  "source": "Generic TIA Portal V21 Engineering Starters",
+  "entries": [
+    {
+      "id": "v21.scl-fb-starter",
+      "kind": "template",
+      "title": "TIA V21 标准优化 FB 骨架（SCL）",
+      "summary": "带 Namespace 与标准 Enable/Busy/Done/Error/Status 接口的通用 V21 SCL 功能块骨架。",
+      "tags": ["v21", "scl", "fb", "plcopen", "starter"],
+      "path": "v21/scl-fb-starter.json"
+    },
+    {
+      "id": "v21.simaticsd-guide",
+      "kind": "knowledge",
+      "title": "TIA V21 SimaticSD (.s7dcl/.s7res) 读写规范",
+      "summary": "说明如何在 TIA V21 中优先使用 SimaticSD 纯文本文档读写 LAD/FBD/SCL/DB 与多语言注释资源。",
+      "tags": ["v21", "simaticsd", "s7dcl", "s7res", "guide"],
+      "path": "v21/simaticsd-guide.json"
+    }
+  ]
+}

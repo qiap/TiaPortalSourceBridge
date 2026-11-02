@@ -1,0 +1,145 @@
+{
+  "id": "op270.cylinder-call",
+  "kind": "template",
+  "title": "双位置气缸 FB21 调用片段",
+  "summary": "提取 Z06 调用接口，显式填写模式、互锁、传感器、阀输出和报警索引。",
+  "tags": [
+    "气缸",
+    "FB21",
+    "双电控",
+    "调用",
+    "互锁"
+  ],
+  "applicability": "Siemens TIA Portal V17; OP270 exported source conventions",
+  "provenance": {
+    "exported_at_utc": "2026-10-14T06:23:13.2205718Z",
+    "tia_version": "V17",
+    "plc": "S71500/ET200MP station_1 / PLC_CPU1513 / PLC_CPU1513",
+    "manifest_project_path": "E:\\plcdata\\OP270_Independent_V17\\OP270_Independent_V17\\HD2303_OP270_Independent\\HD2303_OP270_Independent.ap17",
+    "manifest_sha256": "ada0ac5f7c5e3a9a3390fb8307f6f757c42e97f63acef1951508da9a01f6e7ca",
+    "status": "offline_snapshot_not_live_project",
+    "file_count": 266,
+    "source_bytes": 9288872
+  },
+  "sources": [
+    {
+      "path": "blocks/HD2303-OP270Station/05 Cylinder/OP270_Cylinder.xml",
+      "bytes": 123657,
+      "sha256": "0ec3e1b0697eba69c64832c100a136b0e2f3d398862cf791e61fab2b19cb0a82"
+    },
+    {
+      "path": "blocks/Standard_Function/Cylinder/FB21_CylinderV1.1.xml",
+      "bytes": 93678,
+      "sha256": "8def2e1475c7c6a4547ebf12cf534ea1008797cf5726b292ede36d5c2bc6ce63"
+    },
+    {
+      "path": "types/sCylinder/UDT_Cylinder.udt",
+      "bytes": 535,
+      "sha256": "6f18bd978326971b64cf029c172d6cb5cd198178b17d42205f6648f2d19e924f"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/04 模式 辅助 报警/DB_OP270Alarm.db",
+      "bytes": 1244,
+      "sha256": "6276a1884c298c0c445a5a52ed38d3e8ef99a32d0f06631793b3d4286e61f855"
+    }
+  ],
+  "format": "SCL_SNIPPET",
+  "body": "// SCL 调用片段，放入宿主块 BEGIN 内；须先声明 FB21 实例。\n{{instance}}(\n    \"iFlags_1.0sFP\" := {{clock}},\n    iAuto := {{auto}},\n    iManual := {{manual}},\n    iReset := {{reset}},\n    i_Interlock_Wpos := {{permit_work}},\n    i_Interlock_Hpos := {{permit_home}},\n    i_Trigger_W_Man := \"{{cylinder_db}}\".{{cylinder_id}}.Trigger_W_Man,\n    i_Trigger_H_Man := \"{{cylinder_db}}\".{{cylinder_id}}.Trigger_H_Man,\n    i_Trigger_W_Auto := \"{{cylinder_db}}\".{{cylinder_id}}.Trigger_W_Auto,\n    i_Trigger_H_Auto := \"{{cylinder_db}}\".{{cylinder_id}}.Trigger_H_Auto,\n    i_Output_Keep_mode := {{keep_mode}},\n    i_Wpos := {{work_sensor}},\n    i_Hpos := {{home_sensor}},\n    oOutput_W => {{work_output}},\n    oOutput_H => {{home_output}},\n    HMI__Interlock_Wpos => \"{{cylinder_db}}\".{{cylinder_id}}.Interlock_W,\n    HMI__Interlock_Hpos => \"{{cylinder_db}}\".{{cylinder_id}}.Interlock_H,\n    HMI_Output_W => \"{{cylinder_db}}\".{{cylinder_id}}.Wpos_Valve,\n    HMI_Output_H => \"{{cylinder_db}}\".{{cylinder_id}}.Hpos_Valve,\n    HMI_InWpos => \"{{cylinder_db}}\".{{cylinder_id}}.Wpos_SE,\n    HMI_InHpos => \"{{cylinder_db}}\".{{cylinder_id}}.Hpos_SE,\n    Timeout_ToWpos => \"{{alarm_db}}\".Timeout[{{alarm_index}}, 1],\n    Timeout_ToHpos => \"{{alarm_db}}\".Timeout[{{alarm_index}}, 2],\n    TimeOut_Set := \"{{cylinder_db}}\".{{cylinder_id}}.TimeOut_Set\n);\n",
+  "parameters": [
+    {
+      "name": "instance",
+      "type": "symbol",
+      "description": "独立实例 DB 或宿主 Static 中的多重实例，例如 #Z14"
+    },
+    {
+      "name": "cylinder_db",
+      "type": "identifier",
+      "description": ""
+    },
+    {
+      "name": "cylinder_id",
+      "type": "identifier",
+      "description": ""
+    },
+    {
+      "name": "alarm_db",
+      "type": "identifier",
+      "description": ""
+    },
+    {
+      "name": "alarm_index",
+      "type": "integer",
+      "description": "Timeout 数组第一维，不自动分配，确认无冲突",
+      "min": 1,
+      "max": 32
+    },
+    {
+      "name": "clock",
+      "type": "symbol",
+      "description": "必须显式提供目标工程中的已声明信号；复杂条件先计算成中间 Bool"
+    },
+    {
+      "name": "auto",
+      "type": "symbol",
+      "description": "必须显式提供目标工程中的已声明信号；复杂条件先计算成中间 Bool"
+    },
+    {
+      "name": "manual",
+      "type": "symbol",
+      "description": "必须显式提供目标工程中的已声明信号；复杂条件先计算成中间 Bool"
+    },
+    {
+      "name": "reset",
+      "type": "symbol",
+      "description": "必须显式提供目标工程中的已声明信号；复杂条件先计算成中间 Bool"
+    },
+    {
+      "name": "permit_work",
+      "type": "symbol",
+      "description": "必须显式提供目标工程中的已声明信号；复杂条件先计算成中间 Bool"
+    },
+    {
+      "name": "permit_home",
+      "type": "symbol",
+      "description": "必须显式提供目标工程中的已声明信号；复杂条件先计算成中间 Bool"
+    },
+    {
+      "name": "keep_mode",
+      "type": "symbol",
+      "description": "必须显式提供目标工程中的已声明信号；复杂条件先计算成中间 Bool"
+    },
+    {
+      "name": "work_sensor",
+      "type": "symbol",
+      "description": "必须显式提供目标工程中的已声明信号；复杂条件先计算成中间 Bool"
+    },
+    {
+      "name": "home_sensor",
+      "type": "symbol",
+      "description": "必须显式提供目标工程中的已声明信号；复杂条件先计算成中间 Bool"
+    },
+    {
+      "name": "work_output",
+      "type": "symbol",
+      "description": "必须显式提供目标工程中的已声明信号；复杂条件先计算成中间 Bool"
+    },
+    {
+      "name": "home_output",
+      "type": "symbol",
+      "description": "必须显式提供目标工程中的已声明信号；复杂条件先计算成中间 Bool"
+    }
+  ],
+  "dependencies": [
+    "FB21_CylinderV1.1（精确版本）及其有效实例。",
+    "气缸 DB 成员为 UDT_Cylinder；报警 DB 包含 Timeout : Array[1..32,1..2] of Bool。",
+    "clock 为每秒单扫描脉冲；其他引用的类型应与原调用接口一致。"
+  ],
+  "review_notes": [
+    "源工程导出快照不等于当前工程，也没有现场或博途编译验收；生成内容仅为待审查草稿。",
+    "导入前实时读取目标、核对依赖和符号、备份并检查差异；导入后执行目标工程编译。",
+    "该片段保留调用接口，不复制 Z06 的现场互锁；permit_work/permit_home 必须按现场独立计算。",
+    "W/H 表示工作位/原位，不能统一等同伸出/缩回；Z09 的原点判定即使用 Wpos_SE。",
+    "不适用于直接替代 Z05 的单传感器/单输出特殊接线；keep_mode 不提供默认值。"
+  ],
+  "validation_status": "source_derived_not_tia_compiled"
+}

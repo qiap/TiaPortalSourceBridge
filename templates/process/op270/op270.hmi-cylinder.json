@@ -1,0 +1,71 @@
+{
+  "id": "op270.hmi-cylinder",
+  "kind": "knowledge",
+  "title": "气缸 HMI 联动与地址注意事项",
+  "summary": "新增气缸要同时核对 PLC 成员、气缸画面、变量表及五张文本列表。",
+  "tags": [
+    "HMI",
+    "气缸",
+    "画面",
+    "变量",
+    "地址",
+    "文本列表"
+  ],
+  "applicability": "Siemens TIA Portal V17; OP270 exported source conventions",
+  "provenance": {
+    "exported_at_utc": "2026-10-14T06:23:13.2205718Z",
+    "tia_version": "V17",
+    "plc": "S71500/ET200MP station_1 / PLC_CPU1513 / PLC_CPU1513",
+    "manifest_project_path": "E:\\plcdata\\OP270_Independent_V17\\OP270_Independent_V17\\HD2303_OP270_Independent\\HD2303_OP270_Independent.ap17",
+    "manifest_sha256": "ada0ac5f7c5e3a9a3390fb8307f6f757c42e97f63acef1951508da9a01f6e7ca",
+    "status": "offline_snapshot_not_live_project",
+    "file_count": 266,
+    "source_bytes": 9288872
+  },
+  "sources": [
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/HD_21_Cylinder_Name.xml",
+      "bytes": 21444,
+      "sha256": "a801a0d4cfad77d725c60acb550f259f52d58316c8f0bbb9c7db10b4faeddb4c"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/HD_21_Cylinder_IExt.xml",
+      "bytes": 27475,
+      "sha256": "ce6027143981d79a8de27524c28a57698fe07ac7df1498ebadd7069071b7bddb"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/HD_21_Cylinder_IRet.xml",
+      "bytes": 21272,
+      "sha256": "7f24a00f8dcffa2107774af7ed2a5ec62771f3edf81d7271425e14af3a68d624"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/HD_21_Cylinder_QExt.xml",
+      "bytes": 21292,
+      "sha256": "e64bdc9fc905af092af91cfab7dbf6ee635e0cbfb85c4a8ef23ecebb4d07c0ed"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/HD_21_Cylinder_QRet.xml",
+      "bytes": 21290,
+      "sha256": "a30b7f497eb5e70117bcac66a29510fa17e087b6fd186ac71e7bcc9b9eb1e334"
+    },
+    {
+      "path": "types/sCylinder/UDT_Cylinder.udt",
+      "bytes": 535,
+      "sha256": "6f18bd978326971b64cf029c172d6cb5cd198178b17d42205f6648f2d19e924f"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/05 Cylinder/DB_OP270Cylinder.db",
+      "bytes": 2373,
+      "sha256": "512af2c7d417a216b12ff58f59754761939f0a3115f6534dbba85907cf2779fa"
+    }
+  ],
+  "facts": [
+    "快照中包含 HD_21_Scylinder 变量表，以及 HD_21_Scylinder、HD_21_Scylinder_OP270_2 画面。",
+    "存在 Name/IExt/IRet/QExt/QRet 五类气缸文本列表。",
+    "气缸 DB 使用 S7_Optimized_Access FALSE，UDT 字段顺序是工程接口的一部分。"
+  ],
+  "review_notes": [
+    "不根据 Z 编号猜测 HMI 索引、绝对地址、DB 编号或报警位；先读取实际绑定。",
+    "本版不生成 HMI 整页副本或自动分配地址。"
+  ]
+}

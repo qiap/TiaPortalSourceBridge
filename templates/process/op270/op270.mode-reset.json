@@ -1,0 +1,87 @@
+{
+  "id": "op270.mode-reset",
+  "kind": "knowledge",
+  "title": "模式、HMI 请求与复位流程边界",
+  "summary": "FC5_ModeStaus、HmiCommand、Mode.FaultReset 与回原点/GRAPH 初始化属于不同层次。",
+  "tags": [
+    "模式",
+    "手动",
+    "自动",
+    "复位",
+    "HMI",
+    "原点"
+  ],
+  "applicability": "Siemens TIA Portal V17; OP270 exported source conventions",
+  "provenance": {
+    "exported_at_utc": "2026-10-14T06:23:13.2205718Z",
+    "tia_version": "V17",
+    "plc": "S71500/ET200MP station_1 / PLC_CPU1513 / PLC_CPU1513",
+    "manifest_project_path": "E:\\plcdata\\OP270_Independent_V17\\OP270_Independent_V17\\HD2303_OP270_Independent\\HD2303_OP270_Independent.ap17",
+    "manifest_sha256": "ada0ac5f7c5e3a9a3390fb8307f6f757c42e97f63acef1951508da9a01f6e7ca",
+    "status": "offline_snapshot_not_live_project",
+    "file_count": 266,
+    "source_bytes": 9288872
+  },
+  "sources": [
+    {
+      "path": "blocks/HD2303-OP270Station/04 模式 辅助 报警/OP270_BasicSign.xml",
+      "bytes": 11183,
+      "sha256": "75b00f7b77f252fc2d05777bb65bf94254a1bd37be341398eb8a7a63385b37d9"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/04 模式 辅助 报警/DB_OP270BasicSign.db",
+      "bytes": 898,
+      "sha256": "98cd8335fb894e8b14fafb6e14ca6e384d5ba4b45c7dbac6680712fa61b198e0"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/01 Graph/OP270_Graph启用与调用.xml",
+      "bytes": 36398,
+      "sha256": "8d60659d8a2902727943aefc8afebdeeb9100f7712b05e6c5eea302a12f8ddad"
+    }
+  ],
+  "facts": [
+    {
+      "titles": [
+        "OP270设备模式控制"
+      ],
+      "calls": [
+        {
+          "Name": "FC5_ModeStaus",
+          "BlockType": "FC"
+        }
+      ]
+    },
+    {
+      "titles": [
+        "OP270 机台在原点位"
+      ],
+      "calls": []
+    },
+    {
+      "titles": [
+        "OP270 Assembly 流程 复位"
+      ],
+      "calls": [
+        {
+          "Name": "OP270_复位流程",
+          "BlockType": "FB"
+        }
+      ]
+    },
+    {
+      "titles": [
+        "OP270 Assembly 流程 自动"
+      ],
+      "calls": [
+        {
+          "Name": "OP270_自动流程",
+          "BlockType": "FB"
+        }
+      ]
+    }
+  ],
+  "review_notes": [
+    "HmiCommand.AlarmResetRequest 与 HomeRequest 是不同成员，不可把报警复位等同执行所有机构回原点。",
+    "原点、复位完成、自动初始化和急停信号的极性必须结合原网络及目标工程核对；不因中文名称推断极性。"
+  ]
+}

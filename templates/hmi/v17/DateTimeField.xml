@@ -1,0 +1,59 @@
+<Hmi.Screen.DateTimeField ID="9D" CompositionName="ScreenItems">
+  <AttributeList>
+    <BackColor>0, 0, 255</BackColor>
+    <BackFillStyle>Solid</BackFillStyle>
+    <BorderBackColor>0, 0, 255</BorderBackColor>
+    <BorderColor>0, 0, 255</BorderColor>
+    <BorderWidth>4</BorderWidth>
+    <BottomMargin>2</BottomMargin>
+    <CornerRadius>3</CornerRadius>
+    <DisplaySystemTime>false</DisplaySystemTime>
+    <EdgeStyle>Double</EdgeStyle>
+    <Enabled>true</Enabled>
+    <FitToLargest>false</FitToLargest>
+    <Flashing>None</Flashing>
+    <ForeColor>255, 255, 255</ForeColor>
+    <Height>26</Height>
+    <HorizontalAlignment>Left</HorizontalAlignment>
+    <Left>566</Left>
+    <LeftMargin>3</LeftMargin>
+    <LongDateTimeFormat>false</LongDateTimeFormat>
+    <Mode>Output</Mode>
+    <ObjectName>DateTimeField1</ObjectName>
+    <RightMargin>2</RightMargin>
+    <ShowDate>true</ShowDate>
+    <ShowTime>true</ShowTime>
+    <TabIndex>-1</TabIndex>
+    <TextOrientation>Horizontal</TextOrientation>
+    <Top>5</Top>
+    <TopMargin>2</TopMargin>
+    <UseDesignColorSchema>false</UseDesignColorSchema>
+    <UseTwoHandOperation>false</UseTwoHandOperation>
+    <VerticalAlignment>Middle</VerticalAlignment>
+    <Width>195</Width>
+  </AttributeList>
+  <ObjectList>
+    <Hmi.Globalization.MultiLingualFont ID="9E" CompositionName="Font">
+      <ObjectList>
+        <Hmi.Globalization.FontItem ID="9F" CompositionName="Items">
+          <AttributeList>
+            <Culture>zh-CN</Culture>
+            <FontFamily>宋体</FontFamily>
+            <FontSize>13</FontSize>
+            <FontStyle>Bold</FontStyle>
+          </AttributeList>
+        </Hmi.Globalization.FontItem>
+      </ObjectList>
+    </Hmi.Globalization.MultiLingualFont>
+    <MultilingualText ID="A0" CompositionName="HelpText">
+      <ObjectList>
+        <MultilingualTextItem ID="A1" CompositionName="Items">
+          <AttributeList>
+            <Culture>zh-CN</Culture>
+            <Text />
+          </AttributeList>
+        </MultilingualTextItem>
+      </ObjectList>
+    </MultilingualText>
+  </ObjectList>
+</Hmi.Screen.DateTimeField>

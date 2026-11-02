@@ -1,0 +1,68 @@
+{
+  "id": "op270.leak-test",
+  "kind": "knowledge",
+  "title": "气密仪启动与反馈接口",
+  "summary": "Comso 程序选择、手动/自动启动、Running、Test_OK/Test_NG 和结果数据。",
+  "tags": [
+    "气密",
+    "Comso",
+    "测试",
+    "反馈",
+    "NG",
+    "OK"
+  ],
+  "applicability": "Siemens TIA Portal V17; OP270 exported source conventions",
+  "provenance": {
+    "exported_at_utc": "2026-10-14T06:23:13.2205718Z",
+    "tia_version": "V17",
+    "plc": "S71500/ET200MP station_1 / PLC_CPU1513 / PLC_CPU1513",
+    "manifest_project_path": "E:\\plcdata\\OP270_Independent_V17\\OP270_Independent_V17\\HD2303_OP270_Independent\\HD2303_OP270_Independent.ap17",
+    "manifest_sha256": "ada0ac5f7c5e3a9a3390fb8307f6f757c42e97f63acef1951508da9a01f6e7ca",
+    "status": "offline_snapshot_not_live_project",
+    "file_count": 266,
+    "source_bytes": 9288872
+  },
+  "sources": [
+    {
+      "path": "blocks/HD2303-OP270Station/07 扫码 影像 模拟量 打码/OP270_Comso.xml",
+      "bytes": 19534,
+      "sha256": "48648bea36ba623175dc018c521d0088aac65bf023f8e253b3da7ec8a7f5f037"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/07 扫码 影像 模拟量 打码/OP270_Comso_DB.db",
+      "bytes": 437,
+      "sha256": "32150fd3f4accc9eabca239c2c11fa4d6b3c30e9b65184cc7a8bfcedc3396bff"
+    }
+  ],
+  "facts": [
+    {
+      "titles": [
+        "//////////////气密仪/////////////////////"
+      ],
+      "calls": []
+    },
+    {
+      "titles": [
+        "左边程序号给定"
+      ],
+      "calls": []
+    },
+    {
+      "titles": [
+        "左边启动"
+      ],
+      "calls": []
+    },
+    {
+      "titles": [
+        "左边给反馈"
+      ],
+      "calls": []
+    }
+  ],
+  "interface_source": "DATA_BLOCK \"OP270_Comso_DB\"\n{ S7_Optimized_Access := 'FALSE' }\nVERSION : 0.1\nNON_RETAIN\n   STRUCT \n      PLCToComso : Struct\n         Test_ProNum : Byte;\n         ManStart : Bool;\n         AutoStart : Bool;\n      END_STRUCT;\n      ComsoToPLC : Struct\n         Test_NG : Bool;\n         Test_OK : Bool;\n         Running : Bool;\n         Test_Date : Real;\n      END_STRUCT;\n   END_STRUCT;\n\n\nBEGIN\n\nEND_DATA_BLOCK\n\n",
+  "review_notes": [
+    "Test_Date 保留原拼写且类型为 Real，不能按名称推断成日期。",
+    "界面字段存在不代表全部字段已参与控制；程序号选择和启动保持行为必须查原网络。"
+  ]
+}

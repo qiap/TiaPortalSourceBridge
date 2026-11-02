@@ -1,0 +1,53 @@
+<Hmi.Screen.TextField ID="A5" CompositionName="ScreenItems">
+  <AttributeList>
+    <BackColor>0, 0, 255</BackColor>
+    <BackFillStyle>Solid</BackFillStyle>
+    <BorderBackColor>101, 103, 115</BorderBackColor>
+    <BorderColor>71, 73, 87</BorderColor>
+    <BorderWidth>1</BorderWidth>
+    <BottomMargin>2</BottomMargin>
+    <CornerRadius>0</CornerRadius>
+    <EdgeStyle>Style3D</EdgeStyle>
+    <FitToLargest>false</FitToLargest>
+    <Flashing>None</Flashing>
+    <ForeColor>255, 255, 255</ForeColor>
+    <Height>33</Height>
+    <HorizontalAlignment>Center</HorizontalAlignment>
+    <Left>99</Left>
+    <LeftMargin>3</LeftMargin>
+    <ObjectName>TextField1</ObjectName>
+    <RightMargin>2</RightMargin>
+    <TabIndex>-1</TabIndex>
+    <TextOrientation>Horizontal</TextOrientation>
+    <Top>0</Top>
+    <TopMargin>2</TopMargin>
+    <UseDesignColorSchema>false</UseDesignColorSchema>
+    <VerticalAlignment>Middle</VerticalAlignment>
+    <Width>239</Width>
+  </AttributeList>
+  <ObjectList>
+    <Hmi.Globalization.MultiLingualFont ID="A6" CompositionName="Font">
+      <ObjectList>
+        <Hmi.Globalization.FontItem ID="A7" CompositionName="Items">
+          <AttributeList>
+            <Culture>zh-CN</Culture>
+            <FontFamily>宋体</FontFamily>
+            <FontSize>21</FontSize>
+            <FontStyle>Bold</FontStyle>
+          </AttributeList>
+        </Hmi.Globalization.FontItem>
+      </ObjectList>
+    </Hmi.Globalization.MultiLingualFont>
+    <MultilingualText ID="A8" CompositionName="Text">
+      <ObjectList>
+        <MultilingualTextItem ID="A9" CompositionName="Items">
+          <AttributeList>
+            <Culture>zh-CN</Culture>
+            <Text>
+            </Text>
+          </AttributeList>
+        </MultilingualTextItem>
+      </ObjectList>
+    </MultilingualText>
+  </ObjectList>
+</Hmi.Screen.TextField>

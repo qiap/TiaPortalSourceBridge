@@ -1,0 +1,203 @@
+{
+  "id": "op270.reset-sequence",
+  "kind": "knowledge",
+  "title": "复位 GRAPH 流程快照",
+  "summary": "保存源快照步骤名称、编号和时间设置，用于定位；不是可直接复用的完整流程。",
+  "tags": [
+    "GRAPH",
+    "复位",
+    "工步",
+    "气缸",
+    "MES",
+    "RFID",
+    "气密"
+  ],
+  "applicability": "Siemens TIA Portal V17; OP270 exported source conventions",
+  "provenance": {
+    "exported_at_utc": "2026-10-14T06:23:13.2205718Z",
+    "tia_version": "V17",
+    "plc": "S71500/ET200MP station_1 / PLC_CPU1513 / PLC_CPU1513",
+    "manifest_project_path": "E:\\plcdata\\OP270_Independent_V17\\OP270_Independent_V17\\HD2303_OP270_Independent\\HD2303_OP270_Independent.ap17",
+    "manifest_sha256": "ada0ac5f7c5e3a9a3390fb8307f6f757c42e97f63acef1951508da9a01f6e7ca",
+    "status": "offline_snapshot_not_live_project",
+    "file_count": 266,
+    "source_bytes": 9288872
+  },
+  "sources": [
+    {
+      "path": "blocks/HD2303-OP270Station/01 Graph/OP270_复位流程.xml",
+      "bytes": 101547,
+      "sha256": "9e9f5fe6094d4a090b2b82974ab9f50f519d193aa58eb884d5292d3035caa182"
+    },
+    {
+      "path": "types/Graph/UDT_Graph.udt",
+      "bytes": 677,
+      "sha256": "afd205f91d66894afd4d3dfe14ae9f326bcfb83868b503d209e9b5a8c556c585"
+    }
+  ],
+  "steps": [
+    {
+      "Number": "1",
+      "Init": "true",
+      "Name": "S1复位初始等待步",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "2",
+      "Init": "false",
+      "Name": "S2托盘顶升气缸伸出",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "5",
+      "Init": "false",
+      "Name": "S5大复位完成",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "3",
+      "Init": "false",
+      "Name": "S3托盘支撑气缸伸出",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "4",
+      "Init": "false",
+      "Name": "S4等待托盘气缸到下降位",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "6",
+      "Init": "false",
+      "Name": "S2托盘顶升气缸缩回",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "7",
+      "Init": "false",
+      "Name": "S7侧面封堵气缸缩回",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "8",
+      "Init": "false",
+      "Name": "S8下夹紧气缸下降",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "9",
+      "Init": "false",
+      "Name": "S9下夹紧伸缩气缸缩回",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "10",
+      "Init": "false",
+      "Name": "S10上夹紧气缸上升",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    },
+    {
+      "Number": "11",
+      "Init": "false",
+      "Name": "S11判断托盘顶升状态",
+      "MaximumStepTime": "T#10S",
+      "WarningTime": "T#7S"
+    }
+  ],
+  "transitions": [
+    {
+      "IsMissing": "false",
+      "Name": "Trans16",
+      "Number": "16",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans18",
+      "Number": "18",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans21",
+      "Number": "21",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans22",
+      "Number": "22",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans23",
+      "Number": "23",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans26",
+      "Number": "26",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans19",
+      "Number": "19",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans20",
+      "Number": "20",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans24",
+      "Number": "24",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans25",
+      "Number": "25",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans27",
+      "Number": "27",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans28",
+      "Number": "28",
+      "ProgrammingLanguage": "LAD"
+    },
+    {
+      "IsMissing": "false",
+      "Name": "Trans29",
+      "Number": "29",
+      "ProgrammingLanguage": "LAD"
+    }
+  ],
+  "step_count": 11,
+  "transition_count": 13,
+  "review_notes": [
+    "列表是 XML 存储顺序，不是执行路径；分支、跳转、动作和转换条件需读取原 XML。",
+    "步骤名称存在历史编号不一致，定位用 Number；时间属性有值不代表监控已启用。"
+  ]
+}

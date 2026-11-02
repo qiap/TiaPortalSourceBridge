@@ -1,0 +1,12 @@
+{
+  "id": "v21.simaticsd-guide",
+  "kind": "knowledge",
+  "title": "TIA V21 SimaticSD (.s7dcl/.s7res) 读写规范",
+  "summary": "TIA Portal V21 原生支持 ExportAsDocuments / ImportFromDocuments，可将 LAD、FBD、SCL、DB 与 UDT 导出为精简纯文本 .s7dcl 与多语言资源 .s7res。",
+  "facts": [
+    "读取已有块时，优先使用 tia_read_document 获取紧凑的 .s7dcl 文本，避免数千行 FlgNet XML 上下文消耗。",
+    "修改块逻辑或接口时，在 tia_read_document 返回的真实 .s7dcl 基础上增量修改，并通过 tia_import_document 原子导入（底层使用 ExclusiveAccess + Transaction 自动回滚保护）。",
+    "跨命名空间或 Software Unit 操作时，请显式传递 unit_name 参数，避免不同单元内同名块冲突。"
+  ],
+  "sources": ["TIA Portal Openness V21 PublicAPI (Siemens.Engineering.Step7)"]
+}

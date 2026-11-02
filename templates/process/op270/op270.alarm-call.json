@@ -1,0 +1,79 @@
+{
+  "id": "op270.alarm-call",
+  "kind": "template",
+  "title": "报警汇总 FC11 调用片段",
+  "summary": "复用源工程报警接口，保留既有复位和锁存行为；附带原实现注意事项。",
+  "tags": [
+    "报警",
+    "复位",
+    "锁存",
+    "FC11"
+  ],
+  "applicability": "Siemens TIA Portal V17; OP270 exported source conventions",
+  "provenance": {
+    "exported_at_utc": "2026-10-14T06:23:13.2205718Z",
+    "tia_version": "V17",
+    "plc": "S71500/ET200MP station_1 / PLC_CPU1513 / PLC_CPU1513",
+    "manifest_project_path": "E:\\plcdata\\OP270_Independent_V17\\OP270_Independent_V17\\HD2303_OP270_Independent\\HD2303_OP270_Independent.ap17",
+    "manifest_sha256": "ada0ac5f7c5e3a9a3390fb8307f6f757c42e97f63acef1951508da9a01f6e7ca",
+    "status": "offline_snapshot_not_live_project",
+    "file_count": 266,
+    "source_bytes": 9288872
+  },
+  "sources": [
+    {
+      "path": "blocks/Standard_Function/BasicSign/FC11_Alarm.scl",
+      "bytes": 3351,
+      "sha256": "f21f4770028d495b6caac29a3d3366d1c354ac285a6c29ce7a26faaf4d094dee"
+    },
+    {
+      "path": "types/StationSystem/UDT_Alarm.udt",
+      "bytes": 1244,
+      "sha256": "58481bdecf5f3b83803ff03fec545942c7cda99ac59d8f8ff795443b933f0fd0"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/04 模式 辅助 报警/DB_OP270Alarm.db",
+      "bytes": 1244,
+      "sha256": "6276a1884c298c0c445a5a52ed38d3e8ef99a32d0f06631793b3d4286e61f855"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/04 模式 辅助 报警/OP270_Alarm.xml",
+      "bytes": 26638,
+      "sha256": "b21dc9c27511757fe19e0e99a80c641a77842d7a776c43b977a2ea6eddbedb06"
+    }
+  ],
+  "format": "SCL_SNIPPET",
+  "body": "\"FC11_Alarm\"(\n    iFirstCycle := {{first_cycle}},\n    iReset := {{reset}},\n    oTotal_Alarm => \"{{basic_db}}\".Alarm.Total,\n    oSafety_Alarm => \"{{basic_db}}\".Alarm.Safety,\n    oHardware_Alarm => \"{{basic_db}}\".Alarm.Hardware,\n    oComm_Alarm => \"{{basic_db}}\".Alarm.Comm,\n    oMsg_Alarm => \"{{basic_db}}\".Alarm.Msg,\n    oTimeOut_Alarm => \"{{basic_db}}\".Alarm.TimeOut,\n    oReserved_Alarm => \"{{basic_db}}\".Alarm.Reserved,\n    Alarm := \"{{alarm_db}}\"\n);\n",
+  "parameters": [
+    {
+      "name": "first_cycle",
+      "type": "symbol",
+      "description": ""
+    },
+    {
+      "name": "reset",
+      "type": "symbol",
+      "description": ""
+    },
+    {
+      "name": "basic_db",
+      "type": "identifier",
+      "description": ""
+    },
+    {
+      "name": "alarm_db",
+      "type": "identifier",
+      "description": ""
+    }
+  ],
+  "dependencies": [
+    "FC11_Alarm 与源工程同签名；basic_db.Alarm 使用同布局 UDT_Alarm；alarm_db 使用源工程报警数组布局。"
+  ],
+  "review_notes": [
+    "源工程导出快照不等于当前工程，也没有现场或博途编译验收；生成内容仅为待审查草稿。",
+    "导入前实时读取目标、核对依赖和符号、备份并检查差异；导入后执行目标工程编译。",
+    "原 FC11 的汇总位仅在首次扫描/复位时清零，随后检测到报警再置位，呈锁存行为。",
+    "原 oTotal_Alarm 表达式不包含 oMsg_Alarm；Sensor 数组参与 Hardware 汇总。需确认适合新设备后再用。"
+  ],
+  "validation_status": "source_derived_not_tia_compiled"
+}

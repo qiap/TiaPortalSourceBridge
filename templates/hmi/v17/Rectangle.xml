@@ -1,0 +1,19 @@
+<Hmi.Screen.Rectangle ID="9C" CompositionName="ScreenItems">
+  <AttributeList>
+    <BackColor>0, 0, 255</BackColor>
+    <BackFillStyle>Solid</BackFillStyle>
+    <BorderColor>0, 0, 255</BorderColor>
+    <BorderWidth>2</BorderWidth>
+    <EdgeStyle>Solid</EdgeStyle>
+    <Flashing>None</Flashing>
+    <Height>33</Height>
+    <Left>565</Left>
+    <ObjectName>Rectangle1</ObjectName>
+    <RoundCornerHeight>0</RoundCornerHeight>
+    <RoundCornerWidth>0</RoundCornerWidth>
+    <TabIndex>-1</TabIndex>
+    <Top>0</Top>
+    <UseDesignColorSchema>false</UseDesignColorSchema>
+    <Width>199</Width>
+  </AttributeList>
+</Hmi.Screen.Rectangle>

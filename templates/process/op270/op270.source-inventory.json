@@ -1,0 +1,1374 @@
+{
+  "id": "op270.source-inventory",
+  "kind": "knowledge",
+  "title": "源文件覆盖与溯源清单",
+  "summary": "完整扫描导出文件，保留相对路径、大小与 SHA256；没有复制完整工程。",
+  "tags": [
+    "来源",
+    "快照",
+    "清单",
+    "覆盖",
+    "哈希",
+    "inventory"
+  ],
+  "applicability": "Siemens TIA Portal V17; OP270 exported source conventions",
+  "provenance": {
+    "exported_at_utc": "2026-10-14T06:23:13.2205718Z",
+    "tia_version": "V17",
+    "plc": "S71500/ET200MP station_1 / PLC_CPU1513 / PLC_CPU1513",
+    "manifest_project_path": "E:\\plcdata\\OP270_Independent_V17\\OP270_Independent_V17\\HD2303_OP270_Independent\\HD2303_OP270_Independent.ap17",
+    "manifest_sha256": "ada0ac5f7c5e3a9a3390fb8307f6f757c42e97f63acef1951508da9a01f6e7ca",
+    "status": "offline_snapshot_not_live_project",
+    "file_count": 266,
+    "source_bytes": 9288872
+  },
+  "sources": [
+    {
+      "path": "manifest.json",
+      "bytes": 30265,
+      "sha256": "ada0ac5f7c5e3a9a3390fb8307f6f757c42e97f63acef1951508da9a01f6e7ca"
+    }
+  ],
+  "files": [
+    {
+      "path": "blocks/Diagnosis/DB_DeviceStates.db",
+      "bytes": 286,
+      "sha256": "0c61907a559e1cfc38f85f620c9e64b5d44608b5c4da9fec73f9eebed5eb60b3"
+    },
+    {
+      "path": "blocks/Diagnosis/PLC_EXchange.xml",
+      "bytes": 7733,
+      "sha256": "9ef5d47b9bc05e4248457e25a492fc8e744329fd4c22e3b093b3d1ed4b3ed5db"
+    },
+    {
+      "path": "blocks/Diagnosis/PLC_Exchange_DB.db",
+      "bytes": 800,
+      "sha256": "c5f3a05b31fd256bcc88e7682369e3ceb55a339aba3cb7d01c0ba85fc43f7bd4"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/00 Main/OP270_Main.xml",
+      "bytes": 16276,
+      "sha256": "970812b66297196cc3a7412171319ad459c084c5b28ee4cc8d12b7735ea5f93a"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/01 Graph/DB_OP270BGraph.db",
+      "bytes": 984,
+      "sha256": "c2ec0a3bd4599c31d5fe878f4e33577431a5115f77e7222274aa791882ba939a"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/01 Graph/InstOP270_Graph启用与调用.db",
+      "bytes": 169,
+      "sha256": "76c9c38fe7dd39fcb46b540af97e52d4d556459b61069337dd6c5de2f33e86e7"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/01 Graph/InstOP270_复位流程.db",
+      "bytes": 153,
+      "sha256": "5b697e841ff45c86ce1b22cc0da0244cd037ec028c9805d32396d1d98e0997cc"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/01 Graph/InstOP270_自动流程.db",
+      "bytes": 153,
+      "sha256": "65e80d8816a3d65e9572704f3d357349af07a2bc5c15bd94c1403929e534cf33"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/01 Graph/OP270_Graph启用与调用.xml",
+      "bytes": 36398,
+      "sha256": "8d60659d8a2902727943aefc8afebdeeb9100f7712b05e6c5eea302a12f8ddad"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/01 Graph/OP270_复位流程.xml",
+      "bytes": 101547,
+      "sha256": "9e9f5fe6094d4a090b2b82974ab9f50f519d193aa58eb884d5292d3035caa182"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/01 Graph/OP270_自动流程.xml",
+      "bytes": 304130,
+      "sha256": "06425859ecb54c085032909e1fbda0085e1979bc21571486cfc7ed5d0a0e3b5d"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/03 MES/OP270_MES.xml",
+      "bytes": 25553,
+      "sha256": "718ab80482ba437bc0ef7e0533630f574a6a38d15cbf4f381d0538892c7dfdb5"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/03 MES/OP270_MES_DB.db",
+      "bytes": 10258,
+      "sha256": "7a097feaa5e1a54ea1e2e4a14ac17a69003f4571220d5e64aaf06701099e72fa"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/03 MES/OP270_MES_DB_Helper.db",
+      "bytes": 199,
+      "sha256": "d0e564e3c3195770c89321cca364071ebce86ae01ed6ea4182e6d1de44c282f3"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/04 模式 辅助 报警/DB_OP270Alarm.db",
+      "bytes": 1244,
+      "sha256": "6276a1884c298c0c445a5a52ed38d3e8ef99a32d0f06631793b3d4286e61f855"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/04 模式 辅助 报警/DB_OP270BasicSign.db",
+      "bytes": 898,
+      "sha256": "98cd8335fb894e8b14fafb6e14ca6e384d5ba4b45c7dbac6680712fa61b198e0"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/04 模式 辅助 报警/OP270_Alarm.xml",
+      "bytes": 26638,
+      "sha256": "b21dc9c27511757fe19e0e99a80c641a77842d7a776c43b977a2ea6eddbedb06"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/04 模式 辅助 报警/OP270_BasicSign.xml",
+      "bytes": 11183,
+      "sha256": "75b00f7b77f252fc2d05777bb65bf94254a1bd37be341398eb8a7a63385b37d9"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/05 Cylinder/DB_OP270Cylinder.db",
+      "bytes": 2373,
+      "sha256": "512af2c7d417a216b12ff58f59754761939f0a3115f6534dbba85907cf2779fa"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/05 Cylinder/InstOP270_Cylinder.db",
+      "bytes": 145,
+      "sha256": "48558fb604f1c9cf808f204d150f757bffaa3e31674162ba5d839f6eec7b450d"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/05 Cylinder/OP270_Cylinder.xml",
+      "bytes": 123657,
+      "sha256": "0ec3e1b0697eba69c64832c100a136b0e2f3d398862cf791e61fab2b19cb0a82"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/07 扫码 影像 模拟量 打码/OP270_Comso.xml",
+      "bytes": 19534,
+      "sha256": "48648bea36ba623175dc018c521d0088aac65bf023f8e253b3da7ec8a7f5f037"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/07 扫码 影像 模拟量 打码/OP270_Comso_DB.db",
+      "bytes": 437,
+      "sha256": "32150fd3f4accc9eabca239c2c11fa4d6b3c30e9b65184cc7a8bfcedc3396bff"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/08 特殊功能/DB_OP270Overview.db",
+      "bytes": 420,
+      "sha256": "f34ef92186afd595deb5a40713bae8661af0ac19a5e40cd9092721fcf7eca5d1"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/08 特殊功能/InstOP270_CycleTime.db",
+      "bytes": 174,
+      "sha256": "df021333c6e433662aa64af0bce8c56bf5806ecc9e5c618cbe2c18e064e5ad59"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/08 特殊功能/InstOP270_ProductCount.db",
+      "bytes": 153,
+      "sha256": "e26e5e4d4fe4f42e689987ccfea9465d1fd9188e07033378409a0ee4337b7317"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/08 特殊功能/OP270_Overview.xml",
+      "bytes": 10274,
+      "sha256": "cb6c89f386b2ebc7e193e577ec17fd78870bb4ab32daffbaa344416e28407ec9"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/09 RFID/AllStationRFIDCtrl_OP270.xml",
+      "bytes": 11998,
+      "sha256": "17e53be208569b540a98bf117978e05d549027011dce2072b63f25bf7f7e9a8d"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/09 RFID/AllStationRFIDInitCtrl_OP270.xml",
+      "bytes": 8565,
+      "sha256": "c8de59277392038566482799f00f497dc168ba7c706a3f05e0c2d49ca6d2e311"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/09 RFID/DB_AllStationRFIDCtrl_OP270.db",
+      "bytes": 8607,
+      "sha256": "5b5f02ba7246873e5f577deff46d5a2500ad23fc240f4cd28f2a2557a20404f8"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/09 RFID/DBI/Inst_AllStationRFIDInitControl_OP270.db",
+      "bytes": 177,
+      "sha256": "3fce1b79ce01bc2c4d357a3b9803bcc4865b7824a08de917410b2333f504d670"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/09 RFID/DBI/Inst_RFID_OP270.db",
+      "bytes": 140,
+      "sha256": "895c4b9eb632dd7e51d5a48bc3928a8aecf6e325057f3ca7512e8b86e4294736"
+    },
+    {
+      "path": "blocks/IOMapping/OP240&250IOMapping/DB_OP240&250IOMapping.db",
+      "bytes": 9920,
+      "sha256": "e809b41878ca543886f7c689a2447af4921efaee15bed3d0a4d7553546586e5f"
+    },
+    {
+      "path": "blocks/IOMapping/OP240&250IOMapping/OP240&250_IOMapping.xml",
+      "bytes": 20642,
+      "sha256": "9bab40a8a1095222547e918bf1360990da61950e5f33da21bef961b302dd2073"
+    },
+    {
+      "path": "blocks/IOMapping/OP270IOMapping/DB_OP270IOMapping.db",
+      "bytes": 8450,
+      "sha256": "bb71fad96eae9580499f227410a95528d9cc7f4de45b225d3d5e5c84cc5838a6"
+    },
+    {
+      "path": "blocks/IOMapping/OP270IOMapping/OP270_IOMapping.xml",
+      "bytes": 16913,
+      "sha256": "08c9caa1f82f02dd36818bf7f23c1faf67f7c88fb501d32bdad8638fc24f6bd5"
+    },
+    {
+      "path": "blocks/Main.xml",
+      "bytes": 16709,
+      "sha256": "a55466253713c07ef5ac8edfdf37c13a6ee37eb16483406ab3f6b81c50c08dfa"
+    },
+    {
+      "path": "blocks/OB/Cyclic interrupt.xml",
+      "bytes": 4209,
+      "sha256": "fdecf050971ade9eb46df5ad756a7f789391f98785bd5fe6229f35e7f95c8095"
+    },
+    {
+      "path": "blocks/OB/Diagnostic error interrupt.xml",
+      "bytes": 4643,
+      "sha256": "2113159ab533a6556afc86f10e6648c9f339c7017682003a563eb1bf105c3f0a"
+    },
+    {
+      "path": "blocks/OB/Hardware interrupt.xml",
+      "bytes": 4732,
+      "sha256": "054826e496ba30fd5d43f30ce70e9dba72f0550e3ea778dc7f658a1a52b054b9"
+    },
+    {
+      "path": "blocks/OB/Programming error.xml",
+      "bytes": 5847,
+      "sha256": "8ee0ce27b54fcecc17eb51dd090a25ef7e46b98f6659d627fb96060f03fb755d"
+    },
+    {
+      "path": "blocks/OB/Pull or plug of modules.xml",
+      "bytes": 4408,
+      "sha256": "be7cc10a50374a2ba5a0974f5950036fc06c639f7815ab02d04c2dac21c4a8bc"
+    },
+    {
+      "path": "blocks/OB/Rack or station failure.xml",
+      "bytes": 4390,
+      "sha256": "07d48543a5eab66ab436bdb8b8334c5a04e208ba678b51ca19fc04d05d4be515"
+    },
+    {
+      "path": "blocks/OB/Startup.xml",
+      "bytes": 4236,
+      "sha256": "025770ec95c07edfd377714ba694a6f616a88804b85e8130db9b4fbe03320c3b"
+    },
+    {
+      "path": "blocks/OB/Time error interrupt.xml",
+      "bytes": 4413,
+      "sha256": "97b73a00ac055dce315809262f911bf014ab448313a11238286e7012e0d9daec"
+    },
+    {
+      "path": "blocks/Standard_Function/Analog/AnalogIn.xml",
+      "bytes": 21658,
+      "sha256": "99a3fd4d106727939527251a3d13f2d3377804804aa1a3094516f1dac5112123"
+    },
+    {
+      "path": "blocks/Standard_Function/BasicSign/DB_Systerm.db",
+      "bytes": 598,
+      "sha256": "92047dd3350995db826843d577416cf8816206dd858a4586911ac85309aa1a1a"
+    },
+    {
+      "path": "blocks/Standard_Function/BasicSign/FC11_Alarm.scl",
+      "bytes": 3351,
+      "sha256": "f21f4770028d495b6caac29a3d3366d1c354ac285a6c29ce7a26faaf4d094dee"
+    },
+    {
+      "path": "blocks/Standard_Function/BasicSign/FC15_TimeDelayV1.1.xml",
+      "bytes": 8883,
+      "sha256": "e810fc2cf93c46246554165fcd9590530b6392ec5b720ec0d1d966587cddf50b"
+    },
+    {
+      "path": "blocks/Standard_Function/BasicSign/FC15_TimeDelayV1.2.xml",
+      "bytes": 8927,
+      "sha256": "aa03953b3a2db488855d60c5f00bd2e4ba331bc670610f37bda1743ca961c521"
+    },
+    {
+      "path": "blocks/Standard_Function/BasicSign/FC27_Count.xml",
+      "bytes": 6293,
+      "sha256": "c8da6eceab391405a0af5f7a98d71449d74f9a6e504e5e7a3569a3d0ee38bd47"
+    },
+    {
+      "path": "blocks/Standard_Function/BasicSign/FC281_SUB.xml",
+      "bytes": 6302,
+      "sha256": "4910e6ed7d4bbfdd26fd863388cd09261893d417ad7932b7fb61e23167808500"
+    },
+    {
+      "path": "blocks/Standard_Function/BasicSign/FC2_IOMapping.xml",
+      "bytes": 7951,
+      "sha256": "1268a5130728871ae23f995cfa20de26c5209bf5a2e9716a4a6c589d6964d14a"
+    },
+    {
+      "path": "blocks/Standard_Function/BasicSign/FC3_SystermSignal.xml",
+      "bytes": 25484,
+      "sha256": "863b4deed26aa1eecd5774c0bcecd306e3958e4da38cdd25adc23180a9733fe7"
+    },
+    {
+      "path": "blocks/Standard_Function/BasicSign/FC4_PanelLight.xml",
+      "bytes": 39635,
+      "sha256": "82d5896093719e1cc6964c6fed8dd6dd9c1a85018262a25be0862af84dec514c"
+    },
+    {
+      "path": "blocks/Standard_Function/BasicSign/FC4_PanelLightV1.2.xml",
+      "bytes": 24523,
+      "sha256": "a3e51a6ba2c8cdd9d10885f722b3dda7b76f77c26bb283fd3f2542866c6d58b8"
+    },
+    {
+      "path": "blocks/Standard_Function/BasicSign/FC51_ModeStausV1.2.xml",
+      "bytes": 28321,
+      "sha256": "3b12bd47853841e97eccb5f02e29279458b4f48cbf3fbb905aa540b4a3fae0ce"
+    },
+    {
+      "path": "blocks/Standard_Function/BasicSign/FC55_HoldTimeSwitch.xml",
+      "bytes": 6132,
+      "sha256": "715d85844d0279064295e886de856cc135852872b14c2fe8b9c766c803d2ba9d"
+    },
+    {
+      "path": "blocks/Standard_Function/BasicSign/FC5_ModeStaus.xml",
+      "bytes": 53078,
+      "sha256": "f1ff901e3a19f1b54a09313dd5385c9f4c29c4ca4da825549bf96d6d3099f725"
+    },
+    {
+      "path": "blocks/Standard_Function/BasicSign/FC8_ReleasingTrayTimeOut.xml",
+      "bytes": 9259,
+      "sha256": "903e500053ef2017a91b89d8b5ac37821d409843e9b7c7d33d22dfbc8391ae5e"
+    },
+    {
+      "path": "blocks/Standard_Function/BasicSign/FC9_SafetyDoor.xml",
+      "bytes": 11368,
+      "sha256": "94a557cd650948779e1c8c3b76b25647a4b6e3ad8861596691b5dd2358aa5167"
+    },
+    {
+      "path": "blocks/Standard_Function/BasicSign/TwoHandsButton.xml",
+      "bytes": 16301,
+      "sha256": "94e7a6b2e06c7fd2e8f6a120f98bc8ffca1b4eff825954a8983c70f65e42f564"
+    },
+    {
+      "path": "blocks/Standard_Function/Cylinder/FB21_CylinderV1.1.xml",
+      "bytes": 93678,
+      "sha256": "8def2e1475c7c6a4547ebf12cf534ea1008797cf5726b292ede36d5c2bc6ce63"
+    },
+    {
+      "path": "blocks/Standard_Function/Cylinder/FB22_CylinderV1.2.xml",
+      "bytes": 63642,
+      "sha256": "11d40192cc9936f5452198e15ac333916088f6a406ab4890593cdcbdea1301c1"
+    },
+    {
+      "path": "blocks/Standard_Function/Cylinder/FB23_CylinderV1.3.xml",
+      "bytes": 98246,
+      "sha256": "42178462e6d04242b1da74f8e44896d005caeeef482c7da4a9b764b9ad75e0e9"
+    },
+    {
+      "path": "blocks/Standard_Function/Cylinder/FB24_CylinderV1.4.xml",
+      "bytes": 97482,
+      "sha256": "a035573c284ecc500943ac6e5c23c7bf6e63b575e2c69ddb2018ae8191a0ab11"
+    },
+    {
+      "path": "blocks/Standard_Function/Cylinder/FB25_CylinderV1.5.xml",
+      "bytes": 90887,
+      "sha256": "3a341cc9184e2a31f5cfde289bec14aae603d3815590cb5b960ffcae7a87e6e3"
+    },
+    {
+      "path": "blocks/Standard_Function/Cylinder/FB26_LineMotor.xml",
+      "bytes": 84207,
+      "sha256": "603363f18ba401919c8917a290986b52cd2cb57a065322305ca19fc67b9883ac"
+    },
+    {
+      "path": "blocks/Standard_Function/Cylinder/FB27_CylinderV1.6.xml",
+      "bytes": 92489,
+      "sha256": "73a94b87226ef9e568f1834d128612e715c4fadc6f6c39e484fbe37f173ee0ad"
+    },
+    {
+      "path": "blocks/Standard_Function/FB60_Spindle_Ctrl.xml",
+      "bytes": 67409,
+      "sha256": "9e5524678f04b3aac72c150c93e25716bc303845657740545e13b61fa7388c96"
+    },
+    {
+      "path": "blocks/Standard_Function/IAI/FB61_IAISV_Control.scl",
+      "bytes": 11936,
+      "sha256": "4b1bda30335e38e7f8baa96615325bf7d04dbde869ad886d6c03f08beaaa0567"
+    },
+    {
+      "path": "blocks/Standard_Function/IAI/FC_IAI_Reach.xml",
+      "bytes": 24205,
+      "sha256": "8f1812c35482b442eb3f5bd3b921d8a26f54d801f4986f10612a9dac8edef500"
+    },
+    {
+      "path": "blocks/Standard_Function/Kistler/FB50_KistlerMeter.xml",
+      "bytes": 87509,
+      "sha256": "9cb3fbadba0cfc844a0a839241fdcc90d77db2cc09a2b74965eea61bde9a9fe5"
+    },
+    {
+      "path": "blocks/Standard_Function/Kistler/FB51_KistlerCtrl.xml",
+      "bytes": 56558,
+      "sha256": "c3d25ea81ba1ded285f36c0220b0697247d3884dc9264deb51c3da01f625537c"
+    },
+    {
+      "path": "blocks/Standard_Function/Kistler/FC10_KistlerMeterActual_Y.xml",
+      "bytes": 20892,
+      "sha256": "ce0f69f26ff9235c7129c42dc0fbf3d4eea23dabbb34f127325405b00d0a7686"
+    },
+    {
+      "path": "blocks/Standard_Function/LineCtrl/FB40_顶升横移先下后上.xml",
+      "bytes": 77403,
+      "sha256": "50b20bb57142edf580162333915aa569cfd4f9743687b73d88fdd2130d4a4e07"
+    },
+    {
+      "path": "blocks/Standard_Function/LineCtrl/FB41_顶升横移先上后下.xml",
+      "bytes": 72482,
+      "sha256": "293083ce417d87178d3bfe56386ef5fc0b8f3831894a5a5a848c170bdfe4c3f5"
+    },
+    {
+      "path": "blocks/Standard_Function/LineCtrl/FB42_停止器.xml",
+      "bytes": 41833,
+      "sha256": "abe5aa03cfda0dedd68b424793b19c0b2840321540765e447be712de2964652c"
+    },
+    {
+      "path": "blocks/Standard_Function/Overview/FB81_CycleTime.xml",
+      "bytes": 83045,
+      "sha256": "190e629d5f0aed91e68974db22017827d2442ed600aaafe98e93e17ceae10c2d"
+    },
+    {
+      "path": "blocks/Standard_Function/Overview/FB82_ProductCount.xml",
+      "bytes": 77270,
+      "sha256": "50092513b141da905351c9c1bebd5e601065a54f7511ee2da9c86237d1ba9ce0"
+    },
+    {
+      "path": "blocks/Standard_Function/Overview/FC12_ResetTrayReleasingSignal.xml",
+      "bytes": 12438,
+      "sha256": "4d5b0761229ec3870ae6a4f613d8ac0dd287988cfe2704aabd5c1badd0c34871"
+    },
+    {
+      "path": "blocks/Standard_Function/Overview/FC12_ResetTrayReleasingSignalV1.2.xml",
+      "bytes": 13177,
+      "sha256": "2e90a4b0db72aeecd463a4a150994ab94879973054450048513511c1d0873beb"
+    },
+    {
+      "path": "blocks/Standard_Function/Parameter/FB176_Parameter.xml",
+      "bytes": 29230,
+      "sha256": "486058a658b066b9910537c06e81830fd8d4dfa806f31df96aa4531607f688cc"
+    },
+    {
+      "path": "blocks/Standard_Function/RFID/DBI/Inst_RFID_1.db",
+      "bytes": 136,
+      "sha256": "622607822b1393a7310f02031b47e39badecb49697edc2b9e98e513e40443623"
+    },
+    {
+      "path": "blocks/Standard_Function/RFID/DBI/Inst_RFID_2.db",
+      "bytes": 136,
+      "sha256": "dabcde21704471d118019bccebd2f44dae7402fb2e05a2364846e29716603666"
+    },
+    {
+      "path": "blocks/Standard_Function/RFID/DBI/Inst_RFID_3.db",
+      "bytes": 136,
+      "sha256": "1f50c75d62f0d7ddba4e22f9de56437e34458e3016c2beaa097abbdc28510415"
+    },
+    {
+      "path": "blocks/Standard_Function/RFID/DBI/Inst_RFID_4.db",
+      "bytes": 136,
+      "sha256": "3ae5783b93e73a24e5cf8c0e7475c4aa7b7ab47ec7c74e4891b39b5030cc59db"
+    },
+    {
+      "path": "blocks/Standard_Function/RFID/Truck RFID/AllRFIDInit.xml",
+      "bytes": 28785,
+      "sha256": "42b321e3e71c20751ae2fac8fb6e95c00dc46a996645f314487cfef597c8f8d4"
+    },
+    {
+      "path": "blocks/Standard_Function/RFID/Truck RFID/BlockMove.awl",
+      "bytes": 2652,
+      "sha256": "427ae4037a02fdc56d94bff968c09f0c4166cdd475667dc6ebeeb9046fa6c2d7"
+    },
+    {
+      "path": "blocks/Standard_Function/RFID/Truck RFID/PF_RFID.xml",
+      "bytes": 55092,
+      "sha256": "37fab441ec2b0d06f95dc732fe7584b0bdb29d51ae206a858f40663f7cd3d794"
+    },
+    {
+      "path": "blocks/Standard_Function/RFID/Truck RFID/RFIDControl.xml",
+      "bytes": 347113,
+      "sha256": "0f994bcaf154e7b1d64523007c57ba313a3bd330ad516c436e9cc4d567c47c8d"
+    },
+    {
+      "path": "blocks/Standard_Function/Stringlength.awl",
+      "bytes": 1892,
+      "sha256": "12f0ec3f339fcbc20f32703ea1286a40830861cc053b799ffc23518c9e5064b7"
+    },
+    {
+      "path": "blocks/Standard_Function/V90 Servo/MDISetValue.xml",
+      "bytes": 45472,
+      "sha256": "7791b6ffbcfe46803bff9740ae27c15d1636e722a602477d441f193f83b08785"
+    },
+    {
+      "path": "blocks/Standard_Function/V90 Servo/ProductTypeOf ParameterToServoValue.xml",
+      "bytes": 18200,
+      "sha256": "aeb111834ff029940098e9f248af6fa98ad0f769d00ae7b6eaf3ba78762746d9"
+    },
+    {
+      "path": "blocks/Standard_Function/V90 Servo/ServoFeedbackValueExchange.xml",
+      "bytes": 9388,
+      "sha256": "2c4990445ad2eaafde5b9e3a96473601440c9093fe70fdfb735e00a2d6b01741"
+    },
+    {
+      "path": "blocks/Standard_Function/V90 Servo/ServoSetValueExchange.xml",
+      "bytes": 10010,
+      "sha256": "7354c0c97c9ffaac189c49cad0a7785ba3961098b32d8ec37b7b7b4bad8fd2b6"
+    },
+    {
+      "path": "blocks/Standard_Function/V90 Servo/V90ServoControl.xml",
+      "bytes": 124323,
+      "sha256": "fb1354cd21af26fa7ac5bd955b6c989cc0fdd5e22a2eef834f4138d3269c7579"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/cycles/1 d.xml",
+      "bytes": 1961,
+      "sha256": "650cfc303b7fe0b64371f19dc665b4d254caba120a8531adff6b531d421ac5e3"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/cycles/1 h.xml",
+      "bytes": 1962,
+      "sha256": "b8538c493ffabfce15c68e17d618188bfef7563e8b6ec50a4cee34d2fef0f6e5"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/cycles/1 min.xml",
+      "bytes": 1966,
+      "sha256": "496f7ac453f9f5aa8e164ade76edcfcd89e747a92220d703231a15cfe46abc0f"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/cycles/1 s.xml",
+      "bytes": 1964,
+      "sha256": "f96f6e1547bac060cad5dd3cdf213232498decf9385056588d0cf7d0dd82d622"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/cycles/10 min.xml",
+      "bytes": 1968,
+      "sha256": "93ae31cc0e8b8919560c04ed2ad2d2fcdc3b04c18fbf1d846bf9de795cd60170"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/cycles/10 s.xml",
+      "bytes": 1966,
+      "sha256": "5796de780ef5b8ac3dbf801aa594877a5130f96a317977117dcee286e8898dfe"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/cycles/100 ms.xml",
+      "bytes": 1974,
+      "sha256": "0afffdef14d63222279efa3c2e1c0fcf34a04b7dd1496ac6b06b9b13993a3dd1"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/cycles/125 ms.xml",
+      "bytes": 1974,
+      "sha256": "c4bdd39e987153d21ec75bad3b47ed54aab1c6869ac74e74a5ddc7ee2fe94368"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/cycles/2 s.xml",
+      "bytes": 1964,
+      "sha256": "6916c19cf43489dca706368328012884364db59535d3a6b8ef1b96118b803f5f"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/cycles/250 ms.xml",
+      "bytes": 1973,
+      "sha256": "0bf1f84b29385ef3634a275664c4d0190c1894b99d06a1b9d5c40e47e7650a2e"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/cycles/5 min.xml",
+      "bytes": 1966,
+      "sha256": "5a4f9ab2fffdae89c4e79eb7982ba78390ec89570b64be78f4a0decdbfd855e4"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/cycles/5 s.xml",
+      "bytes": 1964,
+      "sha256": "4a2739a5bcdc224bb6d02d9174a089a368bab386d596e8b4f7056003cb09350d"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/cycles/500 ms.xml",
+      "bytes": 1974,
+      "sha256": "4dc4b57a75b1e44cb5f7c0a95bd274b277e1a0cc85c8a6a0ad1a03fac3fd8a09"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/cycles/Default cycle 1.xml",
+      "bytes": 1976,
+      "sha256": "a84366025647da0cdaa3c12707653e480908c9474dcd2cad46acaa8cefdd2aae"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/cycles/Default cycle 2.xml",
+      "bytes": 1976,
+      "sha256": "fa9d0531fba25dca8fac760e15acd973309145d8ec5781aad93abf121ed3540f"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/cycles/Default cycle 3.xml",
+      "bytes": 1975,
+      "sha256": "fb87bfab859efc52ac76a98aa2d10038fc90c17ca23ce94d216f84f371a30be8"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/cycles/Default cycle 4.xml",
+      "bytes": 1976,
+      "sha256": "24fc360719c61fae7738a6f7f025052d4bf932e80942a095e617c0ec0ec943aa"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/cycles/Default cycle 5.xml",
+      "bytes": 1977,
+      "sha256": "13099b4b1b4fcd8f248b35ad32c47deb04787a85fa5f4f33bdb8b0eae315ad42"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/cycles/UponChange.xml",
+      "bytes": 1971,
+      "sha256": "b0c3e07e4074ab513aaa4066cb819dcc3ba1f2d41edccffc599ebaf14f136805"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/graphic-lists/HH_10_ExecutableLeft.xml",
+      "bytes": 3429,
+      "sha256": "2ae649cdc6e330d0c7ad2840cf6de6dea22d5f94276495e0cef0bac09589307f"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/graphic-lists/HH_10_ExecutableRight.xml",
+      "bytes": 3432,
+      "sha256": "5ceb43e533f11787258595ea0023d771187ab573a04c1f39964da02c87fc998d"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/graphic-lists/SS_00_HeaderHomeGraphic_1.xml",
+      "bytes": 3441,
+      "sha256": "c04e9e4cd096d2fa4ac03238e22c71c7a3de994ab89e52066b4fb12d9bfb5b92"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/graphic-lists/SS_00_HeaderOperationModeGraphic_1.xml",
+      "bytes": 10081,
+      "sha256": "690f8ec7116d1ffe0e761d57d634fa934e3fcce8d5073e71e475c2962cd96b37"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/graphic-lists/SS_00_HeaderStatusGraphic_1.xml",
+      "bytes": 5107,
+      "sha256": "a905c67328bb918ef7319ae5f07fdee606925e4ae94acdeddaf01f6dce022eb3"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/graphic-lists/SS_00_SignOfLife_1.xml",
+      "bytes": 5089,
+      "sha256": "956ea7293aa76754ecef161948697c751e109919ee0b43b08daf70f0dfc04d60"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/manifest.json",
+      "bytes": 17182,
+      "sha256": "e9245c0debc179cee802aae90f7e93ef2f7f462799fb510d7a952948c970bcf8"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/screen-templates/Template_OP270.xml",
+      "bytes": 23525,
+      "sha256": "102af1c6c79a73d438f78941d816958149b41399a0d3cf25e9fb37901641dd96"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/screens/IOMapping/HD_61_Interface.xml",
+      "bytes": 347829,
+      "sha256": "8c844fead3e657aa74f41a22ff7356e1aaa5c4383a23597d43ed9c7488120a24"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/screens/OP260&270_HMI/HD_01_MainScreen.xml",
+      "bytes": 420233,
+      "sha256": "04a5e15325c66f29ed8db0fe8451efd0cc8cdb915546f6a2ee483693ce7d025a"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/screens/OP260&270_HMI/HD_02_OEM.xml",
+      "bytes": 86695,
+      "sha256": "5d867f9b0d20a997e80c9099b2352f41cb94d4f6c1c115ee7b1954cf68a228bc"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/screens/OP260&270_HMI/HD_21_Scylinder.xml",
+      "bytes": 419828,
+      "sha256": "852b12b1a0e43893d1575f6509407ac1677b9628149bbe5a1e29cae0e6373d58"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/screens/OP260&270_HMI/HD_21_Scylinder_OP270_2.xml",
+      "bytes": 220293,
+      "sha256": "25cef602436d5921333e802ba9907cb51847ea42ccd82fdde360fda5d42defb3"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/screens/OP260&270_HMI/HD_22_HuanXing.xml",
+      "bytes": 97832,
+      "sha256": "2bbd8efbf3ad2257ba5bce9e2b3a69d5d25df0d6858220d475243735e3f1a49b"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/screens/OP260&270_HMI/HD_25_RFID_OP270.xml",
+      "bytes": 231081,
+      "sha256": "45cc5b6175d7d619bc82f8e64a6190eef0cc18a057a89172ac8d83919283080c"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/screens/OP260&270_HMI/HD_31_Alarm.xml",
+      "bytes": 90393,
+      "sha256": "3c59a92993a1f9c9ccf13ec836919e3ced13c78543abe7bd3d497cca88822f63"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/screens/OP260&270_HMI/HD_32_AlarmHistory.xml",
+      "bytes": 86675,
+      "sha256": "489fc44361ff5771f975c00f315851f549d19de89ca4f59484594aebd9646c91"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/screens/OP260&270_HMI/HD_51_Comso.xml",
+      "bytes": 120197,
+      "sha256": "bea2592eda19806ba13f9e113c6b0b27bc7df838cea1f9442cc0386f02b89a8b"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/screens/OP260&270_HMI/HD_77_Para2.xml",
+      "bytes": 186329,
+      "sha256": "48c94075a7b02138bb1b12b436e8d42edee5efbcf9e522823c3bb6a073b0b3ff"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/screens/OP260&270_HMI/HD_81_PanelControl.xml",
+      "bytes": 167400,
+      "sha256": "38d6e5584b56f6d183dab51a1bac8df9b270301038a58d0336c1f8ae45c49eb0"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/screens/OP260&270_HMI/HD_82_System.xml",
+      "bytes": 125060,
+      "sha256": "bae1c8508a5dd0440612ec9f8e5250d9d3a16aa8c24a09369943caa586d8b8ce"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/screens/OP260&270_HMI/HD_83_SystemDiagnose.xml",
+      "bytes": 77524,
+      "sha256": "2110f5d321dafb47361dfdceefbdbfdd04f000cf6e778766b0966de79dd72d3d"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/screens/OP260&270_HMI/HD_85_CycleTimes.xml",
+      "bytes": 210226,
+      "sha256": "cf9efab43c7f1819b9266a42089f2f0042dd4d9ba8aa2ab0d7a426af102f10aa"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/screens/OP260&270_HMI/HD_86_PartCounter.xml",
+      "bytes": 135299,
+      "sha256": "8291c7115852948b748df678f1f0e29d27a23074f1d39a4b90bbb3d3bd112618"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/screens/OP260&270_HMI/HD_89_Stackpole.xml",
+      "bytes": 122691,
+      "sha256": "3339c1c8c0e472e408fc1cc7430340b5d60bb5922ec2ca26a953d51e8959bb7f"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/screens/OP260&270_HMI/HD_91_270AutoRun.xml",
+      "bytes": 149974,
+      "sha256": "7e8b709051cc26c3f2cff3ab464228d383ec6893c91daf9d9b893c688ed076b3"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/system/ScreenGlobalElements.xml",
+      "bytes": 1431,
+      "sha256": "9289f526c97b1ba6712e6bcee3e877430f60098adad6c83508df7c4b86a3e658"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/system/ScreenOverview.xml",
+      "bytes": 1453,
+      "sha256": "40f1e8bfaf895e0e0e3488352b9a2bbfbf394420a3afd63a974b25cf6569bf41"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/tag-tables/IOMapping/SM_61_Interface.xml",
+      "bytes": 177642,
+      "sha256": "859216fd75f20175f807e4a33a5602b6f33c206e3ade8e469b54d5524783dfac"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/tag-tables/OP0270/HD_21_Scylinder.xml",
+      "bytes": 77805,
+      "sha256": "4f4bd89fddbb7abae6af01b4254c4514e6a224654962877aae50d2ef06ba4dde"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/tag-tables/OP0270/HD_25_RFID.xml",
+      "bytes": 178374,
+      "sha256": "48a3792ba0d65d37fd7f64e2f073be0330488907c35a67c408e8be9d56e1f051"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/tag-tables/OP0270/HD_26_Monitoring.xml",
+      "bytes": 13108,
+      "sha256": "4a65fcac549a2a313fe8122ba7f8ea56a21a0a2c45b4dd62671202d3e002297f"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/tag-tables/OP0270/HD_31_Alarm.xml",
+      "bytes": 42157,
+      "sha256": "44f592bbb458a78983cf2cd6a4ca4dcce139ec950df34babf776b98415f63449"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/tag-tables/OP0270/HD_51_Comso.xml",
+      "bytes": 18720,
+      "sha256": "315846824f247967a154da1fce84538144d0bd32daa4fbf243693c2a2c91ac86"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/tag-tables/OP0270/HD_51_IAI_Left_X.xml",
+      "bytes": 91502,
+      "sha256": "ef5d3f0da017cadf66609667ea21fdef4eae02c1213e94fd133f1411baf7e907"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/tag-tables/OP0270/HD_51_IAI_Left_Y.xml",
+      "bytes": 91519,
+      "sha256": "ce49b8fb698d471ee1c62c45b92c2daa1696bc4a66afe7d19c89b940c7ee5399"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/tag-tables/OP0270/HD_51_IAI_Left_Z.xml",
+      "bytes": 91520,
+      "sha256": "e6f4da0a7165a13162f03eebc5c145d3a63f121eb6aa2b65578f1fd50e07efa0"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/tag-tables/OP0270/HD_51_IAI_Right_X.xml",
+      "bytes": 91531,
+      "sha256": "59a68f1fa06e4c48ddcb51eeb01321b21e6f29160bdf8936ba1375ee32bdc8f1"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/tag-tables/OP0270/HD_51_IAI_Right_Y.xml",
+      "bytes": 91531,
+      "sha256": "cd718f63458072d6e3a9332de766555f49b22a83c3414fbda3e7eb5dfcca7dba"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/tag-tables/OP0270/HD_51_IAI_Right_Z.xml",
+      "bytes": 91542,
+      "sha256": "e30edbe212df39f2f1f19ac874e0276c355f29143f01e32ecb6622835b0f01b5"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/tag-tables/OP0270/HD_63_Home.xml",
+      "bytes": 89535,
+      "sha256": "7b06437b1c7c440803a46c2ed5ae1bd01c073de6e3afb58004c259705956cdd7"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/tag-tables/OP0270/HD_71_Parameter2.xml",
+      "bytes": 47815,
+      "sha256": "960aaf15487c9f81f0c4d9150435b90e5c69f7ee37fbeaa3f5db340a6e72bfbc"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/tag-tables/OP0270/HD_71_Parameter3.xml",
+      "bytes": 1302,
+      "sha256": "7524d4a925e861f64c91c6852d0768a83abdced0d4d3be1013bbc9f70da2b2d8"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/tag-tables/OP0270/HD_71_Parameter_Left_X.xml",
+      "bytes": 71159,
+      "sha256": "3f808e8ea9700d980bd340bb5c59c63255b36f1e68a148bd4425e86da9b9e74c"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/tag-tables/OP0270/HD_71_Parameter_Left_Y.xml",
+      "bytes": 59543,
+      "sha256": "1d50ecf61dc3c3e60b2c4704abf2153fde3958170df978b5b776fdaefffd1843"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/tag-tables/OP0270/HD_71_Parameter_Left_Z.xml",
+      "bytes": 59543,
+      "sha256": "d131ed2388081ad42ed9d0ee3f5af775b6951a58556cba1fd8e090efa0887a90"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/tag-tables/OP0270/HD_71_Parameter_Right_X.xml",
+      "bytes": 59544,
+      "sha256": "932d0b066cb7ce424caf982baaa5ef963ded4e644c9353c9382cb4e56543e4bb"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/tag-tables/OP0270/HD_71_Parameter_Right_Y.xml",
+      "bytes": 59545,
+      "sha256": "c4226d4c3a02186cc3a078f9be74362cf121aab5d3b1732cab46d6ed9e4f054d"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/tag-tables/OP0270/HD_71_Parameter_Right_Z.xml",
+      "bytes": 59545,
+      "sha256": "6063a74da0e5aeac5ab7ec0cd62b9a38a3f5bc5423f9fe19c22be5c1b06fcecb"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/tag-tables/OP0270/HD_81_System.xml",
+      "bytes": 13378,
+      "sha256": "85c2600e9a6b21327a4270b142ebb882d0952706e0bf72c926e5195a41c86871"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/tag-tables/OP0270/HD_85_MachineOverview.xml",
+      "bytes": 1307,
+      "sha256": "ebe11f60a97c1604191c40a420496d5a3ae9c537feafab697edf8aeb441a743d"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/tag-tables/OP0270/HD_91_StationStatus.xml",
+      "bytes": 24639,
+      "sha256": "31f8496efe18a58078954de3666766c08c439ecfb1569eed7cf4378278f93389"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/tag-tables/OP0270/HD_91_状态监控.xml",
+      "bytes": 19261,
+      "sha256": "a759b96d31b6da8161c4c15ce2f221210be1b11fb52ba1154f0a4845fa65b7b0"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/tag-tables/OP270_RepairTags.xml",
+      "bytes": 76729,
+      "sha256": "ac2737ceae244acd619583dc112e9bb33aa77989abc5b18ec65b4c14294715e1"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/tag-tables/默认变量表.xml",
+      "bytes": 1301,
+      "sha256": "49e1ea7a757d2825b93c3f82784ea509b0434eda6fa4c827b90872f4b5eaff78"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/HD_21_Cylinder_IExt.xml",
+      "bytes": 27475,
+      "sha256": "ce6027143981d79a8de27524c28a57698fe07ac7df1498ebadd7069071b7bddb"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/HD_21_Cylinder_IRet.xml",
+      "bytes": 21272,
+      "sha256": "7f24a00f8dcffa2107774af7ed2a5ec62771f3edf81d7271425e14af3a68d624"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/HD_21_Cylinder_Name.xml",
+      "bytes": 21444,
+      "sha256": "a801a0d4cfad77d725c60acb550f259f52d58316c8f0bbb9c7db10b4faeddb4c"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/HD_21_Cylinder_QExt.xml",
+      "bytes": 21292,
+      "sha256": "e64bdc9fc905af092af91cfab7dbf6ee635e0cbfb85c4a8ef23ecebb4d07c0ed"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/HD_21_Cylinder_QRet.xml",
+      "bytes": 21290,
+      "sha256": "a30b7f497eb5e70117bcac66a29510fa17e087b6fd186ac71e7bcc9b9eb1e334"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/HD_25_ProductTypeName.xml",
+      "bytes": 3311,
+      "sha256": "71b552405bd2f97526b3cad8488359d025ad7f98921da4242ace713635a32d37"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/HD_25_ProductTypeName_1.xml",
+      "bytes": 4091,
+      "sha256": "c76b3ce1dab3657c468640402fdaa8cbe6225aa9d9d8752b2245089d79aed5d1"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/HD_25_ProductTypeName_2.xml",
+      "bytes": 4091,
+      "sha256": "2596f93766f7e184e549252a5917416be53d88dea12cc2314ec172e0ad51f745"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/HD_25_ProductTypeName_3.xml",
+      "bytes": 4091,
+      "sha256": "6e01190e4fe79e834ee8e91139ca1ac2f53151506b5b41a8bdbcb48a49fcc444"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/HD_51_V90_Zone1Text.xml",
+      "bytes": 11144,
+      "sha256": "32a15fcc637ab6b54cb93d8c3b426b00135e0cd2b61f7830d81f1e918bfa3b98"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/HD_51_V90_Zone2Text.xml",
+      "bytes": 8127,
+      "sha256": "351135235165b9d755bc2c4c94874610d448f327a0fe76c05759465e443f9918"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/HD_51_V90_Zone2Text_2.xml",
+      "bytes": 8129,
+      "sha256": "64c29d8cad304d5e732bbbb7928256b52917f0fca829510b2a0cc396e84d4b5a"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/HD_51_V90_Zone3Text.xml",
+      "bytes": 33560,
+      "sha256": "db9f0847a1cd5aa7a922288523807d0de68ca4e9bdfcf58f78f003d407899c4a"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/HD_51_V90_Zone3Text_2.xml",
+      "bytes": 33561,
+      "sha256": "132680dd20ede8da0f17fbe7dd7dd0e7645d5ce8a5d31c632a2d55ed27642388"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/HD_61_InterfaceInput.xml",
+      "bytes": 59124,
+      "sha256": "b815527395b0748af6890689af9032f56eb5dc001b3d24d552fca2409c8118de"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/HD_61_InterfaceOutput.xml",
+      "bytes": 67041,
+      "sha256": "5ca7dbede795bd2167e2b799d82cdb3c0ee5520b341bd76fbc59f80e4303387e"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/HD_61_InterfaceSelectInput.xml",
+      "bytes": 5684,
+      "sha256": "f95b377a959c0f89bdb2fd9ccbd36cffbbe8a915d78a3ab5d96dab5162630173"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/HD_61_InterfaceSelectOutput.xml",
+      "bytes": 6474,
+      "sha256": "d2b4af3f78a3f08ba6d539f51d586f8e210a2743a886af7ffb60bef85fa72c08"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/HD_63_Home_Num.xml",
+      "bytes": 2546,
+      "sha256": "c050f50aa9d158c6965a0bea13dfd30d1b241da112436f604bfb3c74be0e872c"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/HD_63_Homeing.xml",
+      "bytes": 84080,
+      "sha256": "d7781d3c41f2296a13ae1227af46b0f10f57b7e24b934b82963f60268ed4d1f8"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/HD_64_Bypass.xml",
+      "bytes": 3334,
+      "sha256": "6273c2acee7ac91d8ef07b327614f8d28a67ca0f35b866e35bb2474577985c3b"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/HD_65_ProcessOverview.xml",
+      "bytes": 310919,
+      "sha256": "c584c48b79e01913b7699928d3f6781fa48729f81369748dba37ce24d5f1f0f0"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/HD_66_Status.xml",
+      "bytes": 8028,
+      "sha256": "ee9553be912f9acc814d1dd6f50ec4f95600db3e67d13f0f4d97ead28e6f2db9"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/HD_71_ParameterText1.xml",
+      "bytes": 81091,
+      "sha256": "134da92e0dc8526d8e9b219b496b4cd2e143c402715cca1af838ca3be410d4b2"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/HD_71_ParameterText2.xml",
+      "bytes": 82258,
+      "sha256": "4358ff4137c973b9e4b88d4e9150be1b26253b15c1915f264139986d1e695636"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/OP260复位提示.xml",
+      "bytes": 12181,
+      "sha256": "71220857c30c613427e530cfd161b26df1a2206ff19f3cf6106d8c5f8de450aa"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/OP260自动提示.xml",
+      "bytes": 27404,
+      "sha256": "d6b44c782aa8f3d5e53af8db0a84222e732fb0a39a361da0805bd14fc2885e24"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/OP270复位提示.xml",
+      "bytes": 12985,
+      "sha256": "dd3a6b71f8b5cd63b4bed4ff04558f076a5ece0b3a3bc6fad806dd2b4d889088"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/OP270工序.xml",
+      "bytes": 7923,
+      "sha256": "a6fa514b1fd267497c74d4a8f06c4a4dada9123b3779c75536301607ab26ac55"
+    },
+    {
+      "path": "hmi/HD2303-OP270HMI _ HMI_RT_3 _ HMI_RT_3/text-lists/OP270自动提示.xml",
+      "bytes": 31445,
+      "sha256": "870fe336e3f95235cbe1dd6f5218f1c207e722ad660f19d3e4429d1287a5f093"
+    },
+    {
+      "path": "manifest.json",
+      "bytes": 30265,
+      "sha256": "ada0ac5f7c5e3a9a3390fb8307f6f757c42e97f63acef1951508da9a01f6e7ca"
+    },
+    {
+      "path": "types/Analog/UDT_AnalogIn.udt",
+      "bytes": 1528,
+      "sha256": "ad6ccf72c8d5078ce6015a6c06b6cd463635a98f8495894c55e590782b6ffb50"
+    },
+    {
+      "path": "types/Atlas/UDT_AtlasCtrl.udt",
+      "bytes": 505,
+      "sha256": "9ff1273b2672bb98056887da1db39d2c27a3640e22102b936287fe5dca11a1af"
+    },
+    {
+      "path": "types/Atlas/UDT_AtlasInPut.udt",
+      "bytes": 1176,
+      "sha256": "9fce3abcf9c9838a9ed2f770f85aa93f5b23b5bfc754eb3554f24a86ba85829c"
+    },
+    {
+      "path": "types/Atlas/UDT_AtlasOutput.udt",
+      "bytes": 2393,
+      "sha256": "f46e0ea798c90921f294a6c294f52cd2c06adc2c9b34fd6f545cd672d76c1bab"
+    },
+    {
+      "path": "types/Atlas/UDT_AtlasSpindleDate.udt",
+      "bytes": 634,
+      "sha256": "08f907a3bf73fb9a45dc495ab87aced83f28a115615d760d3a3ee32625b4aca4"
+    },
+    {
+      "path": "types/CodeReader/UDT_CodeReaderCtrl.udt",
+      "bytes": 269,
+      "sha256": "0af425a262cb53a723f2fb4feeca567d8b13e79e0f642c34be0d955d6c1426d2"
+    },
+    {
+      "path": "types/CodeReader/UDT_CodeReaderInput.udt",
+      "bytes": 1219,
+      "sha256": "fec0588be51c36131f002d38d56d58330149246d127f1462eca4755b34c98e57"
+    },
+    {
+      "path": "types/CodeReader/UDT_CodeReaderOutput.udt",
+      "bytes": 2257,
+      "sha256": "3aff84217b18337984674176fda289d9e7caed9b17b96d921650fc68bdb321f5"
+    },
+    {
+      "path": "types/CodeReader/UDT_CodeReaderStatus.udt",
+      "bytes": 449,
+      "sha256": "d17f94b723a0bcabdb2303392d59e6a9ff7422420cb8b64bd80d1c7fa2029a74"
+    },
+    {
+      "path": "types/Encoders/UDT_EncodersCtrl.udt",
+      "bytes": 476,
+      "sha256": "bcb14081e97f9358b31faa0e6b63b938956833249923f7d1f818a1b108a305d5"
+    },
+    {
+      "path": "types/Graph/UDT_Graph.udt",
+      "bytes": 677,
+      "sha256": "afd205f91d66894afd4d3dfe14ae9f326bcfb83868b503d209e9b5a8c556c585"
+    },
+    {
+      "path": "types/Graph/UDT_Indicator.udt",
+      "bytes": 143,
+      "sha256": "464c56e931c6e91878984f46e907a2bc4eaa7bb8ce2dc95a12c1889434132e00"
+    },
+    {
+      "path": "types/Inovance/UDT_AxisCtrl.udt",
+      "bytes": 265,
+      "sha256": "d97cbf897187c7501b05db7eb8141acfccda4099d2271333ccc2d1d72a3bc1e8"
+    },
+    {
+      "path": "types/Inovance/UDT_AxisPosReach.udt",
+      "bytes": 592,
+      "sha256": "56fc890e2881d0b95b6b18183a9023de9596a230e8996d260b3ccd90af7abc98"
+    },
+    {
+      "path": "types/Inovance/UDT_AxisPosSetValue.udt",
+      "bytes": 166,
+      "sha256": "b5c4ed1acb304d02e43b3d790b080a55fc672b41e8e769ee120bb236ffd48288"
+    },
+    {
+      "path": "types/Inovance/UDT_SinaPosInput.udt",
+      "bytes": 577,
+      "sha256": "5b49d8db197549ce1f8349a39a71ad3e355e4014bb4b746a1a4b39782d5fdc6d"
+    },
+    {
+      "path": "types/Inovance/UDT_SinaPosOutput.udt",
+      "bytes": 586,
+      "sha256": "c2ea8b6e540f0c507fa0b20715c768a2c3adfc1ca07f3e023d1b003fcc581e6d"
+    },
+    {
+      "path": "types/Kistler/Parameter/OP012Parameter/UDT_OP012Parameter.udt",
+      "bytes": 154,
+      "sha256": "e40752d3ec3118e9a07823ac6b4977923b949769d23692d843e14ad3fed20686"
+    },
+    {
+      "path": "types/Kistler/Parameter/OP014Parameter/UDT_OP014Parameter.udt",
+      "bytes": 154,
+      "sha256": "6985941a11a52775e2fb2dadb0f978c60d48b5e0e5e4d09229b13546c3805733"
+    },
+    {
+      "path": "types/Kistler/UDT_Kistler_5847B_Bus_In.udt",
+      "bytes": 3466,
+      "sha256": "fc54fc8a38c16262512eb014533b4f3634a66fed81bd42323841ba3e75cbda98"
+    },
+    {
+      "path": "types/Kistler/UDT_Kistler_5847B_Bus_Out.udt",
+      "bytes": 2133,
+      "sha256": "dac86b5307ee0ecc6004542686156bf2e3c0b1a2bc6faa56969c00f6e15dc740"
+    },
+    {
+      "path": "types/Kistler/UDT_KistlerCtrl.udt",
+      "bytes": 541,
+      "sha256": "fbb5de459c682df1c128b4fdd6afec8aa7dc6e6a488bd930366495b65276967b"
+    },
+    {
+      "path": "types/Kistler/UDT_KistlerMeterInput.udt",
+      "bytes": 768,
+      "sha256": "d563d165d46c61b03cdb6329fa90248bc1a7723c42f6f78891a1259a3f3d3437"
+    },
+    {
+      "path": "types/Kistler/UDT_KistlerMeterOutput.udt",
+      "bytes": 482,
+      "sha256": "2c9baa9c1846d3cf68fb562ec7f62266dfb47dbc2f463a3c4ec2209322ab7966"
+    },
+    {
+      "path": "types/Line/UDT_PriorityRelease.udt",
+      "bytes": 1426,
+      "sha256": "6cb11c9a00d8811fe50a108eb171ff78cf9cbbe7318a1914ae5ed4298b3c7075"
+    },
+    {
+      "path": "types/Line/UDT_ReleasingTray.udt",
+      "bytes": 1424,
+      "sha256": "19183f86e7d9fbcaa16c3716652cbced7607fb2d45c1e86ffa7cf7ac54f9d0cb"
+    },
+    {
+      "path": "types/Line/UDT_StationWorkDone.udt",
+      "bytes": 1426,
+      "sha256": "413a7e2cab76f1137c53dae107c1340009d9e54d50d45d6f0e8c67950870a000"
+    },
+    {
+      "path": "types/Line/UDT_WaitTray.udt",
+      "bytes": 1302,
+      "sha256": "7f449d3ea6603ba8fe28fa561d72461c07c2d9ae53495c3d9ad58047d998793b"
+    },
+    {
+      "path": "types/MachineOverview/HmiCycleTime.udt",
+      "bytes": 345,
+      "sha256": "7d40e1d845a21292949ac5ae3d209164af8bb57663c8df5a36fea9c14f4585ef"
+    },
+    {
+      "path": "types/MachineOverview/HmiProductCount.udt",
+      "bytes": 185,
+      "sha256": "8c9e2f966e6744ed15d5a58fcbaabf18b357ad3b254b65a12b63310320d2c8da"
+    },
+    {
+      "path": "types/MachineOverview/HmiProductCountDate.udt",
+      "bytes": 163,
+      "sha256": "4c100aea91673d0f61e0248606bf3a0f1df519fed4b09a712d8d94e1f9f99649"
+    },
+    {
+      "path": "types/Marking/UDT_KeyenceMarkingCtrl.udt",
+      "bytes": 333,
+      "sha256": "b9918cbbabeff79518336f32f16392d1a6d8aab381f945b26990469cfdbe2d76"
+    },
+    {
+      "path": "types/Marking/UDT_KeyenceMarkingInput.udt",
+      "bytes": 6455,
+      "sha256": "745e332c39a1f110f3a53e8ff45b04145884f7af38fc58c274da5b911e516f1d"
+    },
+    {
+      "path": "types/Marking/UDT_KeyenceMarkingOutput.udt",
+      "bytes": 9803,
+      "sha256": "9bfa9f139fa0460db7347feb1aa9960a7291729eddfbce2a6f227c8c63f1880d"
+    },
+    {
+      "path": "types/Rfid/PF_RFID_DATATYPE.udt",
+      "bytes": 1869,
+      "sha256": "5cc202fa1458a3ee8b3a54a10dffb2fe6e8fdcf2cc51b44e3f5af13e7a45274a"
+    },
+    {
+      "path": "types/Rfid/UDT_RFIDCompactCtrl.udt",
+      "bytes": 320,
+      "sha256": "d5cac6b7ca907bbdf4340d458dbd9755bde23f09cc201bb7ae87fd16f8434434"
+    },
+    {
+      "path": "types/Rfid/UDT_RFIDCompactStatus.udt",
+      "bytes": 423,
+      "sha256": "adce988640402eb7ba97ee665485c98bda39379b5d2b102fdc74416ff03d3f90"
+    },
+    {
+      "path": "types/Rfid/UDT_RFIDCtrl.udt",
+      "bytes": 187,
+      "sha256": "77ab13a98f528454ea0d51bed0f1c5acae27ac2b681da2564911d59bc6470518"
+    },
+    {
+      "path": "types/Rfid/UDT_RFIDErrorStatus.udt",
+      "bytes": 137,
+      "sha256": "2cd9c48f9d7479e87781936d0cdeb8f8e7dcb5e95ec0248aaeff9f198135c686"
+    },
+    {
+      "path": "types/Rfid/UDT_RFIDReadWriteDate.udt",
+      "bytes": 393,
+      "sha256": "512e63042da87196151916dcd7a07744867210181180c6c80617cb0e2fcadf8e"
+    },
+    {
+      "path": "types/Rfid/UDT_RFIDStatus.udt",
+      "bytes": 291,
+      "sha256": "8c64555e862049c432607059996d710c42619a68acae59f575c37152542ae6d4"
+    },
+    {
+      "path": "types/Rfid/UDT_RFIDTrigCompactCtrl.udt",
+      "bytes": 276,
+      "sha256": "d6686a717a29c687bbec2353eb42fe4ba67a1cb23f69183f0e1c8f52f656625b"
+    },
+    {
+      "path": "types/Rfid/UDT_Step.udt",
+      "bytes": 376,
+      "sha256": "ca1ade62844a82d517147570cfe02de2f851c16efbfdc71e0a6e8fbb9885ec9d"
+    },
+    {
+      "path": "types/sCylinder/UDT_Cylinder.udt",
+      "bytes": 535,
+      "sha256": "6f18bd978326971b64cf029c172d6cb5cd198178b17d42205f6648f2d19e924f"
+    },
+    {
+      "path": "types/SelectGasket/UDT_SelectGasket.udt",
+      "bytes": 840,
+      "sha256": "8bc2e5252442a15943782dd648295fcf46742a7ec344ace3215c44503c3b88d0"
+    },
+    {
+      "path": "types/StationSystem/UDT_Alarm.udt",
+      "bytes": 1244,
+      "sha256": "58481bdecf5f3b83803ff03fec545942c7cda99ac59d8f8ff795443b933f0fd0"
+    },
+    {
+      "path": "types/StationSystem/UDT_Mode.udt",
+      "bytes": 1104,
+      "sha256": "17d66917935f4de43be20906eebe6e56e4ce9b0c8beb482cd051617122795874"
+    },
+    {
+      "path": "types/StationSystem/UDT_Panel.udt",
+      "bytes": 579,
+      "sha256": "eb120139e369114d72120f080347c731bbb31172f22cb770a4d74213cc2d0d3b"
+    },
+    {
+      "path": "types/StationSystem/UDT_StationInHPos.udt",
+      "bytes": 496,
+      "sha256": "eb18c496a2bc5d4003f0f3faa227ab719c58f6ff2dfb3324774be2239f15c9e0"
+    },
+    {
+      "path": "types/StationSystem/UDT_Status.udt",
+      "bytes": 352,
+      "sha256": "50bce10e64a4d490c7e7753e6f7dec708479bf5b4b11ef121f20299b4af77a48"
+    },
+    {
+      "path": "types/SystermSignal/UDT_SystermSignal.udt",
+      "bytes": 621,
+      "sha256": "5635eb98c99436f1135e4dc749a42e5a3ade3120c1f4f1afae03f7ef213a2261"
+    },
+    {
+      "path": "types/UDT_Insight_CC24.udt",
+      "bytes": 3240,
+      "sha256": "24e4cd4fee4594870a57cdd93cda098ef3e63c33fe402f64b3f99ae46c5b2628"
+    },
+    {
+      "path": "types/V90/telegram_111_receive.udt",
+      "bytes": 2651,
+      "sha256": "38afff3a34d5e2cc3d011feb9824690a90e71b703811c08e049758cd0baf1bd8"
+    },
+    {
+      "path": "types/V90/telegram_111_send.udt",
+      "bytes": 3354,
+      "sha256": "82dcefd580608c8191c97529aabf1b75c97ecb6e05294aebf89f9570dcdb0343"
+    },
+    {
+      "path": "types/V90/type_V90ControlSignal.udt",
+      "bytes": 413,
+      "sha256": "218f5fc2f90f42b0c436f7d208f6158619fe9ce4b3ba61ce5a55b194a0806b39"
+    },
+    {
+      "path": "types/V90/type_V90IEC_TIMER.udt",
+      "bytes": 185,
+      "sha256": "a8be37086484f104d68ed47365a946194b7454409305d16a197e19f4c3987319"
+    },
+    {
+      "path": "types/V90/type_V90MDIControlSignal.udt",
+      "bytes": 137,
+      "sha256": "c47e8ff3c696b385e24a086a687bfa5a9164e849fe9b468d83815bbb9580baa7"
+    },
+    {
+      "path": "types/V90/type_V90MDIValue.udt",
+      "bytes": 133,
+      "sha256": "d66c55b85c8904fcd68099bf37cf772f14da29127ebbc27af1ba41192668a689"
+    },
+    {
+      "path": "types/V90/type_V90ServoProductTypeParameter.udt",
+      "bytes": 241,
+      "sha256": "d1a454eeefd04ebd06f1081421a0a71fb5f5977f7c7071558b5a7c6daa293da9"
+    },
+    {
+      "path": "types/V90/type_V90StatusSignal.udt",
+      "bytes": 721,
+      "sha256": "bbd7facbc8f212bfdbf98cc66ad8bbcdb7fe8ef64f2cd9ce8d64b910451878b7"
+    },
+    {
+      "path": "types/V90/type_V90TempValue.udt",
+      "bytes": 563,
+      "sha256": "526b4f8b36d8f5f223c25102b1e7dc27b3a5bfeadc24814a06f8d999d4a78862"
+    },
+    {
+      "path": "types/V90/UDT_Contrl.udt",
+      "bytes": 117,
+      "sha256": "1cc88c7c6604dda925929cc4e27268f3d2215b82764fbc70d2775a8eb1e0ad9c"
+    },
+    {
+      "path": "types/V90/UDT_MDICtrl.udt",
+      "bytes": 168,
+      "sha256": "cec6dfdb49cacb1c6df68c6f7f2a692d6c0666d6baa4fde0a850054bb10ae938"
+    },
+    {
+      "path": "types/V90/UDT_MDTPostion.udt",
+      "bytes": 200,
+      "sha256": "c885e83fcb6d5b3e9ad4039139bba34bb48368a8a1b3d73cc588566d4675814a"
+    }
+  ],
+  "coverage": {
+    "xml_parsed": 170,
+    "json_parsed": 2,
+    "text_files_read": 266,
+    "semantic_scope": "focused extraction; not a full logic audit"
+  },
+  "review_notes": [
+    "所有文件已读取并校验 XML/JSON 格式；没有逐个审核所有业务逻辑。",
+    "导出 manifest 的工程路径与当前提供目录可能不同，仍按 manifest 原文保留；内容仅说明该快照。"
+  ]
+}

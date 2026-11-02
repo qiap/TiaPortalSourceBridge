@@ -1,0 +1,46 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+    <AssemblyName>TiaPortalSourceBridge</AssemblyName>
+    <RootNamespace>TiaPortalSourceBridge</RootNamespace>
+    <LangVersion>7.3</LangVersion>
+    <ApplicationIcon>..\..\app.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <!--
+    The Siemens assembly is loaded at runtime from config.json. This deliberately avoids
+    binding the executable to one TIA major version. For IntelliSense while developing,
+    uncomment this Reference and set SiemensEngineeringPath on the build command line:
+
+    <Reference Include="Siemens.Engineering">
+      <HintPath>$(SiemensEngineeringPath)</HintPath>
+      <Private>false</Private>
+    </Reference>
+  -->
+
+  <ItemGroup>
+    <Content Include="..\..\templates\**\*">
+      <Link>templates\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\..\web\**\*">
+      <Link>web\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Reference Include="System.Web.Extensions" />
+    <Reference Include="System.Management" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+    <Reference Include="Interop.UIAutomationClient">
+      <HintPath>..\..\build-support\uia\Interop.UIAutomationClient.dll</HintPath>
+      <EmbedInteropTypes>true</EmbedInteropTypes>
+    </Reference>
+  </ItemGroup>
+  <Target Name="GenerateUiaInterop" BeforeTargets="ResolveAssemblyReferences">
+    <Exec Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\..\Build-UiaInterop.ps1&quot; -Quiet" />
+  </Target>
+</Project>

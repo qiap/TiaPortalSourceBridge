@@ -1,0 +1,87 @@
+<Hmi.Screen.SymbolicIOField ID="113" CompositionName="ScreenItems">
+  <AttributeList>
+    <AboveUpperLimitColor>237, 88, 97</AboveUpperLimitColor>
+    <BackColor>192, 192, 192</BackColor>
+    <BackFillStyle>Solid</BackFillStyle>
+    <BelowLowerLimitColor>241, 161, 44</BelowLowerLimitColor>
+    <BitNumber>0</BitNumber>
+    <BorderBackColor>0, 0, 0</BorderBackColor>
+    <BorderColor>71, 73, 87</BorderColor>
+    <BorderWidth>1</BorderWidth>
+    <BottomMargin>2</BottomMargin>
+    <CornerRadius>3</CornerRadius>
+    <CountVisibleItems>3</CountVisibleItems>
+    <EdgeStyle>Double</EdgeStyle>
+    <Enabled>true</Enabled>
+    <EvenRowBackColor>230, 230, 232</EvenRowBackColor>
+    <FitToLargest>false</FitToLargest>
+    <Flashing>None</Flashing>
+    <FlashingOnLimitViolation>false</FlashingOnLimitViolation>
+    <ForeColor>49, 52, 74</ForeColor>
+    <Height>30</Height>
+    <HorizontalAlignment>Center</HorizontalAlignment>
+    <Left>174</Left>
+    <LeftMargin>3</LeftMargin>
+    <Mode>Output</Mode>
+    <ObjectName>SymbolicIOField1</ObjectName>
+    <OnValue>1</OnValue>
+    <RightMargin>2</RightMargin>
+    <SelectBackColor>0, 0, 0</SelectBackColor>
+    <SelectForeColor>255, 255, 255</SelectForeColor>
+    <ShowDropDownButton>false</ShowDropDownButton>
+    <ShowDropDownList>false</ShowDropDownList>
+    <TabIndex>-1</TabIndex>
+    <TextOrientation>Horizontal</TextOrientation>
+    <Top>273</Top>
+    <TopMargin>2</TopMargin>
+    <UseDesignColorSchema>false</UseDesignColorSchema>
+    <VerticalAlignment>Middle</VerticalAlignment>
+    <Width>410</Width>
+  </AttributeList>
+  <ObjectList>
+    <Hmi.Globalization.MultiLingualFont ID="115" CompositionName="Font">
+      <ObjectList>
+        <Hmi.Globalization.FontItem ID="116" CompositionName="Items">
+          <AttributeList>
+            <Culture>zh-CN</Culture>
+            <FontFamily>宋体</FontFamily>
+            <FontSize>16</FontSize>
+            <FontStyle>Regular</FontStyle>
+          </AttributeList>
+        </Hmi.Globalization.FontItem>
+      </ObjectList>
+    </Hmi.Globalization.MultiLingualFont>
+    <MultilingualText ID="117" CompositionName="HelpText">
+      <ObjectList>
+        <MultilingualTextItem ID="118" CompositionName="Items">
+          <AttributeList>
+            <Culture>zh-CN</Culture>
+            <Text />
+          </AttributeList>
+        </MultilingualTextItem>
+      </ObjectList>
+    </MultilingualText>
+    <MultilingualText ID="11C" CompositionName="TextOff">
+      <ObjectList>
+        <MultilingualTextItem ID="11D" CompositionName="Items">
+          <AttributeList>
+            <Culture>zh-CN</Culture>
+            <Text>
+            </Text>
+          </AttributeList>
+        </MultilingualTextItem>
+      </ObjectList>
+    </MultilingualText>
+    <MultilingualText ID="11E" CompositionName="TextOn">
+      <ObjectList>
+        <MultilingualTextItem ID="11F" CompositionName="Items">
+          <AttributeList>
+            <Culture>zh-CN</Culture>
+            <Text>
+            </Text>
+          </AttributeList>
+        </MultilingualTextItem>
+      </ObjectList>
+    </MultilingualText>
+  </ObjectList>
+</Hmi.Screen.SymbolicIOField>

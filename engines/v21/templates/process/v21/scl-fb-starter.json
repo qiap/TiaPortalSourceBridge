@@ -1,0 +1,20 @@
+{
+  "id": "v21.scl-fb-starter",
+  "kind": "template",
+  "title": "TIA V21 标准优化 FB 骨架（SCL）",
+  "format": "SCL",
+  "parameters": [
+    { "name": "block_name", "type": "identifier", "description": "FB 名称" },
+    { "name": "cmd_execute", "type": "identifier", "default": "Execute", "description": "触发输入参数名" }
+  ],
+  "distinct_parameters": [["block_name", "cmd_execute"]],
+  "reserved_identifiers": {
+    "cmd_execute": ["Busy", "Done", "Error", "Status", "statPrevExecute"]
+  },
+  "dependencies": [],
+  "review_notes": [
+    "默认采用 S7_Optimized_Access := 'TRUE'，导入后使用 tia_compile_plc 或 compile_mode=block 验证。"
+  ],
+  "sources": ["TIA Portal V21 Programming Styleguide"],
+  "body": "FUNCTION_BLOCK \"{{block_name}}\"\n{ S7_Optimized_Access := 'TRUE' }\nVERSION : 0.1\n   VAR_INPUT \n      {{cmd_execute}} : Bool;\n   END_VAR\n\n   VAR_OUTPUT \n      Done : Bool;\n      Busy : Bool;\n      Error : Bool;\n      Status : Word := 16#7000;\n   END_VAR\n\n   VAR \n      statPrevExecute : Bool;\n   END_VAR\n\nBEGIN\n   IF #{{cmd_execute}} AND NOT #statPrevExecute THEN\n      #Done := TRUE;\n      #Busy := FALSE;\n      #Error := FALSE;\n      #Status := 16#0000;\n   ELSIF NOT #{{cmd_execute}} THEN\n      #Done := FALSE;\n      #Busy := FALSE;\n      #Status := 16#7000;\n   END_IF;\n   #statPrevExecute := #{{cmd_execute}};\nEND_FUNCTION_BLOCK\n"
+}

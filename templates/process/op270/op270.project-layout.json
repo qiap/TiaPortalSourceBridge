@@ -1,0 +1,131 @@
+{
+  "id": "op270.project-layout",
+  "kind": "knowledge",
+  "title": "工程结构与调用顺序",
+  "summary": "Main 依次映射 IO、处理模式报警、调用 GRAPH、气缸、气密、统计、RFID、MES。",
+  "tags": [
+    "工程",
+    "扫描",
+    "调用顺序",
+    "Main"
+  ],
+  "applicability": "Siemens TIA Portal V17; OP270 exported source conventions",
+  "provenance": {
+    "exported_at_utc": "2026-10-14T06:23:13.2205718Z",
+    "tia_version": "V17",
+    "plc": "S71500/ET200MP station_1 / PLC_CPU1513 / PLC_CPU1513",
+    "manifest_project_path": "E:\\plcdata\\OP270_Independent_V17\\OP270_Independent_V17\\HD2303_OP270_Independent\\HD2303_OP270_Independent.ap17",
+    "manifest_sha256": "ada0ac5f7c5e3a9a3390fb8307f6f757c42e97f63acef1951508da9a01f6e7ca",
+    "status": "offline_snapshot_not_live_project",
+    "file_count": 266,
+    "source_bytes": 9288872
+  },
+  "sources": [
+    {
+      "path": "blocks/HD2303-OP270Station/00 Main/OP270_Main.xml",
+      "bytes": 16276,
+      "sha256": "970812b66297196cc3a7412171319ad459c084c5b28ee4cc8d12b7735ea5f93a"
+    },
+    {
+      "path": "manifest.json",
+      "bytes": 30265,
+      "sha256": "ada0ac5f7c5e3a9a3390fb8307f6f757c42e97f63acef1951508da9a01f6e7ca"
+    }
+  ],
+  "facts": [
+    {
+      "titles": [
+        "IO映射"
+      ],
+      "calls": [
+        {
+          "Name": "OP270_IOMapping",
+          "BlockType": "FC"
+        }
+      ]
+    },
+    {
+      "titles": [
+        "模式和报警"
+      ],
+      "calls": [
+        {
+          "Name": "OP270_Alarm",
+          "BlockType": "FC"
+        },
+        {
+          "Name": "OP270_BasicSign",
+          "BlockType": "FC"
+        }
+      ]
+    },
+    {
+      "titles": [
+        "控制流程"
+      ],
+      "calls": [
+        {
+          "Name": "OP270_Graph启用与调用",
+          "BlockType": "FB"
+        }
+      ]
+    },
+    {
+      "titles": [
+        "气缸控制"
+      ],
+      "calls": [
+        {
+          "Name": "OP270_Cylinder",
+          "BlockType": "FB"
+        }
+      ]
+    },
+    {
+      "titles": [
+        "Comso"
+      ],
+      "calls": [
+        {
+          "Name": "OP270_Comso",
+          "BlockType": "FC"
+        }
+      ]
+    },
+    {
+      "titles": [
+        "循环周期"
+      ],
+      "calls": [
+        {
+          "Name": "OP270_Overview",
+          "BlockType": "FC"
+        }
+      ]
+    },
+    {
+      "titles": [
+        "RFID"
+      ],
+      "calls": [
+        {
+          "Name": "AllStationRFIDCtrl_OP270",
+          "BlockType": "FC"
+        }
+      ]
+    },
+    {
+      "titles": [],
+      "calls": [
+        {
+          "Name": "OP270_MES",
+          "BlockType": "FC"
+        }
+      ]
+    }
+  ],
+  "review_notes": [
+    "顺序来自源码网络顺序，不等于所有调用都无条件执行。",
+    "导出中保留 OP260 与共享库命名，不应按字符串全局替换站号。"
+  ]
+}

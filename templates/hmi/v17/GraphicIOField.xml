@@ -1,0 +1,43 @@
+<Hmi.Screen.GraphicIOField ID="4" CompositionName="ScreenItems">
+  <AttributeList>
+    <AboveUpperLimitColor>239, 97, 99</AboveUpperLimitColor>
+    <AutoSizing>StretchPicture</AutoSizing>
+    <BackColor>107, 117, 156</BackColor>
+    <BackFillStyle>Solid</BackFillStyle>
+    <BelowLowerLimitColor>255, 219, 41</BelowLowerLimitColor>
+    <BitNumber>0</BitNumber>
+    <BorderColor>0, 0, 0</BorderColor>
+    <BorderWidth>0</BorderWidth>
+    <EdgeStyle>Solid</EdgeStyle>
+    <Enabled>true</Enabled>
+    <FitToLargest>false</FitToLargest>
+    <Flashing>None</Flashing>
+    <FlashingOnLimitViolation>false</FlashingOnLimitViolation>
+    <FocusColor>148, 182, 231</FocusColor>
+    <FocusWidth>2</FocusWidth>
+    <Height>33</Height>
+    <Left>765</Left>
+    <Mode>Output</Mode>
+    <ObjectName>GraphicIOField1</ObjectName>
+    <OnValue>1</OnValue>
+    <ScrollBarOrientation>Vertical</ScrollBarOrientation>
+    <ShowScrollBar>Permanent</ShowScrollBar>
+    <TabIndex>-1</TabIndex>
+    <Top>0</Top>
+    <TransparentColor>255, 0, 255</TransparentColor>
+    <UseTransparentColor>false</UseTransparentColor>
+    <Width>32</Width>
+  </AttributeList>
+  <ObjectList>
+    <MultilingualText ID="6" CompositionName="HelpText">
+      <ObjectList>
+        <MultilingualTextItem ID="7" CompositionName="Items">
+          <AttributeList>
+            <Culture>zh-CN</Culture>
+            <Text />
+          </AttributeList>
+        </MultilingualTextItem>
+      </ObjectList>
+    </MultilingualText>
+  </ObjectList>
+</Hmi.Screen.GraphicIOField>

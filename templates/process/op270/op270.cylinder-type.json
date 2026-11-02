@@ -1,0 +1,46 @@
+{
+  "id": "op270.cylinder-type",
+  "kind": "template",
+  "title": "气缸 UDT 数据结构",
+  "summary": "保留导出 UDT 的字段顺序和类型，可指定新类型名称。",
+  "tags": [
+    "气缸",
+    "UDT",
+    "接口"
+  ],
+  "applicability": "Siemens TIA Portal V17; OP270 exported source conventions",
+  "provenance": {
+    "exported_at_utc": "2026-10-14T06:23:13.2205718Z",
+    "tia_version": "V17",
+    "plc": "S71500/ET200MP station_1 / PLC_CPU1513 / PLC_CPU1513",
+    "manifest_project_path": "E:\\plcdata\\OP270_Independent_V17\\OP270_Independent_V17\\HD2303_OP270_Independent\\HD2303_OP270_Independent.ap17",
+    "manifest_sha256": "ada0ac5f7c5e3a9a3390fb8307f6f757c42e97f63acef1951508da9a01f6e7ca",
+    "status": "offline_snapshot_not_live_project",
+    "file_count": 266,
+    "source_bytes": 9288872
+  },
+  "sources": [
+    {
+      "path": "types/sCylinder/UDT_Cylinder.udt",
+      "bytes": 535,
+      "sha256": "6f18bd978326971b64cf029c172d6cb5cd198178b17d42205f6648f2d19e924f"
+    }
+  ],
+  "format": "UDT",
+  "body": "TYPE \"{{type_name}}\"\nVERSION : 0.1\n   STRUCT\n      Interlock_W : Bool;\n      Interlock_H : Bool;\n      Trigger_W_Man : Bool;\n      Trigger_H_Man : Bool;\n      Wpos_SE : Bool;\n      Hpos_SE : Bool;\n      Wpos_Valve : Bool;\n      Hpos_Valve : Bool;\n      Trigger_W_Auto : Bool;\n      Trigger_H_Auto : Bool;\n      sWpos_SE : Bool;\n      sHpos_SE : Bool;\n      sWpos_Valve : Bool;\n      sHpos_Valve : Bool;\n      sInterlock_W : Bool;\n      sInterlock_H : Bool;\n      TimeOut_Set : DInt;\n   END_STRUCT;\n\nEND_TYPE\n\n",
+  "parameters": [
+    {
+      "name": "type_name",
+      "type": "identifier",
+      "description": "",
+      "default": "UDT_Cylinder"
+    }
+  ],
+  "dependencies": [],
+  "review_notes": [
+    "源工程导出快照不等于当前工程，也没有现场或博途编译验收；生成内容仅为待审查草稿。",
+    "导入前实时读取目标、核对依赖和符号、备份并检查差异；导入后执行目标工程编译。",
+    "已有非优化 DB/HMI 可能依赖布局；不要直接覆盖正在使用的类型。"
+  ],
+  "validation_status": "source_derived_not_tia_compiled"
+}

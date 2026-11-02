@@ -1,0 +1,271 @@
+{
+  "schema_version": 1,
+  "library_version": "1.0.0",
+  "source": {
+    "exported_at_utc": "2026-10-14T06:23:13.2205718Z",
+    "tia_version": "V17",
+    "plc": "S71500/ET200MP station_1 / PLC_CPU1513 / PLC_CPU1513",
+    "manifest_project_path": "E:\\plcdata\\OP270_Independent_V17\\OP270_Independent_V17\\HD2303_OP270_Independent\\HD2303_OP270_Independent.ap17",
+    "manifest_sha256": "ada0ac5f7c5e3a9a3390fb8307f6f757c42e97f63acef1951508da9a01f6e7ca",
+    "status": "offline_snapshot_not_live_project",
+    "file_count": 266,
+    "source_bytes": 9288872
+  },
+  "entries": [
+    {
+      "id": "op270.cylinder-type",
+      "kind": "template",
+      "title": "气缸 UDT 数据结构",
+      "summary": "保留导出 UDT 的字段顺序和类型，可指定新类型名称。",
+      "tags": [
+        "气缸",
+        "UDT",
+        "接口"
+      ],
+      "path": "op270/op270.cylinder-type.json"
+    },
+    {
+      "id": "op270.graph-type",
+      "kind": "template",
+      "title": "GRAPH 输入输出 UDT 数据结构",
+      "summary": "保留导出 UDT 的字段顺序和类型，可指定新类型名称。",
+      "tags": [
+        "GRAPH",
+        "UDT",
+        "接口"
+      ],
+      "path": "op270/op270.graph-type.json"
+    },
+    {
+      "id": "op270.cylinder-db",
+      "kind": "template",
+      "title": "单气缸数据块",
+      "summary": "按 UDT_Cylinder 提供一个气缸成员与超时初始值；不占用现有 DB 地址。",
+      "tags": [
+        "气缸",
+        "数据块",
+        "超时",
+        "Z13"
+      ],
+      "path": "op270/op270.cylinder-db.json"
+    },
+    {
+      "id": "op270.cylinder-call",
+      "kind": "template",
+      "title": "双位置气缸 FB21 调用片段",
+      "summary": "提取 Z06 调用接口，显式填写模式、互锁、传感器、阀输出和报警索引。",
+      "tags": [
+        "气缸",
+        "FB21",
+        "双电控",
+        "调用",
+        "互锁"
+      ],
+      "path": "op270/op270.cylinder-call.json"
+    },
+    {
+      "id": "op270.alarm-call",
+      "kind": "template",
+      "title": "报警汇总 FC11 调用片段",
+      "summary": "复用源工程报警接口，保留既有复位和锁存行为；附带原实现注意事项。",
+      "tags": [
+        "报警",
+        "复位",
+        "锁存",
+        "FC11"
+      ],
+      "path": "op270/op270.alarm-call.json"
+    },
+    {
+      "id": "op270.graph-db",
+      "kind": "template",
+      "title": "自动与复位 GRAPH 接口数据块",
+      "summary": "从源工程 UDT_Graph 和双流程结构提炼，不携带 OP260 残留成员或动作。",
+      "tags": [
+        "GRAPH",
+        "自动",
+        "复位",
+        "接口"
+      ],
+      "path": "op270/op270.graph-db.json"
+    },
+    {
+      "id": "op270.leak-test-db",
+      "kind": "template",
+      "title": "气密仪双向接口数据块",
+      "summary": "保留 PLCToComso/ComsoToPLC 字段和数据类型，可指定新 DB 名称。",
+      "tags": [
+        "气密",
+        "Comso",
+        "测试",
+        "接口"
+      ],
+      "path": "op270/op270.leak-test-db.json"
+    },
+    {
+      "id": "op270.project-layout",
+      "kind": "knowledge",
+      "title": "工程结构与调用顺序",
+      "summary": "Main 依次映射 IO、处理模式报警、调用 GRAPH、气缸、气密、统计、RFID、MES。",
+      "tags": [
+        "工程",
+        "扫描",
+        "调用顺序",
+        "Main"
+      ],
+      "path": "op270/op270.project-layout.json"
+    },
+    {
+      "id": "op270.cylinder-conventions",
+      "kind": "knowledge",
+      "title": "气缸接口、有效设备与差异",
+      "summary": "UDT_Cylinder、FB21、Z05~Z11 实际调用、Z12~Z32 预留、超时和原点差异。",
+      "tags": [
+        "气缸",
+        "Z05",
+        "Z06",
+        "Z09",
+        "Z13",
+        "超时",
+        "互锁",
+        "原点"
+      ],
+      "path": "op270/op270.cylinder-conventions.json"
+    },
+    {
+      "id": "op270.alarm-semantics",
+      "kind": "knowledge",
+      "title": "报警数组、锁存与汇总限制",
+      "summary": "Timeout[1..32,1..2]、FC11 复位语义、Msg 不参与 Total、Sensor 参与 Hardware。",
+      "tags": [
+        "报警",
+        "复位",
+        "Timeout",
+        "锁存",
+        "FC11",
+        "Msg"
+      ],
+      "path": "op270/op270.alarm-semantics.json"
+    },
+    {
+      "id": "op270.mode-reset",
+      "kind": "knowledge",
+      "title": "模式、HMI 请求与复位流程边界",
+      "summary": "FC5_ModeStaus、HmiCommand、Mode.FaultReset 与回原点/GRAPH 初始化属于不同层次。",
+      "tags": [
+        "模式",
+        "手动",
+        "自动",
+        "复位",
+        "HMI",
+        "原点"
+      ],
+      "path": "op270/op270.mode-reset.json"
+    },
+    {
+      "id": "op270.auto-sequence",
+      "kind": "knowledge",
+      "title": "自动 GRAPH 流程快照",
+      "summary": "保存源快照步骤名称、编号和时间设置，用于定位；不是可直接复用的完整流程。",
+      "tags": [
+        "GRAPH",
+        "自动",
+        "工步",
+        "气缸",
+        "MES",
+        "RFID",
+        "气密"
+      ],
+      "path": "op270/op270.auto-sequence.json"
+    },
+    {
+      "id": "op270.reset-sequence",
+      "kind": "knowledge",
+      "title": "复位 GRAPH 流程快照",
+      "summary": "保存源快照步骤名称、编号和时间设置，用于定位；不是可直接复用的完整流程。",
+      "tags": [
+        "GRAPH",
+        "复位",
+        "工步",
+        "气缸",
+        "MES",
+        "RFID",
+        "气密"
+      ],
+      "path": "op270/op270.reset-sequence.json"
+    },
+    {
+      "id": "op270.leak-test",
+      "kind": "knowledge",
+      "title": "气密仪启动与反馈接口",
+      "summary": "Comso 程序选择、手动/自动启动、Running、Test_OK/Test_NG 和结果数据。",
+      "tags": [
+        "气密",
+        "Comso",
+        "测试",
+        "反馈",
+        "NG",
+        "OK"
+      ],
+      "path": "op270/op270.leak-test.json"
+    },
+    {
+      "id": "op270.hmi-cylinder",
+      "kind": "knowledge",
+      "title": "气缸 HMI 联动与地址注意事项",
+      "summary": "新增气缸要同时核对 PLC 成员、气缸画面、变量表及五张文本列表。",
+      "tags": [
+        "HMI",
+        "气缸",
+        "画面",
+        "变量",
+        "地址",
+        "文本列表"
+      ],
+      "path": "op270/op270.hmi-cylinder.json"
+    },
+    {
+      "id": "op270.source-inventory",
+      "kind": "knowledge",
+      "title": "源文件覆盖与溯源清单",
+      "summary": "完整扫描导出文件，保留相对路径、大小与 SHA256；没有复制完整工程。",
+      "tags": [
+        "来源",
+        "快照",
+        "清单",
+        "覆盖",
+        "哈希",
+        "inventory"
+      ],
+      "path": "op270/op270.source-inventory.json"
+    },
+    {
+      "id": "v21.scl-fb-starter",
+      "kind": "template",
+      "title": "TIA V21 标准优化 FB 骨架（SCL）",
+      "summary": "带 Namespace 与标准 Enable/Busy/Done/Error/Status 接口的通用 V21 SCL 功能块骨架。",
+      "tags": [
+        "v21",
+        "scl",
+        "fb",
+        "plcopen",
+        "starter"
+      ],
+      "path": "v21/scl-fb-starter.json"
+    },
+    {
+      "id": "v21.simaticsd-guide",
+      "kind": "knowledge",
+      "title": "TIA V21 SimaticSD (.s7dcl/.s7res) 读写规范",
+      "summary": "说明如何在 TIA V21 中优先使用 SimaticSD 纯文本文档读写 LAD/FBD/SCL/DB 与多语言注释资源。",
+      "tags": [
+        "v21",
+        "simaticsd",
+        "s7dcl",
+        "s7res",
+        "guide"
+      ],
+      "path": "v21/simaticsd-guide.json"
+    }
+  ]
+}

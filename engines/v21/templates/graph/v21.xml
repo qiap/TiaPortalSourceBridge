@@ -1,0 +1,600 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Document>
+  <Engineering version="V21" />
+  <SW.Blocks.FB ID="0">
+    <AttributeList>
+      <AcknowledgeErrorsRequired>true</AcknowledgeErrorsRequired>
+      <AutoNumber>false</AutoNumber>
+      <ExtensionBlockName />
+      <GraphVersion>6.0</GraphVersion>
+      <HeaderAuthor />
+      <HeaderFamily />
+      <HeaderName />
+      <HeaderVersion>0.1</HeaderVersion>
+      <InitialValuesAcquisition>false</InitialValuesAcquisition>
+      <Interface>
+        <Sections xmlns="http://www.siemens.com/automation/Openness/SW/Interface/v5">
+          <Section Name="Base">
+            <Sections Datatype="GRAPH_BASE" Version="1.0">
+              <Section Name="Input" />
+              <Section Name="Output" />
+              <Section Name="InOut" />
+              <Section Name="Static">
+                <Member Name="OFF_SQ_BASE" Datatype="Bool" />
+              </Section>
+            </Sections>
+          </Section>
+          <Section Name="Input">
+            <Member Name="OFF_SQ" Datatype="Bool" Remanence="Retain" Accessibility="Public">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+            </Member>
+            <Member Name="INIT_SQ" Datatype="Bool" Remanence="Retain" Accessibility="Public">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+            </Member>
+            <Member Name="ACK_EF" Datatype="Bool" Remanence="Retain" Accessibility="Public">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+            </Member>
+            <Member Name="S_PREV" Datatype="Bool" Remanence="Retain" Accessibility="Public">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+            </Member>
+            <Member Name="S_NEXT" Datatype="Bool" Remanence="Retain" Accessibility="Public">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+            </Member>
+            <Member Name="SW_AUTO" Datatype="Bool" Remanence="Retain" Accessibility="Public">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+            </Member>
+            <Member Name="SW_TAP" Datatype="Bool" Remanence="Retain" Accessibility="Public">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+            </Member>
+            <Member Name="SW_TOP" Datatype="Bool" Remanence="Retain" Accessibility="Public">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+            </Member>
+            <Member Name="SW_MAN" Datatype="Bool" Remanence="Retain" Accessibility="Public">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+            </Member>
+            <Member Name="S_SEL" Datatype="Int" Remanence="Retain" Accessibility="Public">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+            </Member>
+            <Member Name="S_ON" Datatype="Bool" Remanence="Retain" Accessibility="Public">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+            </Member>
+            <Member Name="S_OFF" Datatype="Bool" Remanence="Retain" Accessibility="Public">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+            </Member>
+            <Member Name="T_PUSH" Datatype="Bool" Remanence="Retain" Accessibility="Public">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+            </Member>
+          </Section>
+          <Section Name="Output">
+            <Member Name="S_NO" Datatype="Int" Remanence="Retain" Accessibility="Public">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+            </Member>
+            <Member Name="S_MORE" Datatype="Bool" Remanence="Retain" Accessibility="Public">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+            </Member>
+            <Member Name="S_ACTIVE" Datatype="Bool" Remanence="Retain" Accessibility="Public">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+            </Member>
+            <Member Name="ERR_FLT" Datatype="Bool" Remanence="Retain" Accessibility="Public">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+            </Member>
+            <Member Name="AUTO_ON" Datatype="Bool" Remanence="Retain" Accessibility="Public">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+            </Member>
+            <Member Name="TAP_ON" Datatype="Bool" Remanence="Retain" Accessibility="Public">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+            </Member>
+            <Member Name="TOP_ON" Datatype="Bool" Remanence="Retain" Accessibility="Public">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+            </Member>
+            <Member Name="MAN_ON" Datatype="Bool" Remanence="Retain" Accessibility="Public">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+              </AttributeList>
+            </Member>
+          </Section>
+          <Section Name="InOut" />
+          <Section Name="Static">
+            <Member Name="RT_DATA" Datatype="G7_RTDataPlus_V6" Version="1.0" Remanence="Retain" Accessibility="Public">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+                <BooleanAttribute Name="SetPoint" Informative="true" SystemDefined="true">true</BooleanAttribute>
+              </AttributeList>
+              <Sections>
+                <Section Name="None">
+                  <Member Name="VERSION" Datatype="String[10]">
+                  </Member>
+                  <Member Name="S_DISPLAY" Datatype="Int" />
+                  <Member Name="S_SEL_OLD" Datatype="Int" />
+                  <Member Name="S_DISPIDX" Datatype="USInt">
+                  </Member>
+                  <Member Name="T_DISPIDX" Datatype="USInt">
+                  </Member>
+                  <Member Name="MOP_EDGE" Datatype="G7_MOPPlus_V6" Version="1.0">
+                    <Sections>
+                      <Section Name="None">
+                        <Member Name="AUTO" Datatype="Bool" />
+                        <Member Name="MAN" Datatype="Bool" />
+                        <Member Name="TAP" Datatype="Bool" />
+                        <Member Name="TOP" Datatype="Bool" />
+                        <Member Name="ACK_S" Datatype="Bool" />
+                        <Member Name="REG_S" Datatype="Bool" />
+                        <Member Name="T_PREV" Datatype="Bool" />
+                        <Member Name="T_NEXT" Datatype="Bool" />
+                        <Member Name="LOCK" Datatype="Bool" />
+                        <Member Name="SUP" Datatype="Bool" />
+                        <Member Name="ACKREQ" Datatype="Bool" />
+                        <Member Name="SSKIP" Datatype="Bool" />
+                        <Member Name="OFF" Datatype="Bool" />
+                        <Member Name="INIT" Datatype="Bool" />
+                        <Member Name="HALT" Datatype="Bool" />
+                        <Member Name="TMS_HALT" Datatype="Bool" />
+                        <Member Name="OPS_ZERO" Datatype="Bool" />
+                        <Member Name="SACT_DISP" Datatype="Bool" />
+                        <Member Name="SEF_DISP" Datatype="Bool" />
+                        <Member Name="SALL_DISP" Datatype="Bool" />
+                        <Member Name="S_PREV" Datatype="Bool" />
+                        <Member Name="S_NEXT" Datatype="Bool" />
+                        <Member Name="S_SELOK" Datatype="Bool" />
+                        <Member Name="S_ON" Datatype="Bool" />
+                        <Member Name="S_OFF" Datatype="Bool" />
+                        <Member Name="T_PUSH" Datatype="Bool" />
+                        <Member Name="REG" Datatype="Bool" />
+                        <Member Name="ACK" Datatype="Bool" />
+                        <Member Name="IL_PERM" Datatype="Bool" />
+                        <Member Name="T_PERM" Datatype="Bool" />
+                        <Member Name="ILP_MAN" Datatype="Bool" />
+                        <Member Name="LMODE" Datatype="Bool" />
+                        <Member Name="RESET_CRIT" Datatype="Bool" />
+                      </Section>
+                    </Sections>
+                  </Member>
+                  <Member Name="MOP" Datatype="G7_MOPPlus_V6" Version="1.0">
+                    <Sections>
+                      <Section Name="None">
+                        <Member Name="AUTO" Datatype="Bool">
+                        </Member>
+                        <Member Name="MAN" Datatype="Bool" />
+                        <Member Name="TAP" Datatype="Bool" />
+                        <Member Name="TOP" Datatype="Bool" />
+                        <Member Name="ACK_S" Datatype="Bool" />
+                        <Member Name="REG_S" Datatype="Bool" />
+                        <Member Name="T_PREV" Datatype="Bool" />
+                        <Member Name="T_NEXT" Datatype="Bool" />
+                        <Member Name="LOCK" Datatype="Bool">
+                        </Member>
+                        <Member Name="SUP" Datatype="Bool">
+                        </Member>
+                        <Member Name="ACKREQ" Datatype="Bool">
+                        </Member>
+                        <Member Name="SSKIP" Datatype="Bool" />
+                        <Member Name="OFF" Datatype="Bool" />
+                        <Member Name="INIT" Datatype="Bool">
+                        </Member>
+                        <Member Name="HALT" Datatype="Bool" />
+                        <Member Name="TMS_HALT" Datatype="Bool" />
+                        <Member Name="OPS_ZERO" Datatype="Bool" />
+                        <Member Name="SACT_DISP" Datatype="Bool">
+                        </Member>
+                        <Member Name="SEF_DISP" Datatype="Bool" />
+                        <Member Name="SALL_DISP" Datatype="Bool" />
+                        <Member Name="S_PREV" Datatype="Bool" />
+                        <Member Name="S_NEXT" Datatype="Bool" />
+                        <Member Name="S_SELOK" Datatype="Bool" />
+                        <Member Name="S_ON" Datatype="Bool" />
+                        <Member Name="S_OFF" Datatype="Bool" />
+                        <Member Name="T_PUSH" Datatype="Bool" />
+                        <Member Name="REG" Datatype="Bool" />
+                        <Member Name="ACK" Datatype="Bool" />
+                        <Member Name="IL_PERM" Datatype="Bool" />
+                        <Member Name="T_PERM" Datatype="Bool" />
+                        <Member Name="ILP_MAN" Datatype="Bool" />
+                        <Member Name="LMODE" Datatype="Bool" />
+                        <Member Name="RESET_CRIT" Datatype="Bool" />
+                      </Section>
+                    </Sections>
+                  </Member>
+                  <Member Name="TIME_DELTA" Datatype="Time" />
+                  <Member Name="SQ_FLAGS" Datatype="G7_SQFlagsPlus_V6" Version="1.0">
+                    <Sections>
+                      <Section Name="None">
+                        <Member Name="ERR_FLT" Datatype="Bool" />
+                        <Member Name="ERROR" Datatype="Bool" />
+                        <Member Name="FAULT" Datatype="Bool" />
+                        <Member Name="RT_FAIL" Datatype="Bool" />
+                        <Member Name="NO_SNO" Datatype="Bool" />
+                        <Member Name="NF_OFL" Datatype="Bool" />
+                        <Member Name="SA_OFL" Datatype="Bool" />
+                        <Member Name="TV_OFL" Datatype="Bool" />
+                        <Member Name="NO_SWI" Datatype="Bool" />
+                        <Member Name="CYC_OP" Datatype="Bool" />
+                        <Member Name="AS_MSG" Datatype="Bool">
+                        </Member>
+                        <Member Name="SQ_BUSY" Datatype="Bool" />
+                        <Member Name="SA_BUSY" Datatype="Bool" />
+                      </Section>
+                    </Sections>
+                  </Member>
+                  <Member Name="PRE_CNT" Datatype="USInt">
+                  </Member>
+                  <Member Name="POST_CNT" Datatype="USInt">
+                  </Member>
+                  <Member Name="SQ_CNT" Datatype="USInt">
+                  </Member>
+                  <Member Name="S_CNT" Datatype="USInt">
+                  </Member>
+                  <Member Name="LOCK_CNT" Datatype="USInt" />
+                  <Member Name="SUP_CNT" Datatype="USInt" />
+                  <Member Name="T_CNT" Datatype="USInt">
+                  </Member>
+                  <Member Name="SQ_PART_CNT" Datatype="USInt">
+                  </Member>
+                  <Member Name="MAX_TVAL" Datatype="USInt">
+                  </Member>
+                  <Member Name="MAX_SACT" Datatype="USInt">
+                  </Member>
+                  <Member Name="AS_MSG" Datatype="Byte">
+                  </Member>
+                  <Member Name="EXEC_BITS" Datatype="Array[0..249] of Bool" />
+                  <Member Name="OFFSETS" Datatype="G7_OffsetsPlus_V6" Version="1.0">
+                    <Sections>
+                      <Section Name="None">
+                        <Member Name="SINI_OFFSET" Datatype="UInt" />
+                        <Member Name="LSTT_OFFSET" Datatype="UInt">
+                        </Member>
+                        <Member Name="ATAJ_OFFSET" Datatype="UInt">
+                        </Member>
+                        <Member Name="ATAB_OFFSET" Datatype="UInt">
+                        </Member>
+                        <Member Name="PSTT_OFFSET" Datatype="UInt">
+                        </Member>
+                        <Member Name="NSTT_OFFSET" Datatype="UInt">
+                        </Member>
+                        <Member Name="ASSJ_OFFSET" Datatype="UInt">
+                        </Member>
+                        <Member Name="ASSB_OFFSET" Datatype="UInt">
+                        </Member>
+                        <Member Name="PTTS_OFFSET" Datatype="UInt">
+                        </Member>
+                        <Member Name="NTTS_OFFSET" Datatype="UInt">
+                        </Member>
+                        <Member Name="SW_SQTS_OFFSET" Datatype="UInt">
+                        </Member>
+                        <Member Name="SWITCH_OFFSET" Datatype="UInt">
+                        </Member>
+                        <Member Name="TVX_OFFSET" Datatype="UInt">
+                        </Member>
+                        <Member Name="TTX_OFFSET" Datatype="UInt">
+                        </Member>
+                        <Member Name="TSX_OFFSET" Datatype="UInt">
+                        </Member>
+                        <Member Name="S00X_OFFSET" Datatype="UInt">
+                        </Member>
+                        <Member Name="SOFFX_OFFSET" Datatype="UInt">
+                        </Member>
+                        <Member Name="SONX_OFFSET" Datatype="UInt">
+                        </Member>
+                        <Member Name="SAX_OFFSET" Datatype="UInt">
+                        </Member>
+                        <Member Name="SERRX_OFFSET" Datatype="UInt">
+                        </Member>
+                        <Member Name="SMX_OFFSET" Datatype="UInt">
+                        </Member>
+                        <Member Name="S0X_OFFSET" Datatype="UInt">
+                        </Member>
+                        <Member Name="S1X_OFFSET" Datatype="UInt">
+                        </Member>
+                      </Section>
+                    </Sections>
+                  </Member>
+                  <Member Name="THRESHOLD_SUP" Datatype="USInt" />
+                  <Member Name="THRESHOLD_WARN" Datatype="USInt" />
+                  <Member Name="GC_FLAGS" Datatype="G7_GCFlagsPlus_V6" Version="1.0">
+                    <Sections>
+                      <Section Name="None">
+                        <Member Name="COND_ED" Datatype="USInt">
+                        </Member>
+                        <Member Name="SSKIP_ON" Datatype="Bool" />
+                        <Member Name="ACK_REQ" Datatype="Bool">
+                        </Member>
+                        <Member Name="ILP_MAN" Datatype="Bool" />
+                        <Member Name="SWM_LOCKED" Datatype="Bool" />
+                        <Member Name="SET_ENO" Datatype="Bool" />
+                        <Member Name="IL_CAT" Datatype="USInt">
+                        </Member>
+                        <Member Name="IL_SUBCAT_1" Datatype="USInt" />
+                        <Member Name="IL_SUBCAT_2" Datatype="USInt" />
+                        <Member Name="REACT_CAT" Datatype="USInt">
+                        </Member>
+                        <Member Name="REACT_SUBCAT_1" Datatype="USInt" />
+                        <Member Name="REACT_SUBCAT_2" Datatype="USInt" />
+                        <Member Name="WARN_CAT" Datatype="USInt">
+                        </Member>
+                        <Member Name="WARN_SUBCAT_1" Datatype="USInt" />
+                        <Member Name="WARN_SUBCAT_2" Datatype="USInt" />
+                        <Member Name="CRIT_ON" Datatype="Bool" />
+                      </Section>
+                    </Sections>
+                  </Member>
+                </Section>
+              </Sections>
+            </Member>
+            <Member Name="Step1" Datatype="G7_StepPlus_V6" Version="1.0" Remanence="Retain" Accessibility="Public">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalAccessible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalVisible" SystemDefined="true">true</BooleanAttribute>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+                <BooleanAttribute Name="SetPoint" Informative="true" SystemDefined="true">true</BooleanAttribute>
+              </AttributeList>
+              <Sections>
+                <Section Name="None">
+                  <Member Name="S1" Datatype="Bool" />
+                  <Member Name="L1" Datatype="Bool" />
+                  <Member Name="V1" Datatype="Bool" />
+                  <Member Name="R1" Datatype="Bool" />
+                  <Member Name="A1" Datatype="Bool" />
+                  <Member Name="S0" Datatype="Bool" />
+                  <Member Name="L0" Datatype="Bool" />
+                  <Member Name="V0" Datatype="Bool" />
+                  <Member Name="X" Datatype="Bool" />
+                  <Member Name="LA" Datatype="Bool" />
+                  <Member Name="VA" Datatype="Bool" />
+                  <Member Name="RA" Datatype="Bool" />
+                  <Member Name="AA" Datatype="Bool" />
+                  <Member Name="SS" Datatype="Bool" />
+                  <Member Name="LS" Datatype="Bool" />
+                  <Member Name="VS" Datatype="Bool" />
+                  <Member Name="SNO" Datatype="Int">
+                  </Member>
+                  <Member Name="T" Datatype="Time" />
+                  <Member Name="U" Datatype="Time" />
+                  <Member Name="T_MAX" Datatype="Time">
+                  </Member>
+                  <Member Name="T_WARN" Datatype="Time">
+                  </Member>
+                  <Member Name="CRIT_LOC" Datatype="DWord" />
+                  <Member Name="CRIT_LOC_ERR" Datatype="DWord" />
+                  <Member Name="SM" Datatype="Bool" />
+                  <Member Name="H_IL_ERR" Datatype="Byte" />
+                  <Member Name="H_SV_FLT" Datatype="Byte">
+                  </Member>
+                </Section>
+              </Sections>
+            </Member>
+            <Member Name="T1" Datatype="G7_TransitionPlus_V6" Version="1.0" Remanence="Retain" Accessibility="Public">
+              <AttributeList>
+                <BooleanAttribute Name="ExternalAccessible" SystemDefined="true">false</BooleanAttribute>
+                <BooleanAttribute Name="ExternalVisible" SystemDefined="true">false</BooleanAttribute>
+                <BooleanAttribute Name="ExternalWritable" SystemDefined="true">false</BooleanAttribute>
+                <BooleanAttribute Name="SetPoint" Informative="true" SystemDefined="true">true</BooleanAttribute>
+              </AttributeList>
+              <Sections>
+                <Section Name="None">
+                  <Member Name="TV" Datatype="Bool" />
+                  <Member Name="TT" Datatype="Bool" />
+                  <Member Name="TS" Datatype="Bool" />
+                  <Member Name="TNO" Datatype="Int">
+                  </Member>
+                  <Member Name="CRIT" Datatype="DWord" />
+                  <Member Name="CRIT_OLD" Datatype="DWord" />
+                  <Member Name="CRIT_FLT" Datatype="DWord" />
+                </Section>
+              </Sections>
+            </Member>
+          </Section>
+          <Section Name="Temp" />
+          <Section Name="Constant">
+          </Section>
+        </Sections>
+      </Interface>
+      <IsIECCheckEnabled>false</IsIECCheckEnabled>
+      <LanguageInNetworks>LAD</LanguageInNetworks>
+      <LockOperatingMode>false</LockOperatingMode>
+      <Name>GraphTemplate</Name>
+      <Namespace />
+      <Number>32000</Number>
+      <PermanentILProcessingInMANMode>false</PermanentILProcessingInMANMode>
+      <ProgrammingLanguage>GRAPH</ProgrammingLanguage>
+      <SetENOAutomatically>false</SetENOAutomatically>
+      <SkipSteps>false</SkipSteps>
+      <UDABlockProperties />
+      <UDAEnableTagReadback>false</UDAEnableTagReadback>
+      <WithAlarmHandling>true</WithAlarmHandling>
+    </AttributeList>
+    <ObjectList>
+      <SW.Blocks.CompileUnit ID="1" CompositionName="CompileUnits">
+        <AttributeList>
+          <NetworkSource>
+            <Graph xmlns="http://www.siemens.com/automation/Openness/SW/NetworkSource/Graph/v6">
+              <PreOperations>
+                <PermanentOperation ProgrammingLanguage="LAD" />
+              </PreOperations>
+              <Sequence>
+                <Steps xmlns="http://www.siemens.com/automation/Openness/SW/NetworkSource/Graph/v6">
+                  <Step Number="1" Init="true" Name="Step1">
+                    <Actions />
+                    <Supervisions>
+                      <Supervision ProgrammingLanguage="LAD">
+                        <FlgNet>
+                          <Parts>
+                            <Part Name="SvCoil" UId="1" />
+                          </Parts>
+                          <Wires>
+                            <Wire UId="2">
+                              <Powerrail />
+                              <NameCon UId="1" Name="in" />
+                            </Wire>
+                          </Wires>
+                        </FlgNet>
+                      </Supervision>
+                    </Supervisions>
+                    <Interlocks>
+                      <Interlock ProgrammingLanguage="LAD">
+                        <FlgNet>
+                          <Parts>
+                            <Part Name="IlCoil" UId="1" />
+                          </Parts>
+                          <Wires>
+                            <Wire UId="2">
+                              <Powerrail />
+                              <NameCon UId="1" Name="in" />
+                            </Wire>
+                          </Wires>
+                        </FlgNet>
+                      </Interlock>
+                    </Interlocks>
+                  </Step>
+                </Steps>
+                <Transitions xmlns="http://www.siemens.com/automation/Openness/SW/NetworkSource/Graph/v6">
+                  <Transition Number="1" Name="T1" ProgrammingLanguage="LAD">
+                    <FlgNet>
+                      <Parts>
+                        <Part Name="TrCoil" UId="1" />
+                      </Parts>
+                      <Wires>
+                        <Wire UId="2">
+                          <Powerrail />
+                          <NameCon UId="1" Name="in" />
+                        </Wire>
+                      </Wires>
+                    </FlgNet>
+                  </Transition>
+                </Transitions>
+                <Branches xmlns="http://www.siemens.com/automation/Openness/SW/NetworkSource/Graph/v6" />
+                <Connections xmlns="http://www.siemens.com/automation/Openness/SW/NetworkSource/Graph/v6">
+                  <Connection>
+                    <NodeFrom>
+                      <StepRef Number="1" />
+                    </NodeFrom>
+                    <NodeTo>
+                      <TransitionRef Number="1" />
+                    </NodeTo>
+                    <LinkType>Direct</LinkType>
+                  </Connection>
+                  <Connection>
+                    <NodeFrom>
+                      <TransitionRef Number="1" />
+                    </NodeFrom>
+                    <NodeTo>
+                      <StepRef Number="1" />
+                    </NodeTo>
+                    <LinkType>Direct</LinkType>
+                  </Connection>
+                </Connections>
+              </Sequence>
+              <PostOperations>
+                <PermanentOperation ProgrammingLanguage="LAD" />
+              </PostOperations>
+              <AlarmsSettings>
+                <AlarmSupervisionCategories>
+                  <AlarmSupervisionCategory Id="1" DisplayClass="0" />
+                  <AlarmSupervisionCategory Id="2" DisplayClass="0" />
+                  <AlarmSupervisionCategory Id="3" DisplayClass="0" />
+                  <AlarmSupervisionCategory Id="4" DisplayClass="0" />
+                  <AlarmSupervisionCategory Id="5" DisplayClass="0" />
+                  <AlarmSupervisionCategory Id="6" DisplayClass="0" />
+                  <AlarmSupervisionCategory Id="7" DisplayClass="0" />
+                  <AlarmSupervisionCategory Id="8" DisplayClass="0" />
+                </AlarmSupervisionCategories>
+                <AlarmInterlockCategory Id="1" />
+                <AlarmSubcategory1Interlock Id="0" />
+                <AlarmSubcategory2Interlock Id="0" />
+                <AlarmCategorySupervision Id="1" />
+                <AlarmSubcategory1Supervision Id="0" />
+                <AlarmSubcategory2Supervision Id="0" />
+                <AlarmWarningCategory Id="2" />
+                <AlarmSubcategory1Warning Id="0" />
+                <AlarmSubcategory2Warning Id="0" />
+              </AlarmsSettings>
+            </Graph>
+          </NetworkSource>
+          <ProgrammingLanguage>GRAPH</ProgrammingLanguage>
+        </AttributeList>
+      </SW.Blocks.CompileUnit>
+    </ObjectList>
+  </SW.Blocks.FB>
+</Document>

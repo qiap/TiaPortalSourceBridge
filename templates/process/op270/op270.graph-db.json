@@ -1,0 +1,90 @@
+{
+  "id": "op270.graph-db",
+  "kind": "template",
+  "title": "自动与复位 GRAPH 接口数据块",
+  "summary": "从源工程 UDT_Graph 和双流程结构提炼，不携带 OP260 残留成员或动作。",
+  "tags": [
+    "GRAPH",
+    "自动",
+    "复位",
+    "接口"
+  ],
+  "applicability": "Siemens TIA Portal V17; OP270 exported source conventions",
+  "provenance": {
+    "exported_at_utc": "2026-10-14T06:23:13.2205718Z",
+    "tia_version": "V17",
+    "plc": "S71500/ET200MP station_1 / PLC_CPU1513 / PLC_CPU1513",
+    "manifest_project_path": "E:\\plcdata\\OP270_Independent_V17\\OP270_Independent_V17\\HD2303_OP270_Independent\\HD2303_OP270_Independent.ap17",
+    "manifest_sha256": "ada0ac5f7c5e3a9a3390fb8307f6f757c42e97f63acef1951508da9a01f6e7ca",
+    "status": "offline_snapshot_not_live_project",
+    "file_count": 266,
+    "source_bytes": 9288872
+  },
+  "sources": [
+    {
+      "path": "blocks/HD2303-OP270Station/01 Graph/DB_OP270BGraph.db",
+      "bytes": 984,
+      "sha256": "c2ec0a3bd4599c31d5fe878f4e33577431a5115f77e7222274aa791882ba939a"
+    },
+    {
+      "path": "types/Graph/UDT_Graph.udt",
+      "bytes": 677,
+      "sha256": "afd205f91d66894afd4d3dfe14ae9f326bcfb83868b503d209e9b5a8c556c585"
+    },
+    {
+      "path": "blocks/HD2303-OP270Station/01 Graph/OP270_Graph启用与调用.xml",
+      "bytes": 36398,
+      "sha256": "8d60659d8a2902727943aefc8afebdeeb9100f7712b05e6c5eea302a12f8ddad"
+    }
+  ],
+  "format": "SCL",
+  "body": "DATA_BLOCK \"{{block_name}}\"\n{ S7_Optimized_Access := 'FALSE' }\nVERSION : 0.1\n   STRUCT\n      {{auto_member}} : \"{{type_name}}\";\n      {{reset_member}} : \"{{type_name}}\";\n      InitialDone : Bool;\n   END_STRUCT;\nBEGIN\nEND_DATA_BLOCK\n",
+  "parameters": [
+    {
+      "name": "block_name",
+      "type": "identifier",
+      "description": ""
+    },
+    {
+      "name": "auto_member",
+      "type": "identifier",
+      "description": "",
+      "default": "AssemblyAuto"
+    },
+    {
+      "name": "reset_member",
+      "type": "identifier",
+      "description": "",
+      "default": "AssemblyReset"
+    },
+    {
+      "name": "type_name",
+      "type": "identifier",
+      "description": "",
+      "default": "UDT_Graph"
+    }
+  ],
+  "dependencies": [
+    "UDT_Graph 或同布局类型。"
+  ],
+  "review_notes": [
+    "源工程导出快照不等于当前工程，也没有现场或博途编译验收；生成内容仅为待审查草稿。",
+    "导入前实时读取目标、核对依赖和符号、备份并检查差异；导入后执行目标工程编译。",
+    "只生成接口数据，不生成工步和转换，不会自动写入 INIT_SQ/OFF_SQ/InitialDone；须设计自动与复位的协调。"
+  ],
+  "validation_status": "source_derived_not_tia_compiled",
+  "distinct_parameters": [
+    [
+      "auto_member",
+      "reset_member"
+    ]
+  ],
+  "reserved_identifiers": {
+    "auto_member": [
+      "InitialDone"
+    ],
+    "reset_member": [
+      "InitialDone"
+    ]
+  }
+}
