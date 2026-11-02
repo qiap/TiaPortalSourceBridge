@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using TiaPortalSourceBridge.Configuration;
@@ -304,7 +304,7 @@ namespace TiaPortalSourceBridge
             catch (OperationCanceledException ex)
             {
                 Console.WriteLine(ex.Message);
-                return 0;
+                return 3; // cancellation is not success
             }
             catch (Exception ex)
             {

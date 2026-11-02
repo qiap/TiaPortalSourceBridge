@@ -1,4 +1,4 @@
-param([string]$OutputDirectory, [switch]$NoSync)
+﻿param([string]$OutputDirectory, [switch]$NoSync)
 $ErrorActionPreference = 'Stop'
 if (-not $OutputDirectory) { $OutputDirectory = Join-Path $PSScriptRoot 'online-bin' }
 $outputDir = [IO.Path]::GetFullPath($OutputDirectory)
@@ -8,6 +8,7 @@ New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
 $uiaInterop = Join-Path $PSScriptRoot 'build-support\uia\Interop.UIAutomationClient.dll'
 $compiler = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 $sources = Get-ChildItem (Join-Path $PSScriptRoot 'src\TiaPortalSourceBridge') -Filter '*.cs' -Recurse | Where-Object { $_.FullName -notmatch '\\(bin|obj)\\' } | ForEach-Object FullName
+$sources = @($sources) + @(Get-ChildItem (Join-Path (Join-Path $PSScriptRoot '..\..') 'shared') -Filter '*.cs' -Recurse | ForEach-Object FullName)
 
 & $compiler /nologo /utf8output /codepage:65001 /target:exe /platform:x64 /optimize+ ('/out:' + (Join-Path $outputDir 'TiaPortalSourceBridge.exe')) /r:System.dll /r:System.Core.dll /r:System.Xml.dll /r:System.Web.Extensions.dll /r:System.Windows.Forms.dll /r:System.IO.Compression.dll /r:System.IO.Compression.FileSystem.dll ('/link:' + $uiaInterop) @sources
 if ($LASTEXITCODE -ne 0) { throw 'MCP V21 build failed' }

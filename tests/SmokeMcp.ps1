@@ -6,7 +6,7 @@ $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 
 $toolRoot = Split-Path -Parent $PSScriptRoot
 $exePath = Join-Path $toolRoot 'src\TiaPortalSourceBridge\bin\Release\net48\TiaPortalSourceBridge.exe'
-$newestCs = Get-ChildItem -Path (Join-Path $toolRoot 'src') -Filter '*.cs' -Recurse | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
+$newestCs = Get-ChildItem -Path @((Join-Path $toolRoot 'src'), (Join-Path $toolRoot 'shared')) -Filter '*.cs' -Recurse | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
 if (-not (Test-Path -LiteralPath $exePath) -or ($newestCs -and $newestCs.LastWriteTimeUtc -gt (Get-Item -LiteralPath $exePath).LastWriteTimeUtc)) {
     & cmd.exe /c "`"$(Join-Path $toolRoot 'build.bat')`""
 }

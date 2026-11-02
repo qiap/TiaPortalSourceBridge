@@ -1,4 +1,4 @@
-param([switch]$NoTrust)
+﻿param([switch]$NoTrust)
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
 $engineRoot = Join-Path $root 'engines\v21'
@@ -15,6 +15,8 @@ function Publish-Exe([string]$Source, [string]$Destination) {
 if ($LASTEXITCODE -ne 0) { throw 'V21 engine build failed' }
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root 'build-online.ps1') -OutputDirectory (Join-Path $stage 'main') -NoSync
 if ($LASTEXITCODE -ne 0) { throw 'Unified entry build failed' }
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root 'tests\Run-Checks.ps1') -MainExecutable (Join-Path $stage 'main\TiaPortalSourceBridge.exe') -V21Executable (Join-Path $stage 'v21\TiaPortalSourceBridge.exe')
+if ($LASTEXITCODE -ne 0) { throw 'Regression checks failed; existing binaries have not been replaced.' }
 foreach ($edition in @('v21', 'main')) {
     $destinationRoot = if ($edition -eq 'v21') { $engineRoot } else { $root }
     foreach ($relative in @('src\TiaPortalSourceBridge\bin\Release\net48', 'online-bin')) {

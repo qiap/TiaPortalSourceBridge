@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -21,6 +21,7 @@ namespace TiaPortalSourceBridge.Web
     internal sealed partial class WebServer
     {
         private readonly HttpListener _listener;
+        private readonly ActionTarget actionTargets = new ActionTarget();
         private readonly string _configPath;
         private readonly int _port;
         private readonly DateTime _startTime;
@@ -1067,7 +1068,7 @@ namespace TiaPortalSourceBridge.Web
 
                 if (availablePlcs.Count > 0)
                 {
-                    var matched = availablePlcs.FirstOrDefault(p =>
+                    var matched = availablePlcs.FirstOrDefault(p => string.Equals(p["fullName"], currentPlc, StringComparison.OrdinalIgnoreCase)) ?? availablePlcs.FirstOrDefault(p =>
                         string.Equals(p["cpuName"], currentPlc, StringComparison.OrdinalIgnoreCase) ||
                         string.Equals(p["displayName"], currentPlc, StringComparison.OrdinalIgnoreCase) ||
                         string.Equals(p["fullName"], currentPlc, StringComparison.OrdinalIgnoreCase) ||
@@ -1114,6 +1115,8 @@ namespace TiaPortalSourceBridge.Web
                     hasIndex = File.Exists(indexPath);
                 }
 
+                var exactTargets = availablePlcs.Where(p => p["cpuName"] == currentPlc && p["stationName"] == currentStation).ToArray();
+                string targetPlc = exactTargets.Length == 1 ? exactTargets[0]["fullName"] : "";
                 var status = new Dictionary<string, object>
                 {
                     { "tool_name", "TIA Portal Source Bridge" },
@@ -1125,6 +1128,8 @@ namespace TiaPortalSourceBridge.Web
                     { "config_path", _configPath },
                     { "project_path", activeProject },
                     { "plc_name", currentPlc },
+                    { "target_plc", targetPlc },
+                    { "target_token", actionTargets.Sign(activeProject, targetPlc) },
                     { "plc_hardware", currentHw },
                     { "plc_order_number", currentOrder },
                     { "plc_station", currentStation },
@@ -1502,17 +1507,23 @@ namespace TiaPortalSourceBridge.Web
                 var map = _json.Deserialize<Dictionary<string, object>>(body);
                 string action = map != null && map.ContainsKey("action") ? Convert.ToString(map["action"]) : "";
 
-                string activeProject = !string.IsNullOrWhiteSpace(recent.LastProjectPath) ? recent.LastProjectPath : _config.ProjectPath;
-                string plcName = !string.IsNullOrWhiteSpace(recent.LastPlcName) ? recent.LastPlcName : _config.PlcName;
-
-                bool started = ActionRunner.StartAction(action, _configPath, activeProject, plcName);
+                if (!new[] { "trust", "build-index", "export", "import", "compile" }.Contains(action))
+                { SendJson(response, 400, new { error = "不支持的操作。" }); return; }
+                string activeProject = Text(map, "project_path"), plcName = Text(map, "plc_name");
+                if (action != "trust" && (!File.Exists(activeProject) || (action != "build-index" && string.IsNullOrWhiteSpace(plcName)) || !actionTargets.Verify(activeProject, plcName, Text(map, "target_token"))))
+                {
+                    SendJson(response, 409, new { error = "工程或 PLC 目标信息无效，请刷新页面并重新选择目标。" }); return;
+                }
+                string busy; ActionProgress startedTask;
+                bool started = ActionRunner.StartAction(action, _configPath, activeProject, plcName, out busy, out startedTask);
                 if (started)
                 {
                     SendJson(response, 200, new Dictionary<string, object>
                     {
                         { "success", true },
                         { "action", action },
-                        { "message", "任务已启动。" }
+                        { "message", "任务已启动。" },
+                        { "task", ActionRunner.FindTask(startedTask.task_id) }
                     });
                 }
                 else
@@ -1528,7 +1539,10 @@ namespace TiaPortalSourceBridge.Web
 
             if (path.Equals("/api/action/status", StringComparison.OrdinalIgnoreCase))
             {
-                SendJson(response, 200, ActionRunner.Current);
+                string taskId = GetQueryParam(request, "task_id");
+                var task = string.IsNullOrEmpty(taskId) ? ActionRunner.Current : ActionRunner.FindTask(taskId);
+                if (task == null) SendJson(response, 404, new { error = "任务不存在或已从最近 100 项记录中移除。" });
+                else SendJson(response, 200, task);
                 return;
             }
 

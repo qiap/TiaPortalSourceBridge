@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -34,9 +34,10 @@ namespace TiaPortalSourceBridge.Mcp
         private bool disposed;
         private bool broken;
 
-        internal ProjectWorker(string executable, string configPath, string identity, int timeoutMs = 600000)
+        internal ProjectWorker(string executable, string configPath, string identity, int timeoutMs = 0)
         {
-            this.timeoutMs = timeoutMs;
+            int seconds;
+            this.timeoutMs = timeoutMs > 0 ? timeoutMs : int.TryParse(Environment.GetEnvironmentVariable("TIA_BRIDGE_REQUEST_TIMEOUT_SECONDS"), out seconds) && seconds >= 1 && seconds <= 3600 ? seconds * 1000 : 600000;
             string directory = Path.Combine(Path.GetDirectoryName(Path.GetFullPath(configPath)), "logs", "project-workers");
             Directory.CreateDirectory(directory);
             string key;
@@ -92,7 +93,7 @@ namespace TiaPortalSourceBridge.Mcp
             return new Dictionary<string, object> {
                 { "worker_process_id", process.Id }, { "worker_alive", IsAlive },
                 { "worker_state", !IsAlive ? "exited" : broken ? "faulted" : pending != null ? "busy_outcome_unknown" : "ready" },
-                { "pending_tool", pending == null ? "" : pendingTool }, { "late_tool", lateTool ?? "" }, { "late_result", lateResult }, { "log_path", logPath }
+                { "request_id", requestId }, { "request_timeout_ms", timeoutMs }, { "recovery", pending != null ? "查询 tia_connection_status 获取最终结果；不要重复提交写入。" : broken ? "核实工程状态后显式 tia_connect；不会自动重放。" : "" }, { "pending_tool", pending == null ? "" : pendingTool }, { "late_tool", lateTool ?? "" }, { "late_result", lateResult }, { "log_path", logPath }
             };
         }
         public Dictionary<string, object> Call(string tool, Dictionary<string, object> arguments)

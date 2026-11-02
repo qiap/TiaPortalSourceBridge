@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -61,6 +61,7 @@ namespace TiaPortalSourceBridge.Openness
                     + api.LoadedPortalVersion + " 升级打开。");
                 Console.WriteLine("原项目不会被覆盖；TIA Portal 会另存为新版项目文件。");
                 Console.Write("是否继续？输入 Y 继续，其他键取消: ");
+                if (Console.IsInputRedirected) throw new OperationCanceledException("非交互任务不能确认工程升级，请使用匹配版本的引擎。");
                 string answer = Console.ReadLine();
                 if (!string.Equals(answer, "Y", StringComparison.OrdinalIgnoreCase))
                 {

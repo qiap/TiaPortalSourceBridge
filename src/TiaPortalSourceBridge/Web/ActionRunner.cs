@@ -12,8 +12,12 @@ namespace TiaPortalSourceBridge.Web
 {
     internal sealed class ActionProgress
     {
+        public string task_id { get; set; }
+        public string project_path { get; set; }
+        public string plc_name { get; set; }
+        public string stage { get; set; }
         public string actionName { get; set; }
-        public string status { get; set; } // "idle", "running", "completed", "failed"
+        public string status { get; set; } // idle, running, outcome_unknown, completed, cancelled, failed
         public string message { get; set; }
         public DateTime startTime { get; set; }
         public DateTime endTime { get; set; }
@@ -32,19 +36,30 @@ namespace TiaPortalSourceBridge.Web
     {
         // 每个"通道"(lane)最多同时运行一个任务；不同通道的任务可以并行：
         //   trust  -> 注册白名单（需要 UAC，可能长时间等待用户确认，绝不能阻塞其他功能）
-        //   index  -> 建立工程索引
+        //   tia    -> 建立工程索引及工程操作共用串行通道
         //   tia    -> 导出 / 导入 / 编译 等直接操作 TIA Portal 的任务（同一工程内串行，避免 Openness 冲突）
         private static readonly object _sync = new object();
         private static readonly Dictionary<string, ActionProgress> _lanes = new Dictionary<string, ActionProgress>();
         private static readonly List<string> _logs = new List<string>();
         private static ActionProgress _last = new ActionProgress();
+        private static readonly List<ActionProgress> history = new List<ActionProgress>();
+        internal static ActionProgress FindTask(string id)
+        {
+            lock (_sync)
+            {
+                var p = history.FirstOrDefault(a => a.task_id == id);
+                return p == null ? null : new ActionProgress { task_id = p.task_id, project_path = p.project_path, plc_name = p.plc_name, actionName = p.actionName, status = p.status, stage = p.stage, message = p.message, startTime = p.startTime, endTime = p.endTime, exitCode = p.exitCode, logs = new List<string>(p.logs) };
+            }
+        }
         private const int TrustTimeoutSeconds = 120;
         private const int ActionTimeoutMinutes = 30;
+
+        internal static bool IsPending(string status) { return status == "running" || status == "outcome_unknown"; }
 
         private static string LaneOf(string action)
         {
             if (action == "trust") return "trust";
-            if (action == "build-index") return "index";
+            // Index reads share the engineering lane with imports and compiles.
             return "tia";
         }
 
@@ -56,7 +71,7 @@ namespace TiaPortalSourceBridge.Web
                 lock (_sync)
                 {
                     foreach (KeyValuePair<string, ActionProgress> kv in _lanes)
-                        if (kv.Key != "trust" && kv.Value.status == "running") return true;
+                        if (kv.Key != "trust" && IsPending(kv.Value.status)) return true;
                     return false;
                 }
             }
@@ -69,7 +84,7 @@ namespace TiaPortalSourceBridge.Web
                 lock (_sync)
                 {
                     var running = new List<ActionProgress>();
-                    foreach (ActionProgress a in _lanes.Values) if (a.status == "running") running.Add(a);
+                    foreach (ActionProgress a in _lanes.Values) if (IsPending(a.status)) running.Add(a);
 
                     ActionProgress view = new ActionProgress();
                     if (running.Count > 0)
@@ -88,6 +103,9 @@ namespace TiaPortalSourceBridge.Web
                         view.endTime = _last.endTime;
                         view.exitCode = _last.exitCode;
                     }
+                    var selected = running.Count > 0 ? running.FirstOrDefault(a => a.status == "outcome_unknown") ?? running[0] : _last;
+                    view.task_id = selected.task_id; view.project_path = selected.project_path; view.plc_name = selected.plc_name; view.stage = selected.stage;
+                    if (selected.status == "outcome_unknown") { view.status = selected.status; view.message = selected.message; }
                     view.logs = new List<string>(_logs);
                     return view;
                 }
@@ -100,32 +118,40 @@ namespace TiaPortalSourceBridge.Web
             {
                 lock (_sync)
                 {
-                    return _lanes.Values.Where(a => a.status == "running").ToList();
+                    return _lanes.Values.Where(a => IsPending(a.status)).ToList();
                 }
             }
         }
 
         /// <summary>启动任务；同一通道已有任务运行时返回 false 并通过 busyAction 给出占用者。</summary>
         public static bool StartAction(string action, string configPath, string projectPath, string plcName, out string busyAction)
+        { ActionProgress task; return StartAction(action, configPath, projectPath, plcName, out busyAction, out task); }
+
+        public static bool StartAction(string action, string configPath, string projectPath, string plcName, out string busyAction, out ActionProgress task)
         {
+            task = null;
+            if (!new[] { "trust", "build-index", "export", "import", "compile" }.Contains(action)) throw new ArgumentException("不支持的操作。");
             busyAction = "";
             string lane = LaneOf(action);
             ActionProgress progress;
             lock (_sync)
             {
                 ActionProgress existing;
-                if (_lanes.TryGetValue(lane, out existing) && existing.status == "running")
+                if (_lanes.TryGetValue(lane, out existing) && IsPending(existing.status))
                 {
                     busyAction = existing.actionName;
                     return false;
                 }
                 progress = new ActionProgress
                 {
+                    task_id = Guid.NewGuid().ToString("N"), project_path = projectPath, plc_name = plcName, stage = "executing",
                     actionName = action,
                     status = "running",
                     message = "正在执行: " + action + "...",
                     startTime = DateTime.Now
                 };
+                history.Add(progress);
+                if (history.Count > 100) history.Remove(history.First(a => !IsPending(a.status)));
                 _lanes[lane] = progress;
                 _last = progress;
             }
@@ -135,6 +161,7 @@ namespace TiaPortalSourceBridge.Web
                 IsBackground = true,
                 Name = "WebActionWorker-" + lane
             };
+            task = progress;
             worker.Start();
             return true;
         }
@@ -149,7 +176,10 @@ namespace TiaPortalSourceBridge.Web
         {
             lock (_sync)
             {
-                _logs.Add(string.Format("[{0:HH:mm:ss}] [{1}] {2}", DateTime.Now, action, line));
+                string entry = string.Format("[{0:HH:mm:ss}] [{1}] {2}", DateTime.Now, action, line);
+                _logs.Add(entry);
+                ActionProgress task;
+                if (_lanes.TryGetValue(LaneOf(action), out task)) { task.logs.Add(entry); if (task.logs.Count > 1000) task.logs.RemoveAt(0); }
                 if (_logs.Count > 1000) _logs.RemoveAt(0);
             }
         }
@@ -161,13 +191,15 @@ namespace TiaPortalSourceBridge.Web
             {
                 p.OutputDataReceived += (s, e) => { if (e.Data != null) AppendLog(action, e.Data); };
                 p.ErrorDataReceived += (s, e) => { if (e.Data != null) AppendLog(action, "[ERR] " + e.Data); };
+                p.StandardInput.Close(); // Non-interactive actions must never wait for console input.
                 p.BeginOutputReadLine();
                 p.BeginErrorReadLine();
                 if (!p.WaitForExit((int)timeout.TotalMilliseconds))
                 {
                     timedOut = true;
-                    try { p.Kill(); } catch { }
-                    return -2;
+                    lock (_sync) { var progress = _lanes[LaneOf(action)]; progress.status = "outcome_unknown"; progress.stage = "awaiting_result"; progress.message = "等待超时，后台仍在执行；请勿重复提交，完成后将自动更新结果。"; }
+                    AppendLog(action, "等待超时，保留后台进程并继续等待最终结果。");
+                    p.WaitForExit();
                 }
                 p.WaitForExit(); // flush async output
                 return p.ExitCode;
@@ -178,6 +210,7 @@ namespace TiaPortalSourceBridge.Web
         {
             lock (_sync)
             {
+                progress.stage = "finished";
                 progress.exitCode = exitCode;
                 progress.endTime = DateTime.Now;
                 if (exitCode == 0)
@@ -187,8 +220,8 @@ namespace TiaPortalSourceBridge.Web
                 }
                 else
                 {
-                    progress.status = "failed";
-                    progress.message = failMessage ?? ("任务退出异常 (错误码: " + exitCode + ")");
+                    progress.status = exitCode == 3 ? "cancelled" : "failed";
+                    progress.message = exitCode == 3 ? "任务已取消。" : failMessage ?? ("任务退出异常 (错误码: " + exitCode + ")");
                 }
                 _last = progress;
             }
@@ -205,7 +238,7 @@ namespace TiaPortalSourceBridge.Web
 
             try
             {
-                AppendLog(action, ">>> 启动任务: " + action);
+                AppendLog(action, ">>> 启动任务: " + action + " | " + progress.task_id + " | " + projectPath + " | " + plcName);
 
                 if (action == "trust")
                 {
@@ -338,7 +371,7 @@ namespace TiaPortalSourceBridge.Web
                     exitCode = RunProcess(psi, action, TimeSpan.FromMinutes(ActionTimeoutMinutes), out timedOut);
                 }
 
-                if (timedOut) failMessage = "任务超过 " + ActionTimeoutMinutes + " 分钟未结束，已强制终止";
+                // A late result is final; a timeout alone never terminates an engineering operation.
                 Finish(progress, exitCode, failMessage);
             }
             catch (Exception ex)

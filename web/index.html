@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -1083,8 +1083,8 @@
           const selectBox = document.getElementById('plcSelectDropdown');
           if (selectBox) {
             selectBox.innerHTML = data.available_plcs.map(p => {
-              const val = p.cpuName || p.displayName;
-              const isSel = (p.cpuName === data.plc_name) || (p.displayName === data.plc_name) || (p.fullName === data.plc_name);
+              const val = p.fullName;
+              const isSel = p.fullName === data.target_plc;
               return `<option value="${escapeHtml(val)}" ${isSel ? 'selected' : ''}>${escapeHtml(p.displayName)}</option>`;
             }).join('');
             document.getElementById('plcSelectorContainer').style.display = data.available_plcs.length > 1 ? 'block' : 'none';
@@ -1113,6 +1113,9 @@
           } else if (act.status === 'completed') {
             badge.textContent = '完成 (' + act.actionName + ')';
             badge.className = 'badge badge-green';
+          } else if (act.status === 'outcome_unknown' || act.status === 'cancelled') {
+            badge.textContent = act.status === 'cancelled' ? '已取消' : '超时，等待后台结果';
+            badge.className = 'badge badge-amber';
           } else if (act.status === 'failed') {
             badge.textContent = '失败: ' + act.actionName;
             badge.className = 'badge badge-red';
@@ -1121,6 +1124,7 @@
             badge.className = 'badge badge-teal';
           }
 
+          badge.title = [act.message, '任务：' + (act.task_id || ''), act.project_path, act.plc_name].filter(Boolean).join('\n');
           // Render live console logs
           if (act.logs && act.logs.length > 0) {
             const consoleBox = document.getElementById('executionConsole');
@@ -1142,13 +1146,15 @@
     }
 
     async function runAction(action, label) {
-      if (!confirm(`确定要执行【${label}】操作吗？`)) return;
+      const target = currentStatus && {project_path: currentStatus.active_project || currentStatus.project_path, plc_name: currentStatus.target_plc, target_token: currentStatus.target_token};
+      if (action !== 'trust' && (!target || !target.target_token || (action !== 'build-index' && !target.plc_name))) { alert('请先等待工程和 PLC 识别完成，再选择目标。'); return; }
+      if (!confirm(`确定要执行【${label}】操作吗？${action === 'trust' ? '' : '\n工程：' + target.project_path + '\nPLC：' + target.plc_name}`)) return;
       try {
         appendConsoleLog(`>>> 用户触发操作: ${label}...`, 'info');
         const res = await fetch('/api/action/run', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: action })
+          body: JSON.stringify(Object.assign({action: action}, target || {}))
         });
         const data = await res.json();
         if (!data.success) {
