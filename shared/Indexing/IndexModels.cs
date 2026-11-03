@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
@@ -12,6 +12,8 @@ namespace TiaPortalSourceBridge.Indexing
         public string kind { get; set; }
         public string owner { get; set; }
         public string group { get; set; }
+        public string unit_name { get; set; }
+        public string object_namespace { get; set; }
         public string name { get; set; }
         public string language { get; set; }
         public string number { get; set; }
@@ -20,10 +22,25 @@ namespace TiaPortalSourceBridge.Indexing
         public string indexed_utc { get; set; }
         public string error { get; set; }
         public string fingerprint { get; set; }
-        public IndexEntry() { state = "catalog_only"; content_hash = indexed_utc = error = fingerprint = ""; }
-        internal static IndexEntry Create(string kind, string owner, string group, string name, string language = "", string number = "")
+        public string source_stamp { get; set; }
+        public string freshness { get; set; }
+        public IndexEntry() { state = "catalog_only"; freshness = "not_read"; unit_name = object_namespace = content_hash = indexed_utc = error = fingerprint = source_stamp = ""; }
+        internal static IndexEntry Create(string kind, string owner, string group, string name, string language = "", string number = "", string unitName = "", string objectNamespace = "", string sourceStamp = "")
         {
-            return new IndexEntry { id = IndexJson.Hash(kind + "\n" + owner + "\n" + group + "\n" + name), kind = kind, owner = owner, group = group, name = name, language = language, number = number };
+            string unitPart = string.IsNullOrEmpty(unitName) ? "" : "\n" + unitName;
+            return new IndexEntry
+            {
+                id = IndexJson.Hash(kind + "\n" + owner + "\n" + group + "\n" + name + unitPart),
+                kind = kind,
+                owner = owner,
+                group = group,
+                unit_name = unitName ?? "",
+                object_namespace = objectNamespace ?? "",
+                name = name,
+                language = language,
+                number = number,
+                source_stamp = sourceStamp ?? ""
+            };
         }
     }
     internal sealed class IndexFact
@@ -39,6 +56,17 @@ namespace TiaPortalSourceBridge.Indexing
         public string location { get; set; }
         public string evidence { get; set; }
     }
+    internal sealed class IndexBinding
+    {
+        public string symbol { get; set; }
+        public string address { get; set; }
+    }
+    internal sealed class IndexMapping
+    {
+        public string source { get; set; }
+        public string target { get; set; }
+        public string location { get; set; }
+    }
     internal sealed class IndexContent
     {
         public string hash { get; set; }
@@ -50,7 +78,9 @@ namespace TiaPortalSourceBridge.Indexing
         public List<IndexReference> references { get; set; }
         public List<string> warnings { get; set; }
         public List<string> definitions { get; set; }
-        public IndexContent() { facts = new List<IndexFact>(); references = new List<IndexReference>(); warnings = new List<string>(); definitions = new List<string>(); parser = "structure-v1"; }
+        public List<IndexBinding> bindings { get; set; }
+        public List<IndexMapping> mappings { get; set; }
+        public IndexContent() { bindings = new List<IndexBinding>(); mappings = new List<IndexMapping>(); facts = new List<IndexFact>(); references = new List<IndexReference>(); warnings = new List<string>(); definitions = new List<string>(); parser = "structure-v1"; }
     }
     internal sealed class IndexCatalog
     {
@@ -58,6 +88,9 @@ namespace TiaPortalSourceBridge.Indexing
         public string project_file { get; set; }
         public string portal_version { get; set; }
         public string built_utc { get; set; }
+        public int added { get; set; }
+        public int removed { get; set; }
+        public int retained { get; set; }
         public List<IndexEntry> objects { get; set; }
         public List<string> warnings { get; set; }
         public IndexCatalog() { schema = 1; objects = new List<IndexEntry>(); warnings = new List<string>(); }
@@ -67,6 +100,7 @@ namespace TiaPortalSourceBridge.Indexing
         public bool all { get; set; }
         public List<string> names { get; set; }
         public string reason { get; set; }
+        public string revision { get; set; }
         public IndexDirty() { names = new List<string>(); }
     }
     internal static class IndexJson

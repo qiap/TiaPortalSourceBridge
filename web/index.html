@@ -1458,9 +1458,9 @@
         } else {
           runningList.innerHTML = runningProjects.map(p => {
             const isActive = p.is_active || (p.path.toLowerCase() === (activePath || '').toLowerCase());
-            const safePath = escapeHtml(p.path).replace(/'/g, "\\'");
+            const safePath = escapeHtml(p.path);
             return `
-              <div class="project-item ${isActive ? 'active' : ''}" onclick="selectProject('${safePath}')">
+              <div class="project-item ${isActive ? 'active' : ''}" data-project-path="${safePath}" onclick="selectProject(this.dataset.projectPath)">
                 <div class="project-item-left">
                   <span class="status-dot online"></span>
                   <div style="min-width:0;">
@@ -1483,9 +1483,9 @@
         } else {
           historyList.innerHTML = historyProjects.map(p => {
             const isActive = p.is_active || (p.path.toLowerCase() === (activePath || '').toLowerCase());
-            const safePath = escapeHtml(p.path).replace(/'/g, "\\'");
+            const safePath = escapeHtml(p.path);
             return `
-              <div class="project-item ${isActive ? 'active' : ''}" onclick="selectProject('${safePath}')">
+              <div class="project-item ${isActive ? 'active' : ''}" data-project-path="${safePath}" onclick="selectProject(this.dataset.projectPath)">
                 <div class="project-item-left">
                   <span style="font-size:14px;color:#94a3b8;">📁</span>
                   <div style="min-width:0;">

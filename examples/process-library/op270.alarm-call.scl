@@ -1,0 +1,12 @@
+"FC11_Alarm"(
+    iFirstCycle := "FirstScan",
+    iReset := "DB_ExampleBasic".Mode.FaultReset,
+    oTotal_Alarm => "DB_ExampleBasic".Alarm.Total,
+    oSafety_Alarm => "DB_ExampleBasic".Alarm.Safety,
+    oHardware_Alarm => "DB_ExampleBasic".Alarm.Hardware,
+    oComm_Alarm => "DB_ExampleBasic".Alarm.Comm,
+    oMsg_Alarm => "DB_ExampleBasic".Alarm.Msg,
+    oTimeOut_Alarm => "DB_ExampleBasic".Alarm.TimeOut,
+    oReserved_Alarm => "DB_ExampleBasic".Alarm.Reserved,
+    Alarm := "DB_ExampleAlarm"
+);

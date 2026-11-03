@@ -1,0 +1,18 @@
+{
+  "instance": "#Z14",
+  "cylinder_db": "DB_ExampleCylinder",
+  "cylinder_id": "Z14",
+  "alarm_db": "DB_ExampleAlarm",
+  "alarm_index": 14,
+  "clock": "\"DB_ExampleSignals\".clock",
+  "auto": "\"DB_ExampleSignals\".auto",
+  "manual": "\"DB_ExampleSignals\".manual",
+  "reset": "\"DB_ExampleBasic\".Mode.FaultReset",
+  "permit_work": "\"DB_ExampleSignals\".permit_work",
+  "permit_home": "\"DB_ExampleSignals\".permit_home",
+  "keep_mode": "\"DB_ExampleSignals\".keep_mode",
+  "work_sensor": "\"DB_ExampleSignals\".work_sensor",
+  "home_sensor": "\"DB_ExampleSignals\".home_sensor",
+  "work_output": "\"DB_ExampleSignals\".work_output",
+  "home_output": "\"DB_ExampleSignals\".home_output"
+}

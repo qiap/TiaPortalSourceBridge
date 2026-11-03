@@ -1,0 +1,27 @@
+// SCL 调用片段，放入宿主块 BEGIN 内；须先声明 FB21 实例。
+#Z14(
+    "iFlags_1.0sFP" := "DB_ExampleSignals".clock,
+    iAuto := "DB_ExampleSignals".auto,
+    iManual := "DB_ExampleSignals".manual,
+    iReset := "DB_ExampleBasic".Mode.FaultReset,
+    i_Interlock_Wpos := "DB_ExampleSignals".permit_work,
+    i_Interlock_Hpos := "DB_ExampleSignals".permit_home,
+    i_Trigger_W_Man := "DB_ExampleCylinder".Z14.Trigger_W_Man,
+    i_Trigger_H_Man := "DB_ExampleCylinder".Z14.Trigger_H_Man,
+    i_Trigger_W_Auto := "DB_ExampleCylinder".Z14.Trigger_W_Auto,
+    i_Trigger_H_Auto := "DB_ExampleCylinder".Z14.Trigger_H_Auto,
+    i_Output_Keep_mode := "DB_ExampleSignals".keep_mode,
+    i_Wpos := "DB_ExampleSignals".work_sensor,
+    i_Hpos := "DB_ExampleSignals".home_sensor,
+    oOutput_W => "DB_ExampleSignals".work_output,
+    oOutput_H => "DB_ExampleSignals".home_output,
+    HMI__Interlock_Wpos => "DB_ExampleCylinder".Z14.Interlock_W,
+    HMI__Interlock_Hpos => "DB_ExampleCylinder".Z14.Interlock_H,
+    HMI_Output_W => "DB_ExampleCylinder".Z14.Wpos_Valve,
+    HMI_Output_H => "DB_ExampleCylinder".Z14.Hpos_Valve,
+    HMI_InWpos => "DB_ExampleCylinder".Z14.Wpos_SE,
+    HMI_InHpos => "DB_ExampleCylinder".Z14.Hpos_SE,
+    Timeout_ToWpos => "DB_ExampleAlarm".Timeout[14, 1],
+    Timeout_ToHpos => "DB_ExampleAlarm".Timeout[14, 2],
+    TimeOut_Set := "DB_ExampleCylinder".Z14.TimeOut_Set
+);

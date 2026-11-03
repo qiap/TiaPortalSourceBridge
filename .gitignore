@@ -34,3 +34,6 @@ mcp-config.json
 recent.json
 profiles/
 tests/*results*.json
+
+# Local engineering metadata
+scripts/blocks_meta.json

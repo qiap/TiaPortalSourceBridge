@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -99,12 +99,17 @@ namespace TiaPortalSourceBridge.Mcp
                 foreach (object tagRow in Rows(m, "tags"))
                 {
                     var t = Map(tagRow); string tagName = RequiredName(t); if (!names.Add(tagName)) throw new ArgumentException("变量名重复：" + tagName);
+                    if (string.IsNullOrWhiteSpace(Text(t, "data_type"))) throw new ArgumentException("HMI 变量必须明确 data_type，不能使用默认类型：" + tagName);
+                    if (t.ContainsKey("address") && t.ContainsKey("plc_tag")) throw new ArgumentException("address 与 plc_tag 不能同时指定：" + tagName);
                     var tag = LoadTemplate(doc, root, version, "Tag"); tag.SetAttribute("CompositionName", "Tags"); Attribute(tag, "Name", tagName);
-                    Link(tag, "DataType", Text(t, "data_type", "Bool")); Link(tag, "HmiDataType", Text(t, "data_type", "Bool"));
+                    Link(tag, "DataType", Text(t, "data_type", "Bool")); Link(tag, "HmiDataType", Text(t, "hmi_data_type", Text(t, "data_type")));
                     if (t.ContainsKey("connection")) Link(tag, "Connection", Text(t, "connection"));
                     if (t.ContainsKey("address")) { Attribute(tag, "AddressAccessMode", "Absolute"); Attribute(tag, "LogicalAddress", Text(t, "address")); }
-                    if (t.ContainsKey("plc_tag")) { Attribute(tag, "AddressAccessMode", "Symbolic"); Link(tag, "PlcTag", Text(t, "plc_tag")); }
+                    if (t.ContainsKey("plc_tag")) { Attribute(tag, "AddressAccessMode", "Symbolic"); Link(tag, "ControllerTag", Text(t, "plc_tag")); }
                     if (t.ContainsKey("acquisition_cycle")) Link(tag, "AcquisitionCycle", Text(t, "acquisition_cycle"));
+                    var tagAttributes = Val(t, "attributes") as Dictionary<string, object>;
+                    if ((Text(t, "data_type") + Text(t, "hmi_data_type")).IndexOf("string", StringComparison.OrdinalIgnoreCase) >= 0 && (tagAttributes == null || !tagAttributes.ContainsKey("Length")))
+                        throw new ArgumentException("字符串变量必须明确 attributes.Length：" + tagName);
                     ApplyAttributes(tag, Val(t, "attributes")); Objects(table).AppendChild(tag);
                 }
                 AssignIds(table); result.Add(new HmiDocument { kind = "tag_tables", name = name, group_path = Text(m, "group_path"), xml = doc.OuterXml });

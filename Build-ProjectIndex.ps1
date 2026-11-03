@@ -2,6 +2,7 @@
     [Parameter(Position=0)][string]$ProjectPath,
     [switch]$PauseOnCompletion,
     [switch]$Resume,
+    [ValidateSet("PLC","HMI","Hardware","All")][string]$Scope="PLC",
     [ValidateRange(1,1000)][int]$BatchSize=25,
     [ValidateRange(100,60000)][int]$TimeBudgetMs=15000,
     [string]$ReportPath,
@@ -52,6 +53,13 @@ function Select-IndexProject {
     } finally {$dialog.Dispose()}
 }
 
+function Get-ScopeStatus($Status) {
+    if($Scope -eq 'All'){return $Status}
+    $layer=@($Status.layers|Where-Object {$_.layer -eq $Scope.ToLowerInvariant()})
+    if($layer.Count -eq 0){return @{total=0;ready=0;pending=0;errors=0}}
+    return @{total=[int]$layer[0].total;ready=[int]$layer[0].ready;pending=([int]$layer[0].total-[int]$layer[0].ready);errors=[int]$layer[0].errors}
+}
+
 function Invoke-IndexRequest([string]$Method,$Parameters) {
     $script:requestId++
     $request=@{jsonrpc='2.0';id=$script:requestId;method=$Method;params=$Parameters}|ConvertTo-Json -Depth 30 -Compress
@@ -87,10 +95,11 @@ try {
     if(-not $ReportPath){$ReportPath=Join-Path $indexDirectory 'last-build-report.json'}
     $ReportPath=[IO.Path]::GetFullPath($ReportPath)
     if($ReportPath -eq $project -or $ReportPath -eq $ConfigPath -or $ReportPath -eq $ExecutablePath){throw '报告路径不能覆盖工程、配置或主程序。'}
-    if((Split-Path -Parent $ReportPath) -eq $indexDirectory -and ([IO.Path]::GetFileName($ReportPath) -in @('catalog.json','dirty.json','write.lock'))){throw '报告路径不能覆盖索引内部文件。'}
-    $report=[ordered]@{project_path=$project;started_at=[DateTimeOffset]::Now.ToString('o');mode=$(if($Resume){'resume'}else{'fresh'});completed=$false;partial=$false;total=0;ready=0;pending=0;errors=0;warnings=@();batches=@();failed_objects=@();failure='';index_directory=$indexDirectory;report_path=$ReportPath}
+    if((Split-Path -Parent $ReportPath) -eq $indexDirectory -and ([IO.Path]::GetFileName($ReportPath) -in @('catalog.json','dirty.json','write.lock','query-cache.json'))){throw '报告路径不能覆盖索引内部文件。'}
+    $kindFilter=switch($Scope){'PLC'{'plc.'};'HMI'{'hmi.'};'Hardware'{'hardware'};default{''}}
+    $report=[ordered]@{scope=$Scope;project_path=$project;started_at=[DateTimeOffset]::Now.ToString('o');mode=$(if($Resume){'resume'}else{'fresh'});completed=$false;partial=$false;total=0;ready=0;pending=0;errors=0;warnings=@();batches=@();failed_objects=@();failure='';index_directory=$indexDirectory;report_path=$ReportPath}
     Write-Host ('工程：'+$project)
-    Write-Host '建立目录和内容索引；不编译、不保存、不下载。'
+    Write-Host ('建立目录和 {0} 层内容索引；可用 -Resume 继续。' -f $Scope)
     $info=[Diagnostics.ProcessStartInfo]::new()
     $info.FileName=$ExecutablePath
     # A dedicated STA worker keeps this CLI independent of the persistent gateway's single client pipe.
@@ -108,18 +117,20 @@ try {
     if('tia_build_project_index' -notin $catalogTools.tools.name){throw '此主程序没有工程索引接口，请更新到3.0或更高版本。'}
     $catalog=Invoke-IndexRequest 'tools/call' @{name='tia_build_project_index';arguments=@{project_path=$project;detail_level='catalog';refresh_catalog=(-not $Resume);include_hardware=$true;response_mode='compact'}}
     $status=$catalog.structuredContent
+    $scopeStatus=Get-ScopeStatus $status
     foreach($key in @('total','ready','pending','errors')){$report[$key]=[int]$status.$key}
     $report.warnings=@($status.warnings)
     Write-Host ('目录：{0} 个对象；开始分批读取。' -f $status.total)
     $batchLimit=[Math]::Max(100,([int]$status.total*2+10))
     for($batch=1;$batch -le $batchLimit;$batch++) {
-        $reply=Invoke-IndexRequest 'tools/call' @{name='tia_build_project_index';arguments=@{project_path=$project;detail_level='content';max_objects=$BatchSize;time_budget_ms=$TimeBudgetMs;response_mode='compact'}}
-        $data=$reply.structuredContent;$status=$data.status
+        $reply=Invoke-IndexRequest 'tools/call' @{name='tia_build_project_index';arguments=@{project_path=$project;detail_level='content';kind_filter=$kindFilter;include_all_content=($Scope -eq 'All');max_objects=$BatchSize;time_budget_ms=$TimeBudgetMs;response_mode='compact'}}
+        $data=$reply.structuredContent;$status=$data.status;$scopeStatus=Get-ScopeStatus $status
         foreach($key in @('total','ready','pending','errors')){$report[$key]=[int]$status.$key}
         $report.warnings=@($status.warnings)
+        $report['scope_status']=$scopeStatus
         $report.batches+=@{batch=$batch;updated=[int]$data.updated;failed=[int]$data.failed;ready=[int]$status.ready;pending=[int]$status.pending;execution_ms=$reply._meta.performance.execution_ms}
         Write-Host ('[{0}] 已索引 {1}/{2}，失败 {3}，本批新增 {4}。' -f $batch,$status.ready,$status.total,$status.errors,$data.updated)
-        if([int]$status.pending -eq 0 -or [int]$status.pending -eq [int]$status.errors){break}
+        if([int]$scopeStatus.pending -eq 0 -or [int]$scopeStatus.pending -eq [int]$scopeStatus.errors){break}
         if(([int]$data.updated+[int]$data.failed) -eq 0){throw '本批没有取得进展，但仍有未完成对象；请查看索引状态后重试。'}
         if($batch -eq $batchLimit){throw '索引持续变化或批次数超出上限；已保留进度，可以 -Resume 继续。'}
     }
@@ -130,10 +141,11 @@ try {
             if($item.state -eq 'error'){$report.failed_objects+=@{name=$item.name;kind=$item.kind;owner=$item.owner;group_path=$item.group_path;error=$item.error}}
         }
     }
-    $report.completed=([int]$status.pending -eq 0 -and @($status.warnings).Count -eq 0)
+    $report.completed=([int]$scopeStatus.pending -eq 0 -and @($status.warnings).Count -eq 0)
+    $report['deferred_objects']=[int]$status.pending-[int]$scopeStatus.pending
     $report.partial=(-not $report.completed)
     $exitCode=if($report.completed){0}else{2}
-    if($report.completed){Write-Host ('完整索引已建立：{0}/{0}。' -f $status.total)}
+    if($report.completed){Write-Host ('{0} 层索引已完成：{1}/{1}；其他层可用 -Scope HMI/Hardware/All 按需建立。' -f $Scope,$scopeStatus.total)}
     else {
         Write-Host ('索引建立完成，但有未读取对象：已索引 {0}/{1}，失败 {2}。' -f $status.ready,$status.total,$status.errors)
         foreach($item in $report.failed_objects){Write-Host ('  '+$item.name+'：'+$item.error)}

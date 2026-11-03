@@ -24,7 +24,7 @@
 
 新增 **v3.0.0**：通用工程目录树、内容摘要和显式引用索引，覆盖 PLC/UDT/变量表、GRAPH、经典 HMI 和硬件。目录先建、内容按需分批读取，索引保存在工程旁，可随工程复制。新增 `tia_build_project_index`、`tia_get_project_tree`、`tia_find_references`、`tia_get_task_context`。连接返回索引状态，正常读取可积累内容，写入标记索引过期，MCP 初始化与接口说明引导 Agent 优先查询任务上下文。用法与限制见 **[PROJECT_INDEX.md](PROJECT_INDEX.md)**，验证见 **[VALIDATION_3.0.md](VALIDATION_3.0.md)**。
 
-**建立完整工程索引**：双击本目录的 **`建立工程索引.bat`**，在文件选择框中选择工程，自动扫描目录并分批建立全部可读取内容，显示进度、汇总失败项，不编译、不保存、不下载。也支持 `BuildProjectIndex.cmd "E:\Projects\Line\Line.ap17"`，中断后可加 `-Resume` 继续。目标工程需先在博途中打开。
+**分层建立工程索引**：双击本目录的 **`建立工程索引.bat`**，在文件选择框中选择工程，自动扫描目录并优先分批建立 PLC/DB/UDT/变量表内容；HMI 和硬件按需建立，完整内容使用 `-Scope All`，显示进度、汇总失败项，不编译、不保存、不下载。也支持 `BuildProjectIndex.cmd "E:\Projects\Line\Line.ap17"`，中断后可加 `-Resume` 继续。目标工程需先在博途中打开。
 
 新增 **v2.9.0**：面向所有 GRAPH 的通用批量修改接口 `tia_update_graph`，一次导出/解析处理整组修改，复用读取快照备份，支持无变化跳过、内容指纹核对、可选备份与编译。原有生成、模型读取和 XML 补丁接口复用解析结果；大流程连线与循环检查使用索引。该版共60个工具。调用方法、离线测速与启用状态见 **[VALIDATION_2.9.md](VALIDATION_2.9.md)**。
 
@@ -202,7 +202,7 @@
 - 看板操作固定到确认窗口显示的完整工程路径和 PLC 路径。请求携带本次服务签发的目标快照；其他标签页切换工程不会改变已确认目标。旧页面需要刷新；服务重启后快照失效。
 - 工程任务和索引任务共用串行通道。看板等待超过 30 分钟时显示“超时，等待后台结果”，保留进程和占用状态，最终结果到达后自动更新。不会因为等待超时杀死导入或编译进程。退出看板仍会等待这些任务完成。
 - 每个看板任务带 `task_id`、目标和阶段；`/api/action/status?task_id=...` 查询最近 100 项任务（当前服务进程内保存，重启后不保留）。取消退出码为 3，不会显示成功。这里没有增加对执行中 TIA 写入的强制取消按钮。
-- 两个引擎共享 `shared/` 中 11 个模块，包括项目后台协议、备份身份验证、内容索引和模型构建；Siemens 版本相关实现和 STA 进程继续隔离。普通构建和 SDK 项目均直接编译共享源码。
+- 两个引擎共享 `shared/` 中的公共模块，包括项目后台协议、备份身份验证、内容索引和模型构建；Siemens 版本相关实现和 STA 进程继续隔离。普通构建和 SDK 项目均直接编译共享源码。
 - MCP 等待时间可用环境变量 `TIA_BRIDGE_REQUEST_TIMEOUT_SECONDS` 设置为 1～3600 秒，默认 600 秒。超时后查询 `tia_connection_status` 获取延迟结果，不要重放写入。
 - 统一离线回归：`powershell -NoProfile -ExecutionPolicy Bypass -File tests/Run-Checks.ps1`。需要 Windows、.NET Framework 编译器和 Python 3；不要求连接 TIA 工程。覆盖双引擎生成路由、目标快照与 HTTP 请求、超时恢复、备份身份/指纹、批量部分失败和浏览器生命周期。
 - `Build-All.ps1` 在替换现有程序之前执行完整回归；失败时保留现有程序。GitHub Actions 的 Windows 检查调用同一入口；远程运行需将仓库推送到 GitHub。

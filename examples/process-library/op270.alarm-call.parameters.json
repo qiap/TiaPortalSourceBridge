@@ -1,0 +1,6 @@
+{
+  "first_cycle": "\"FirstScan\"",
+  "reset": "\"DB_ExampleBasic\".Mode.FaultReset",
+  "basic_db": "DB_ExampleBasic",
+  "alarm_db": "DB_ExampleAlarm"
+}

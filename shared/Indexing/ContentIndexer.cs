@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -8,7 +8,7 @@ using System.Xml;
 namespace TiaPortalSourceBridge.Indexing
 {
     // Extract evidence, not guessed machine behavior. No project-specific names or addresses.
-    internal static class ContentIndexer
+    internal static partial class ContentIndexer
     {
         private static readonly Regex TokenRefRegex = new Regex(
             "(?:\"[^\"]+\"|#?[\\p{L}_][\\p{L}\\p{N}_]*)(?:\\.(?:\"[^\"]+\"|[\\p{L}_][\\p{L}\\p{N}_]*)(?:\\[[^\\]\\r\\n]+\\])?)+",
@@ -37,7 +37,7 @@ namespace TiaPortalSourceBridge.Indexing
         {
             return string.Join(".", node.SelectNodes("*[local-name()='Component']").Cast<XmlElement>().Select(e => {
                 string indices = string.Join(",", e.SelectNodes(".//*[local-name()='ConstantValue']").Cast<XmlNode>().Select(n => n.InnerText));
-                return e.GetAttribute("Name") + (indices.Length == 0 ? "" : "[" + indices + "]");
+                return ComponentName(e.GetAttribute("Name")) + (indices.Length == 0 ? "" : "[" + indices + "]");
             }));
         }
         internal static IndexContent Parse(string xml)
@@ -45,7 +45,7 @@ namespace TiaPortalSourceBridge.Indexing
             var doc = new XmlDocument { XmlResolver = null, PreserveWhitespace = true };
             using (var reader = XmlReader.Create(new StringReader(xml), new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = 32 * 1024 * 1024 })) doc.Load(reader);
             var objectRoot = doc.SelectSingleNode("/Document/*[starts-with(local-name(),'SW.') or starts-with(local-name(),'Hmi.')]");
-            var c = new IndexContent { hash = IndexJson.Hash(objectRoot == null ? doc.OuterXml : objectRoot.OuterXml) };
+            var c = new IndexContent { parser = ParserVersion, hash = IndexJson.Hash(objectRoot == null ? doc.OuterXml : objectRoot.OuterXml) };
             c.object_name = objectRoot == null ? "" : Child(objectRoot.SelectSingleNode("AttributeList"), "Name");
             var engineering = doc.SelectSingleNode("/Document/Engineering/@version"); c.source_version = engineering == null ? "" : engineering.Value;
             var ids = doc.SelectNodes("//*[@ID]").Cast<XmlElement>().GroupBy(e => e.GetAttribute("ID")).ToDictionary(g => "#" + g.Key, g => g.First());
@@ -57,7 +57,7 @@ namespace TiaPortalSourceBridge.Indexing
             };
             foreach (XmlElement m in doc.SelectNodes("/Document/*[starts-with(local-name(),'SW.')]/AttributeList/Interface//*[local-name()='Member']"))
             {
-                string path = string.Join(".", m.SelectNodes("ancestor-or-self::*[local-name()='Member']").Cast<XmlElement>().Select(e => e.GetAttribute("Name")));
+                string path = string.Join(".", m.SelectNodes("ancestor-or-self::*[local-name()='Member']").Cast<XmlElement>().Select(e => ComponentName(e.GetAttribute("Name"))));
                 string type = m.GetAttribute("Datatype"), comment = string.Join("; ", m.SelectNodes("*[local-name()='Comment']/*").Cast<XmlNode>().Select(n => n.InnerText));
                 Fact(c, "member", m, path + " : " + type + " = " + Child(m, "StartValue") + (comment.Length > 0 ? " // " + comment : ""));
                 var fields = m.SelectNodes("*[local-name()='Sections']/*[local-name()='Section']/*[local-name()='Member']").Cast<XmlElement>().ToArray();
@@ -76,15 +76,16 @@ namespace TiaPortalSourceBridge.Indexing
                 var a = tag.SelectSingleNode("AttributeList");
                 Fact(c, "plc_tag", tag, Child(a, "Name") + " : " + Child(a, "DataTypeName") + " address=" + Child(a, "LogicalAddress") + " value=" + Child(a, "Value"));
                 c.definitions.Add(Child(a, "Name"));
+                if (Child(a, "LogicalAddress").Length > 0) c.bindings.Add(new IndexBinding { symbol = Child(a, "Name"), address = Child(a, "LogicalAddress") });
                 Ref(c, "address", Child(a, "LogicalAddress"), tag, "declared PLC tag address");
             }
             foreach (XmlNode access in doc.SelectNodes("//*[local-name()='Access']/*[local-name()='Symbol']"))
-                Ref(c, "symbol_reference", Symbol(access), access, "scope=" + Attr(access.ParentNode, "Scope") + "; read/write direction not inferred");
+                Ref(c, "symbol_reference", Operand(access.ParentNode), access, "scope=" + Attr(access.ParentNode, "Scope") + "; read/write direction not inferred");
             foreach (XmlElement token in doc.SelectNodes("//*[local-name()='Token' and @Text]"))
             {
                 string text = token.GetAttribute("Text");
                 foreach (Match m in TokenRefRegex.Matches(text))
-                    Ref(c, "token_reference", m.Value.Replace("\"", ""), token, "literal source token");
+                    Ref(c, "token_reference", NormalizeSymbol(m.Value), token, "literal source token");
             }
             foreach (XmlNode sequence in doc.SelectNodes("//*[local-name()='Graph']/*[local-name()='Sequence']"))
             {
@@ -92,7 +93,7 @@ namespace TiaPortalSourceBridge.Indexing
                 {
                     Fact(c, "graph_step", s, "S" + s.GetAttribute("Number") + " " + s.GetAttribute("Name") + " initial=" + s.GetAttribute("Init") + " max=" + s.GetAttribute("MaximumStepTime") + " warning=" + s.GetAttribute("WarningTime"));
                     foreach (XmlNode a in s.SelectNodes("*[local-name()='Actions']/*[local-name()='Action']"))
-                        Fact(c, "graph_action", a, Attr(a, "Qualifier") + " " + string.Join(" ", a.SelectNodes("*[local-name()='Token']").Cast<XmlElement>().Select(t => t.GetAttribute("Text"))));
+                        Fact(c, "graph_action", a, Attr(a, "Qualifier") + " " + SourceText(a));
                 }
                 foreach (XmlElement t in sequence.SelectNodes("*[local-name()='Transitions']/*"))
                     Fact(c, "graph_transition", t, "T" + t.GetAttribute("Number") + " " + t.GetAttribute("Name") + " " + t.GetAttribute("ProgrammingLanguage") + " " + string.Join(";", t.SelectNodes(".//*[local-name()='Symbol']").Cast<XmlNode>().Select(Symbol)));
@@ -139,16 +140,17 @@ namespace TiaPortalSourceBridge.Indexing
                     }
             }
             // Retain source snippets from SCL/STL XML without claiming a full language interpreter.
-            foreach (XmlNode source in doc.SelectNodes("//*[local-name()='StructuredText' or local-name()='SourceText']"))
+            foreach (XmlNode source in doc.SelectNodes("//*[local-name()='StructuredText' or local-name()='SourceText' or local-name()='StatementList']"))
             {
-                string text = source.InnerText;
-                if (string.IsNullOrWhiteSpace(text)) text = string.Join(" ", source.SelectNodes(".//*[local-name()='Token' and @Text]").Cast<XmlElement>().Select(e => e.GetAttribute("Text")));
+                string text = SourceText(source);
+                foreach (Match m in TokenRefRegex.Matches(text)) Ref(c, "source_reference", NormalizeSymbol(m.Value), source, "source text; direction not inferred");
                 Fact(c, "source_excerpt", source, text.Length > 12000 ? text.Substring(0, 12000) : text);
                 c.warnings.Add("SCL/STL source excerpts and native Access/CallInfo nodes are indexed; no complete control-flow or read/write analysis is claimed.");
             }
+            Semantics(c, doc);
             if (c.facts.Count == 0 && c.references.Count == 0) c.warnings.Add("No supported content structures found; use the live source reader for this object.");
             c.references = c.references.GroupBy(r => r.relation + "\n" + r.target + "\n" + r.location).Select(g => g.First()).ToList();
-            c.warnings.Add("Structural index snapshot; live-read target before writing. Symbol direction and dynamic-address results are not inferred.");
+            c.warnings.Add("Structural index snapshot; live-read target before writing. Read/write evidence covers supported native pins and STL opcodes only; dynamic-address results and runtime control flow are not inferred.");
             c.search_text = string.Join("\n", c.facts.Select(f => f.text).Concat(c.references.Select(r => r.target)));
             return c;
         }

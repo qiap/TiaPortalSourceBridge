@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
@@ -22,6 +22,7 @@ namespace TiaPortalSourceBridge.Mcp
         public string after_hash { get; set; }
         public string[] differences { get; set; }
         internal string Xml;
+        [ScriptIgnore] public string index_xml { get; set; }
         internal string Before;
         internal CachedBlockEntry Entry;
     }

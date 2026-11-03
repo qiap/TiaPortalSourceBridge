@@ -1,0 +1,12 @@
+TIA Portal Source Bridge 4.1.1
+
+安装说明
+1. 支持 Windows 10/11 64 位，需 .NET Framework 4.8 或更新版本。
+2. 工程功能需在目标电脑安装对应版本的 TIA Portal 和 Openness。本包包含 V17/V21 引擎，不包含 Siemens 软件、许可证或工程文件。
+3. 默认安装到当前用户的 LocalAppData\Programs\TiaPortalSourceBridge，可从开始菜单或桌面打开看板。
+4. 先在 TIA Portal 中打开工程，再从看板选择工程。默认仅连接现有实例，不自动升级或保存工程。
+5. 使用者需属于 Siemens TIA Openness 本地用户组。首次连接按 TIA 提示授权；需要登记白名单时，在看板操作并确认 Windows 管理员提示。
+6. 升级前请退出看板和 MCP 服务。升级保留配置；卸载保留配置和使用过程中产生的日志、备份、导出文件，以免误删数据。
+7. 安装包未做商业代码签名；请仅使用可信来源的安装文件。
+
+本包不包含开发电脑的工程路径、最近工程记录、现场数据、日志和备份。

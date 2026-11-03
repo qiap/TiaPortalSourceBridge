@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -8,7 +8,7 @@ using TiaPortalSourceBridge.Mcp;
 
 namespace TiaPortalSourceBridge.Openness
 {
-    internal sealed class HmiOperations
+    internal sealed partial class HmiOperations
     {
         // kind, root XML type, target property, collection property, hierarchical folder
         internal static readonly string[][] Kinds = {
@@ -76,14 +76,17 @@ namespace TiaPortalSourceBridge.Openness
         }
         public Dictionary<string, object> Read(string kind, string nameFilter, string groupPrefix, bool includeXml, bool includeModel)
         {
-            var results = new List<object>(); int failures = 0;
+            var results = new List<object>(); var scopes = new List<object>(); int failures = 0;
             string prefix = PathTools.NormalizeGroupPath(groupPrefix);
             var folders = new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             foreach (var spec in string.IsNullOrWhiteSpace(kind) || kind == "all" ? Kinds : new[] { Spec(kind) })
             {
                 if (prefix.Length > 0 && spec[4] != "1") continue;
                 OperationMetrics.Count("hmi_catalog_scans");
-                foreach (var entry in Enumerate(spec, Folder(spec, prefix, false, folders), prefix))
+                object readFolder = Folder(spec, prefix, false, folders);
+                bool supported = readFolder != null && Api.Get(readFolder, spec[3], false) != null;
+                scopes.Add(new { kind = spec[0], state = supported ? "readable_scope" : prefix.Length > 0 ? "group_not_found_or_unreadable" : "unsupported", complete = supported && spec[0] != "connections" });
+                foreach (var entry in Enumerate(spec, readFolder, prefix))
                 {
                     string name = Api.GetString(entry.Item2, "Name");
                     if (!string.IsNullOrEmpty(nameFilter) && name.IndexOf(nameFilter, StringComparison.OrdinalIgnoreCase) < 0) continue;
@@ -102,6 +105,8 @@ namespace TiaPortalSourceBridge.Openness
             {
                 response["openness_note"] = "注意：TIA Openness 在导出/导入经典 HMI 画面 XML 时会过滤 AlarmView（报警视图）等特定复合控件；对含报警视图的画面（如 HD_31_Alarm / HD_32_AlarmHistory）执行 XML 覆盖回导会导致该控件丢失。";
             }
+            response["coverage"] = Coverage();
+            response["scope_status"] = scopes.ToArray();
             return response;
         }
         private static XmlDocument Parse(string xml)
@@ -151,7 +156,7 @@ namespace TiaPortalSourceBridge.Openness
             // Strict object XML comparison deliberately keeps whitespace and IDs: false negatives are safe.
             return string.Equals(ExtractRootOuterXml(left), ExtractRootOuterXml(right), StringComparison.Ordinal);
         }
-        public Dictionary<string, object> Write(string objectsJson, string backupRoot, bool skipUnchanged = true)
+        private Dictionary<string, object> WriteCore(string objectsJson, string backupRoot, bool skipUnchanged = true)
         {
             HmiDocument[] objects = ParseDocuments(objectsJson, Api.LoadedPortalVersion);
             string[] order = { "connections", "cycles", "tag_tables", "text_lists", "graphic_lists", "scripts", "screen_templates", "popup_screens", "slidein_screens", "screens" };
@@ -162,7 +167,7 @@ namespace TiaPortalSourceBridge.Openness
             foreach (var entry in objects.OrderBy(o => Array.IndexOf(order, o.kind)))
             {
                 if (stopped) { results.Add(new { name = entry.name, kind = entry.kind, ok = false, skipped = true, backup = "", error = "前一项失败，已停止后续导入。" }); continue; }
-                string backup = "";
+                string backup = ""; bool mutationStarted = false;
                 try
                 {
                     string[] spec = Spec(entry.kind);
@@ -190,13 +195,15 @@ namespace TiaPortalSourceBridge.Openness
                         }
                         backup = BackupRecord.Write(backupRoot, entry.name, original, session.GetProjectPath(), hmi.DisplayName, entry.group_path, entry.kind, entry.name);
                     }
+                    mutationStarted = true;
                     object folder = Folder(spec, entry.group_path, true, folders); if (folder == null) throw new InvalidOperationException("当前 HMI 不提供该对象类型：" + entry.kind);
                     string path = Path.Combine(Path.GetTempPath(), "tia-hmi-import-" + Guid.NewGuid().ToString("N") + ".xml");
                     try { using (OperationMetrics.Measure("import")) { File.WriteAllText(path, entry.xml); Api.Invoke(Api.Get(folder, spec[3], true), "Import", new FileInfo(path), Api.EnumValue("Siemens.Engineering.ImportOptions", matches.Length == 0 ? "None" : "Override")); } }
                     finally { if (File.Exists(path)) File.Delete(path); }
-                    success++; results.Add(new { name = entry.name, kind = entry.kind, ok = true, skipped = false, backup = backup, error = "" });
+                    VerifyImported(entry);
+                    success++; results.Add(new { name = entry.name, kind = entry.kind, ok = true, skipped = false, backup = backup, verification = "requested_fields_verified", error = "" });
                 }
-                catch (Exception ex) { failures++; stopped = true; results.Add(new { name = entry.name, kind = entry.kind, ok = false, skipped = false, backup = backup, may_have_changed = true, error = ex.Message }); }
+                catch (Exception ex) { failures++; stopped = true; results.Add(new { name = entry.name, kind = entry.kind, ok = false, skipped = false, backup = backup, may_have_changed = mutationStarted, stage = mutationStarted ? "import_or_readback" : "before_import", error = ex.ToString(), verification_differences = ex is HmiVerificationException ? ((HmiVerificationException)ex).Differences : new object[0] }); }
             }
             return new Dictionary<string, object> { { "saved", false }, { "success_count", success }, { "changed_count", success - unchanged }, { "unchanged_count", unchanged }, { "failure_count", failures }, { "skipped_count", objects.Length - success - failures }, { "items", results.ToArray() } };
         }

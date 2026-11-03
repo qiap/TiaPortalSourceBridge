@@ -1,0 +1,10 @@
+DATA_BLOCK "DB_ExampleCylinder"
+{ S7_Optimized_Access := 'FALSE' }
+VERSION : 0.1
+   STRUCT
+      AssemblyAuto : "UDT_Graph";
+      AssemblyReset : "UDT_Graph";
+      InitialDone : Bool;
+   END_STRUCT;
+BEGIN
+END_DATA_BLOCK

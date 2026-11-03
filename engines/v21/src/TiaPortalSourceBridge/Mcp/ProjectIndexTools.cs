@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -23,8 +23,34 @@ namespace TiaPortalSourceBridge.Mcp
         private object IndexConnectionStatus(AppConfig config)
         {
             var index = Index(config);
-            try { return index.Exists ? index.Status() : (object)new { state = "not_built", next_tool = "tia_build_project_index", detail_level = "catalog", then = "tia_get_task_context" }; }
+            try { return index.Exists ? index.BuildCatalog(w => new LiveIndexSource(_session).Catalog(true, w), false, true) : (object)new { state = "not_built", next_tool = "tia_build_project_index", detail_level = "catalog", then = "tia_get_task_context" }; }
             catch (Exception ex) { return new { state = "unavailable", error = ex.Message, next_tool = "tia_build_project_index", refresh_catalog = true }; }
+        }
+        private object preparedIndexContext;
+        private bool preparedIndexUsed;
+        // Read entry points always consult the index inside the server; no client opt-out.
+        // Failure remains explicit and does not prevent a requested authoritative live read.
+        private void PrepareIndexContext(string name, Dictionary<string, object> args, AppConfig config)
+        {
+            if (_projects != null || !(name.StartsWith("tia_read_") || name == "tia_list_blocks" || name == "tia_list_types" || name == "tia_list_tag_tables" || name == "tia_list_block_groups" || name == "tia_list_hmi_text_lists" || name == "tia_list_software_units")) return;
+            preparedIndexUsed = false;
+            try
+            {
+                var index = Index(config);
+                if (!index.Exists) index.BuildCatalog(w => new LiveIndexSource(Connect(config)).Catalog(false, w), false, true, false);
+                string query = StringArg(args, "block_name");
+                if (query.Length == 0) query = StringArg(args, "table_name");
+                if (query.Length == 0) query = StringArg(args, "name_filter");
+                if (query.Length == 0 && name == "tia_read_sources_batch") query = string.Join(" ", StringArrayArg(args, "block_names").Take(8));
+                string kind = name.Contains("hmi") ? "hmi." : name.Contains("hardware") ? "hardware" : "plc.";
+                string owner = StringArg(args, name.Contains("hmi") ? "hmi_name" : "plc_name");
+                string group = StringArg(args, "group_path");
+                if (group == "/") group = "";
+                preparedIndexContext = query.Length > 0 ? index.Context(query.Length > 1000 ? query.Substring(0, 1000) : query, 3, 4, kind, owner, group)
+                    : index.Tree(kind, owner, group, "", 0, 10);
+                preparedIndexUsed = true;
+            }
+            catch (Exception ex) { preparedIndexContext = new { state = "index_unavailable", error = ex.Message, next_tool = "tia_build_project_index" }; }
         }
         private static int IndexInt(Dictionary<string, object> args, string name, int fallback, int min, int max)
         {
@@ -42,11 +68,12 @@ namespace TiaPortalSourceBridge.Mcp
             if (detail.Length > 0 && detail != "catalog" && detail != "content") throw new ArgumentException("detail_level 必须为 catalog 或 content。");
             bool refresh = BoolArg(args, "refresh_catalog", false);
             bool force = BoolArg(args, "force", false);
-            if (!index.Exists || refresh) index.BuildCatalog(w => source().Catalog(BoolArg(args, "include_hardware", true), w), force);
+            if (!index.Exists || refresh) index.BuildCatalog(w => source().Catalog(BoolArg(args, "include_hardware", true), w), force, false, BoolArg(args, "include_hardware", true));
             if (name == "tia_build_project_index")
             {
+                if (kind.Length == 0 && !BoolArg(args, "include_all_content", false)) kind = "plc.";
                 object data = detail == "content"
-                    ? index.Hydrate(index.Select(kind, owner, group, filter), source().Read, IndexInt(args, "max_objects", 25, 1, 1000), force, IndexInt(args, "time_budget_ms", 15000, 100, 60000))
+                    ? index.Hydrate(index.Select(kind, owner, group, filter), e => source().Read(e), IndexInt(args, "max_objects", 25, 1, 1000), force, IndexInt(args, "time_budget_ms", 15000, 100, 60000))
                     : index.Status();
                 return ToolResult("工程索引已更新；仅写入工程旁的索引文件，没有修改博途工程。", false, data);
             }
@@ -66,6 +93,7 @@ namespace TiaPortalSourceBridge.Mcp
         {
             if (_projects != null) return; // The project worker owns freshness, including unknown-outcome writes.
             if (!BoolArg(args, "confirm", false)) return;
+            if (name == "tia_write_hmi_configuration" && BoolArg(args, "dry_run", true)) return;
             bool mutates = name.StartsWith("tia_import_", StringComparison.Ordinal) || name.StartsWith("tia_write_", StringComparison.Ordinal)
                 || name == "tia_update_graph" && !BoolArg(args, "dry_run", true) || name == "tia_delete_block" || name == "tia_restore_backup"
                 || name == "tia_organize_block_groups" || name == "tia_apply_hardware_configuration" && !BoolArg(args, "dry_run", true);
@@ -203,23 +231,33 @@ namespace TiaPortalSourceBridge.Mcp
             if (projectIndex == null && _sessionPath != null) Index(NewProjectConfig(_sessionPath, "", ""));
             if (projectIndex == null) return;
             string captureError = "";
-            if (projectIndex.Exists && _session != null) try { CaptureIndexRead(name, args, result); }
+            if (preparedIndexContext != null)
+            {
+                object payload; var content = result.TryGetValue("structuredContent", out payload) ? payload as Dictionary<string, object> : null;
+                if (content != null) content["index_context"] = preparedIndexContext;
+            }
+            if (projectIndex.Exists && _session != null) try {
+                if (BoolArg(args, "confirm", false) && (name.StartsWith("tia_import_") || name.StartsWith("tia_write_") || name == "tia_delete_block" || name == "tia_organize_block_groups" || name == "tia_restore_backup"))
+                    projectIndex.BuildCatalog(w => new LiveIndexSource(_session).Catalog(true, w), false, true);
+                CaptureIndexRead(name, args, result);
+            }
             catch (Exception ex) { captureError = ex.Message; Console.Error.WriteLine("[索引读取积累失败] " + ex.Message); }
             object raw; var meta = result.TryGetValue("_meta", out raw) ? raw as Dictionary<string, object> : null;
             if (meta == null) { meta = new Dictionary<string, object>(); result["_meta"] = meta; }
-            meta["project_index"] = new { state = projectIndex.Exists ? "snapshot_available" : "not_built", next_tool = projectIndex.Exists ? "tia_get_task_context" : "tia_build_project_index", live_read_required_before_write = true, capture_error = captureError };
+            meta["project_index"] = new { state = projectIndex.Exists ? "snapshot_available" : "not_built", next_tool = projectIndex.Exists ? "tia_get_task_context" : "tia_build_project_index", live_read_required_before_write = true, capture_error = captureError, index_used = preparedIndexContext != null && preparedIndexUsed, lookup_phase = preparedIndexContext == null ? "not_applicable" : "before_live_operation" };
         }
         private static object IndexProperty(object item, string name)
         {
             var map = item as Dictionary<string, object>; object raw;
             if (map != null) return map.TryGetValue(name, out raw) ? raw : null;
+            if (item == null) return null;
             var prop = item.GetType().GetProperty(name); return prop == null ? null : prop.GetValue(item, null);
         }
         private void CaptureIndexRead(string name, Dictionary<string, object> args, Dictionary<string, object> result)
         {
             object raw;
-            if (result.TryGetValue("isError", out raw) && Convert.ToBoolean(raw)) return;
-            var data = result.TryGetValue("structuredContent", out raw) ? raw as Dictionary<string, object> : null;
+            if (result.TryGetValue("isError", out raw) && Convert.ToBoolean(raw) && name != "tia_read_sources_batch" && name != "tia_import_blocks_batch") return;
+            var data = result.TryGetValue("structuredContent", out raw) ? raw : null;
             if (data == null) return;
             var snapshots = new Dictionary<string, string>();
             if (name == "tia_read_block" || name == "tia_read_graph" || name == "tia_read_graph_model")
@@ -234,6 +272,23 @@ namespace TiaPortalSourceBridge.Mcp
                         && e.name.Equals(StringArg(args, "block_name"), StringComparison.OrdinalIgnoreCase))
                     .ToArray();
                 if (matches.Length == 1) snapshots[matches[0].id] = Convert.ToString(xml);
+            }
+            if (name == "tia_read_source" || name == "tia_read_sources_batch" || name == "tia_import_blocks_batch")
+            {
+                string owner = _session.SelectPlc(StringArg(args, "plc_name")).DisplayName;
+                IEnumerable items = name == "tia_read_source" ? new object[] { data } : IndexProperty(data, "items") as IEnumerable;
+                if (items != null) foreach (object item in items)
+                {
+                    if (name == "tia_read_sources_batch" && !Convert.ToBoolean(IndexProperty(item, "ok"))) continue;
+                    string itemName = name == "tia_read_source" ? StringArg(args, "block_name") : Convert.ToString(IndexProperty(item, name == "tia_import_blocks_batch" ? "block_name" : "name"));
+                    string group = Convert.ToString(IndexProperty(item, "group_path")).Trim('/');
+                    string source = Convert.ToString(IndexProperty(item, name == "tia_import_blocks_batch" ? "index_xml" : "source"));
+                    if (source.Length == 0) continue;
+                    string kind = name != "tia_import_blocks_batch" && Convert.ToString(IndexProperty(item, "extension")).TrimStart('.').Equals("udt", StringComparison.OrdinalIgnoreCase) ? "plc.type" : "plc.block";
+                    var matches = projectIndex.Select(kind, "", "", "").Where(e => e.owner == owner && e.name.Equals(itemName, StringComparison.OrdinalIgnoreCase)
+                        && e.group.Trim('/') == group && (StringArg(args, "unit_name").Length == 0 || e.unit_name == StringArg(args, "unit_name"))).ToArray();
+                    if (matches.Length == 1) snapshots[matches[0].id] = name == "tia_import_blocks_batch" ? source : ContentIndexer.WrapSource(matches[0].name, projectIndex.Load().portal_version, source);
+                }
             }
             if (name == "tia_read_tag_table")
             {
@@ -284,9 +339,10 @@ namespace TiaPortalSourceBridge.Mcp
             var owner = StringProperty("PLC/HMI 所属设备名称关键字，用于限制查询和内容读取。");
             var group = StringProperty("组路径前缀，避免对无关组建立内容索引。");
             return new object[] {
-                Tool("tia_build_project_index", "建立可迁移的通用工程索引。默认只扫描目录，不导出全部源码；detail_level=content 分批读取选中 PLC/UDT/变量表/HMI/硬件内容，提取结构及显式引用并保留本地源快照。max_objects 限制每批，重复调用继续未完成部分；单对象失败记录后继续。不会编译、保存或修改博途工程。", ObjectSchema(
+                Tool("tia_build_project_index", "建立可迁移的通用工程索引。默认只扫描目录，不导出全部源码；detail_level=content 分批读取选中 PLC/UDT/变量表/HMI/硬件内容，提取结构及显式引用并保留本地源快照。max_objects 限制每批，默认内容仅建立 PLC 层，HMI/硬件按需或 include_all_content=true；重复调用继续未完成部分；单对象失败记录后继续。不会编译、保存或修改博途工程。", ObjectSchema(
                     Property("project_path", project), Property("detail_level", Dict("type", "string", "enum", new[] { "catalog", "content" })),
                     Property("kind_filter", kind), Property("owner_filter", owner), Property("group_prefix", group), Property("name_filter", StringProperty("对象名称关键字")),
+                    Property("include_all_content", BooleanProperty("默认false；内容默认优先 PLC/DB/UDT/变量表。true 包含 HMI/硬件，或用 kind_filter 指定阶段。")),
                     Property("max_objects", IndexInteger("内容每批上限，默认25", 1, 1000)), Property("refresh_catalog", BooleanProperty("默认false；重新扫描目录，并将原内容标记待刷新，以覆盖博途手动修改。")),
                     Property("time_budget_ms", IndexInteger("每批软时间预算，默认15000；在单个对象读取完成后检查，不强行中断 Openness 调用。", 100, 60000)),
                     Property("force", BooleanProperty("默认false；true重新读取已完成或失败对象，可重试编译后恢复可导出的块。")), Property("include_hardware", BooleanProperty("目录扫描包含硬件结构，默认true"))), false, false, true),

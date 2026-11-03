@@ -1,0 +1,32 @@
+TYPE "UDT_Graph"
+VERSION : 0.1
+   STRUCT
+      In : Struct
+         OFF_SQ : Bool;
+         INIT_SQ : Bool;
+         ACK_EF : Bool;
+         S_PREV : Bool;
+         S_NEXT : Bool;
+         SW_AUTO : Bool;
+         SW_TAP : Bool;
+         SW_TOP : Bool;
+         SW_MAN : Bool;
+         S_SEL : Int;
+         S_ON : Bool;
+         S_OFF : Bool;
+         T_PUSH : Bool;
+      END_STRUCT;
+      Out : Struct
+         S_NO : Int;
+         S_MORE : Bool;
+         S_ACTIVE : Bool;
+         ERR_FLT : Bool;
+         AUTO_ON : Bool;
+         TAP_ON : Bool;
+         TOP_ON : Bool;
+         MAN_ON : Bool;
+      END_STRUCT;
+   END_STRUCT;
+
+END_TYPE
+

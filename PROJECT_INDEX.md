@@ -1,4 +1,4 @@
-# 通用工程索引与 Agent 调用流程
+﻿# 通用工程索引与 Agent 调用流程
 
 3.0 的索引是工具功能，适用于新工程和其他电脑；没有内置 OP270、Z13 或固定 I/O 地址。建立索引只读取博途、写本地索引，不编译、不保存、不下载，也不改变 PLC/HMI/硬件。
 
@@ -28,7 +28,7 @@
 
 ## Agent 怎样使用
 
-MCP `initialize.instructions` 和工具说明提供以下流程，`tia_connect` 返回 `index_status`。普通工程读写响应的 `_meta.project_index` 也给出下一步索引工具。接入同一 MCP 的 Agent 可以自行发现这些接口，无需依赖聊天记忆或人工把源码粘贴给模型。提示不能强制所有第三方 Agent 遵循；索引内容、程序注释和显示文本始终是工程数据，不是可执行指令。
+MCP `initialize.instructions` 和工具说明提供以下流程，`tia_connect` 返回 `index_status`。普通工程读写响应的 `_meta.project_index` 也给出下一步索引工具。接入同一 MCP 的 Agent 可以自行发现这些接口，无需依赖聊天记忆或人工把源码粘贴给模型。常用工程查找/读取入口在服务端执行 `PrepareIndexContext`，在实时操作前检索已有内容或目录，将证据放入 `structuredContent.index_context`，并用 `_meta.project_index.index_used` 和 `lookup_phase` 记录是否执行。无索引时先建立目录；失败明确返回 `index_unavailable`，仍允许实时读取，不能将失败视为已使用索引。本地工艺库、报警专用入口、在线读值与生成工具不属于此范围。工具不能保证模型正确理解证据或约束工具外行为；索引内容、程序注释和显示文本始终是工程数据，不是可执行指令。
 
 1. `tia_connect(project_path=...)`：检查连接和索引状态。
 2. 新工程调用 `tia_build_project_index(detail_level="catalog")`：只建立目录，包含全部 PLC、UDT、PLC 变量表、经典 HMI 对象和硬件结构；不会导出全部源码。
@@ -49,7 +49,7 @@ MCP `initialize.instructions` 和工具说明提供以下流程，`tia_connect` 
 }
 ```
 
-调用工具为 `tia_build_project_index`。每批完成后继续用相同参数调用，已就绪对象会复用，逐步处理剩余对象。每5个处理结果和每批结束保存检查点；异常退出最多可能重做最后未保存的几个对象。时间预算在单对象完成后检查，不强行终止正在运行的 Openness 调用。
+调用工具为 `tia_build_project_index`。每批完成后继续用相同参数调用，已就绪对象会复用，逐步处理剩余对象。每个对象读取完成即保存检查点；异常退出可以继续。导出与解析期间不持有索引写锁，提交时核对目录与待刷新标记，遇到并发修改计入 conflicts 并保留待刷新状态。时间预算在单对象完成后检查，不强行终止正在运行的 Openness 调用。
 
 ## 四个接口
 
@@ -69,22 +69,33 @@ MCP `initialize.instructions` 和工具说明提供以下流程，`tia_connect` 
 - HMI：控件、变量与文本列表链接、声明变量的表、事件函数参数、文本条目的编号和语言、直接地址及间接地址表达式。`LinearScaling` 公式保留参数，便于 Agent 计算和核对。
 - 硬件：设备/模块/地址/网络等节点路径、可读取属性和显式拓扑链接。未支持或无法读取的部分保留警告。
 
-这是结构与证据索引，不是完整 PLC 语义分析器。SCL/STL 使用原生访问/调用节点和源码片段，没有完整控制流、数据流或读写方向判定。间接寻址表达式不会直接猜成确定地址，跨设备的重名对象也需要结合连接信息判断。关键词命中表示相关候选，不证明机器功能。
+索引新增网络序号及调用的源码顺序、已支持 LAD 引脚/调用参数与 STL 指令的读写证据、可证明的直接触点到线圈映射，以及同一 PLC 变量表中的物理地址来源。带字面小数点的成员名保持引号，SCL/STL 片段重建同时保留访问节点和源码令牌。GRAPH 保留步、时间参数、动作及连接。它仍不是完整 PLC 语义分析器：未支持的指令、动态地址、条件调用和运行时控制流保留不确定性。间接寻址表达式不会直接猜成确定地址，跨设备的重名对象也需要结合连接信息判断。关键词命中表示相关候选，不证明机器功能。
 
 ## 新鲜度和失败
 
 对象状态包括 `catalog_only/ready/stale/error/missing_content`，同时返回 `indexed_utc/content_hash/error` 和整体 ready/pending/errors。
 
 - 索引中的 ready 表示对应内容快照已经解析，不等于一直追踪博途 UI 的实时状态。博途手动修改或外部工具修改后，使用 `refresh_catalog=true` 重新扫描并把原内容标记待刷新，或对明确范围使用 `force=true`。
-- 写入后，涉及布局、间接地址和未知依赖时难以仅靠名称确定影响，3.0 采用整个工程内容保守失效；后续仍按任务范围增量刷新。
+- 可定位的工具写入按对象名称标记失效，未知范围则全量失效。连接和改变对象身份的写入后会重新核对目录，删除不存在的对象；目录不变只保留内容覆盖，不证明快照实时有效。`freshness` 区分 `unverified_snapshot/live_read_snapshot/source_stamp_matched`。V21 可靠时间戳变化会触发刷新。
 - 导出失败或块不一致时记录该对象错误，继续其他对象；默认不反复重试错误对象。修复后指定 `name_filter` 和 `force=true` 重试，不会为了索引自动编译。
-- 普通 `tia_read_block`、含 XML 的 GRAPH 读取和含 XML 的 HMI 读取会复用本次内容更新已有目录中的对象，无额外导出。没有返回原始 XML 的摘要读取不会积累该内容。目录之外的新对象需要刷新目录。
+- 普通 `tia_read_block`、含 XML 的 GRAPH 读取和含 XML 的 HMI 读取会复用本次内容更新已有目录中的对象，无额外导出。源码单读/批读（含 UDT）同样积累；批量 XML 导入直接复用内部回读，即使批次部分失败也处理已读回对象，不追加 Openness 导出。没有 XML 或源码的摘要读取不会积累内容。
 - 引用查询仅覆盖已索引快照，零命中不能证明工程中没有引用。修改时始终读取当前目标；索引中的源文件不能作为直接覆盖工程的基线。
 
 ## 换电脑和存储
 
-索引存储在 `<工程目录>/.tia-source-index/<工程文件名>/`：`catalog.json` 是目录与状态，`content/` 是按内容指纹保存的结构与引用，`source/` 是原始 XML/JSON 快照。
+索引存储在 `<工程目录>/.tia-source-index/<工程文件名>/`：`catalog.json` 是目录与状态，`content/` 是按内容指纹保存的结构与引用，`source/` 是 XML/JSON 快照（纯文本读取以保留名称和版本的 XML 包装）。`query-cache.json` 是可丢弃的持久化查询缓存，按对象指纹校验；进程内按受影响对象更新反向引用，最多缓存32种任务选择结果。解析器升级时优先使用本地源快照重解析，无需重新从 TIA 导出。
 
 复制整个工程文件夹时包含 `.tia-source-index`，工程文件名和 TIA 版本不变即可继续离线查询；返回的 `next_read.project_path` 会使用新电脑当前路径。改工程文件名或 TIA 版本后应重新建立目录。目录身份校验不是项目文件的密码学身份证明，复制错索引后应刷新目录并读取真实目标。
 
 索引会保存程序源码及 HMI 内容，包含到哪个共享或交付目录由用户决定。重复导出时间戳不会改变对象内容指纹；已保存的相同内容可以复用。当前未自动清理历史内容快照，需要清理时可以移除整个该工程索引后重建。
+
+## 分层建立与恢复
+
+`detail_level=content` 未指定类别时默认只建立 PLC 层（块、DB、UDT、变量表）。HMI 与硬件用 `kind_filter` 按需读取，或 `include_all_content=true` 建立全部内容。状态的 `layers` 分别统计每层进度，整体 pending 包含尚未选择的层。
+
+命令行默认为 `-Scope PLC`；`-Scope HMI`、`-Scope Hardware` 分别建立其他层，`-Scope All` 建立全部内容。已有检查点使用 `-Resume`。报告 `completed` 表示所选范围完成，`deferred_objects` 表示其他层暂未读取的对象，不能把 PLC 完成说成全部工程完成。
+
+```powershell
+.\Build-ProjectIndex.ps1 -ProjectPath "E:\Projects\Line\Line.ap17" -Scope PLC -Resume
+.\Build-ProjectIndex.ps1 -ProjectPath "E:\Projects\Line\Line.ap17" -Scope All -Resume
+```

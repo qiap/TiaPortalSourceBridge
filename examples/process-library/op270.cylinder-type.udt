@@ -1,0 +1,24 @@
+TYPE "UDT_Cylinder"
+VERSION : 0.1
+   STRUCT
+      Interlock_W : Bool;
+      Interlock_H : Bool;
+      Trigger_W_Man : Bool;
+      Trigger_H_Man : Bool;
+      Wpos_SE : Bool;
+      Hpos_SE : Bool;
+      Wpos_Valve : Bool;
+      Hpos_Valve : Bool;
+      Trigger_W_Auto : Bool;
+      Trigger_H_Auto : Bool;
+      sWpos_SE : Bool;
+      sHpos_SE : Bool;
+      sWpos_Valve : Bool;
+      sHpos_Valve : Bool;
+      sInterlock_W : Bool;
+      sInterlock_H : Bool;
+      TimeOut_Set : DInt;
+   END_STRUCT;
+
+END_TYPE
+

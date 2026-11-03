@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -961,6 +961,7 @@ namespace TiaPortalSourceBridge.Mcp
                 }, compile, item =>
                 {
                     string after = Read(item.block_name, item.group_path);
+                    item.index_xml = after;
                     // Number is fixed during preflight; filenames do not use user block names.
                     string prefix = Array.IndexOf(items, item).ToString("D2");
                     File.WriteAllText(Path.Combine(directory, prefix + ".after.xml"), after, Encoding.UTF8);

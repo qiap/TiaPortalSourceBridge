@@ -172,11 +172,12 @@ namespace TiaPortalSourceBridge.Openness
             });
         }
 
-        public T RunInTransactionConditional<T>(string description, bool useExclusiveAccess, Func<Tuple<T, bool>> action)
+        public T RunInTransactionConditional<T>(string description, bool useExclusiveAccess, Func<Tuple<T, bool>> action, bool strict = false)
         {
             if (action == null) throw new ArgumentNullException("action");
             if (_inTransaction || _portal == null || _project == null)
             {
+                if (strict) throw new InvalidOperationException("HMI 写入要求独立有效事务；尚未开始写入。");
                 return action().Item1;
             }
 
@@ -211,11 +212,13 @@ namespace TiaPortalSourceBridge.Openness
                     }
                 }
 
+                if (strict && transaction == null) throw new InvalidOperationException("无法建立 HMI 事务；尚未开始写入。");
                 Tuple<T, bool> outcome = action();
 
                 if (transaction != null && outcome.Item2)
                 {
                     object canCommit = Api.Get(transaction, "CanCommit", false);
+                    if (strict && (canCommit == null || !Convert.ToBoolean(canCommit))) throw new InvalidOperationException("HMI 事务不能确认提交，结果未知，需回读核验。");
                     if (canCommit == null || Convert.ToBoolean(canCommit))
                     {
                         Api.Invoke(transaction, "CommitOnDispose");
@@ -232,16 +235,18 @@ namespace TiaPortalSourceBridge.Openness
             finally
             {
                 _inTransaction = false;
+                Exception disposeError = null;
                 if (transaction != null)
                 {
                     try { transaction.Dispose(); }
-                    catch { }
+                    catch (Exception ex) { disposeError = ex; }
                 }
                 if (exclusiveAccess != null)
                 {
                     try { exclusiveAccess.Dispose(); }
                     catch { }
                 }
+                if (strict && disposeError != null) throw new InvalidOperationException("HMI 事务结束失败，提交/回滚结果未知。", disposeError);
             }
         }
 

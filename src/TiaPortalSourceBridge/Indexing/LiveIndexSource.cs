@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -17,6 +17,7 @@ namespace TiaPortalSourceBridge.Indexing
         internal List<IndexEntry> Catalog(bool hardware, List<string> warnings)
         {
             var rows = new List<IndexEntry>();
+            warnings.Add(HmiOperations.ConnectionCoverageNote);
             foreach (string name in session.GetPlcDisplayNames())
             {
                 var plc = session.SelectPlc(name); var ops = new BlockOperations(session, plc);

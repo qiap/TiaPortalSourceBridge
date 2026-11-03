@@ -1,0 +1,9 @@
+DATA_BLOCK "DB_ExampleCylinder"
+{ S7_Optimized_Access := 'FALSE' }
+VERSION : 0.1
+   STRUCT
+      Z14 : "UDT_Cylinder";
+   END_STRUCT;
+BEGIN
+   Z14.TimeOut_Set := 15;
+END_DATA_BLOCK
