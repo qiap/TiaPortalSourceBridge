@@ -18,10 +18,14 @@ foreach ($file in Get-ChildItem $shared -Recurse -Filter '*.cs') {
         if (Test-Path -LiteralPath (Join-Path (Join-Path $root $engine) $relative)) { throw ('Duplicate shared source: ' + $relative) }
     }
 }
-foreach ($test in @('Test-BrowserLifetime.ps1','Test-Reliability.ps1','Test-Performance.ps1','Test-Index.ps1','Test-HmiGuard.ps1')) {
+foreach ($test in @('Test-BrowserLifetime.ps1','Test-Reliability.ps1','Test-Performance.ps1','Test-Index.ps1','Test-HmiGuard.ps1','Test-Io.ps1')) {
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot $test)
     if ($LASTEXITCODE -ne 0) { throw ($test + ' failed') }
 }
 & python (Join-Path $PSScriptRoot 'Test-VersionRouting.py') $MainExecutable $V21Executable
 if ($LASTEXITCODE -ne 0) { throw 'Version routing checks failed' }
+foreach ($test in @('Test-ProjectDropdown.cjs', 'Test-IoPanel.cjs')) {
+    & node (Join-Path $PSScriptRoot $test)
+    if ($LASTEXITCODE -ne 0) { throw ($test + ' failed') }
+}
 Write-Output 'PASS: all offline regression checks. No engineering connection or PLC writes.'

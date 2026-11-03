@@ -31,8 +31,8 @@
 
 | 方式 | 下载 | 使用方法 |
 | --- | --- | --- |
-| ZIP 免安装版 | [下载 Portable.zip](https://github.com/qiap/TiaPortalSourceBridge/releases/latest/download/TiaPortalSourceBridge-4.1.2-Portable.zip) | 完整解压后双击 `WebDashboard.cmd` 或 `LaunchWeb.vbs` |
-| EXE 安装版 | [下载 Setup.exe](https://github.com/qiap/TiaPortalSourceBridge/releases/latest/download/TiaPortalSourceBridge-4.1.2-Setup.exe) | 运行安装程序，通过桌面或开始菜单打开 |
+| ZIP 免安装版 | [下载 Portable.zip](https://github.com/qiap/TiaPortalSourceBridge/releases/latest/download/TiaPortalSourceBridge-4.2.0-Portable.zip) | 完整解压后双击 `WebDashboard.cmd` 或 `LaunchWeb.vbs` |
+| EXE 安装版 | [下载 Setup.exe](https://github.com/qiap/TiaPortalSourceBridge/releases/latest/download/TiaPortalSourceBridge-4.2.0-Setup.exe) | 运行安装程序，通过桌面或开始菜单打开 |
 
 两种方式均包含 V17/V21 引擎、默认配置和运行模板。先在 TIA Portal 中打开工程，再在看板选择工程和 PLC；目标电脑需满足下面的运行环境要求。
 
@@ -48,7 +48,7 @@ GitHub 的 **Code → Download ZIP** 和 Release 中自动生成的 **Source cod
 - **运行时**：.NET Framework 4.8。
 - **工程操作**：对应版本的 TIA Portal 及 Openness 组件。
 - **用户权限**：当前 Windows 用户加入 `Siemens TIA Openness` 本地用户组，变更后注销并重新登录。
-- **源码构建与测试**：Windows PowerShell 5.1、.NET Framework C# 编译器及 Python 3。
+- **源码构建与测试**：Windows PowerShell 5.1、.NET Framework C# 编译器、Python 3 及 Node.js 22（仅用于界面回归检查）。
 - **可选功能**：在线通信需要相应 Siemens 通信组件；仿真需要对应的 PLCSIM / PLCSIM Advanced 环境。
 
 本项目不包含 TIA Portal、Siemens DLL 或相关软件许可证。
@@ -120,6 +120,17 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Build-All.ps1 -NoTrust
 先在 TIA Portal 中打开目标工程，再在看板选择工程和 PLC，即可查看工程状态、建立索引或执行导出。
 
 首次连接按 TIA Openness 提示授权。需要登记程序白名单时，使用看板中的“注册白名单”并确认 Windows 管理员提示。程序更新或位置变化后，可能需要重新登记。
+
+## I/O 表、交叉引用与 Excel
+
+在看板选择工程和 PLC，打开 **I/O 表与引用**，点击 **重新读取**。每次点击都会重新读取变量表和程序块引用，完成后显示读取时间；工程较大时请等待进度提示。
+
+- 默认显示 I/Q 输入输出，也可查看全部变量和常量，按区域、变量表、名称、地址或注释筛选。
+- 点击变量右侧的引用按钮，查看引用块、读写关系、位置及来源。
+- **导出 Excel** 下载 `.xlsx`，包含当前筛选的全部分页、交叉引用明细和读取说明。
+- 切换工程或 PLC 后需重新读取，避免混用旧结果；读取失败或覆盖不完整会明确提示。
+
+数据来自 PLC 已声明变量表，不含未分配变量的硬件通道或在线实时值。V17 显示索引提取的显式引用，V21 使用官方交叉引用接口；间接寻址、跨软件单元绑定等不能保证完整覆盖。零条引用不表示变量未使用，具体范围及警告会随 Excel 一并导出。
 
 ## 接入 MCP 客户端
 

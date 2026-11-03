@@ -328,6 +328,8 @@ namespace TiaPortalSourceBridge.Web
                 string rawUrl = request.RawUrl ?? "/";
                 string path = rawUrl.Split('?')[0];
 
+                if (HandleIo(context, path)) return;
+
                 if (path.StartsWith("/api/", StringComparison.OrdinalIgnoreCase))
                 {
                     HandleApi(context, path);
@@ -1120,7 +1122,7 @@ namespace TiaPortalSourceBridge.Web
                 var status = new Dictionary<string, object>
                 {
                     { "tool_name", "TIA Portal Source Bridge" },
-                    { "tool_version", "v4.1.2" },
+                    { "tool_version", "v4.2.0" },
                     { "server_process_id", Process.GetCurrentProcess().Id },
                     { "browser_clients", BrowserClientCount() },
                     { "tool_count", DashboardTools(_configPath).Length },

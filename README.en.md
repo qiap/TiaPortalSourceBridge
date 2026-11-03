@@ -31,8 +31,8 @@ You do not need to download the source or compile the application. Choose either
 
 | Package | Download | How to run |
 | --- | --- | --- |
-| Portable ZIP | [Download Portable.zip](https://github.com/qiap/TiaPortalSourceBridge/releases/latest/download/TiaPortalSourceBridge-4.1.2-Portable.zip) | Extract the entire archive, then double-click `WebDashboard.cmd` or `LaunchWeb.vbs` |
-| Windows installer | [Download Setup.exe](https://github.com/qiap/TiaPortalSourceBridge/releases/latest/download/TiaPortalSourceBridge-4.1.2-Setup.exe) | Run the installer, then open the application from the desktop or Start menu |
+| Portable ZIP | [Download Portable.zip](https://github.com/qiap/TiaPortalSourceBridge/releases/latest/download/TiaPortalSourceBridge-4.2.0-Portable.zip) | Extract the entire archive, then double-click `WebDashboard.cmd` or `LaunchWeb.vbs` |
+| Windows installer | [Download Setup.exe](https://github.com/qiap/TiaPortalSourceBridge/releases/latest/download/TiaPortalSourceBridge-4.2.0-Setup.exe) | Run the installer, then open the application from the desktop or Start menu |
 
 Both packages include the V17/V21 engines, default configuration, and runtime templates. Open your project in TIA Portal first, then select the project and PLC in the dashboard. The target computer must meet the requirements below.
 
@@ -48,7 +48,7 @@ Refreshing, switching, or closing browser tabs does not stop the background serv
 - **Runtime:** .NET Framework 4.8.
 - **Engineering operations:** The matching version of TIA Portal and its Openness component.
 - **User permissions:** The current Windows user must belong to the local `Siemens TIA Openness` group. Sign out and back in after changing group membership.
-- **Building and testing from source:** Windows PowerShell 5.1, the .NET Framework C# compiler, and Python 3.
+- **Building and testing from source:** Windows PowerShell 5.1, the .NET Framework C# compiler, Python 3, and Node.js 22 (UI regression checks only).
 - **Optional features:** Online communication requires the relevant Siemens communication components. Simulation requires a compatible PLCSIM / PLCSIM Advanced installation.
 
 TIA Portal, Siemens DLLs, and related software licenses are not included.
@@ -120,6 +120,17 @@ The build compiles both engines and runs offline regression checks before updati
 Open the target project in TIA Portal, then select the project and PLC in the dashboard to inspect its status, build an index, or export sources.
 
 Approve the TIA Openness access prompt when connecting for the first time. To register the executable in the allowlist, use **注册白名单** (Register allowlist) in the dashboard and approve the Windows administrator prompt. Registration may need to be repeated after updating or moving the executable.
+
+## I/O tables, cross references, and Excel
+
+Select a project and PLC, open **I/O 表与引用** (I/O and references), then click **重新读取** (Read again). Each click rereads tag tables and program-block references, with progress and a completion timestamp.
+
+- View I/Q inputs and outputs, or select all tags and constants. Filter by area, tag table, name, address, or comment.
+- Open a tag's references to inspect blocks, access relationships, locations, and evidence sources.
+- **导出 Excel** (Export Excel) downloads an `.xlsx` with all filtered pages, reference details, and read coverage notes.
+- Changing project or PLC requires a new read. Failed or incomplete reads are reported explicitly.
+
+The view includes declared PLC tags, not unassigned hardware channels or live values. V17 shows explicit indexed references; V21 uses the official cross-reference interface. Indirect addressing and cross-unit bindings may not be fully covered. Zero references does not prove a tag is unused. Coverage and warnings are included in the workbook.
 
 ## Connect an MCP client
 

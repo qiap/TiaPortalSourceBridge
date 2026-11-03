@@ -337,7 +337,7 @@ namespace TiaPortalSourceBridge.Mcp
 
             Tuple<string, object>[] matches = TagTables(rootGroup, "")
                 .Where(e => string.Equals(Api.GetString(e.Item2, "Name"), trimmedName, StringComparison.OrdinalIgnoreCase)
-                    && (string.IsNullOrEmpty(normalizedGroup) || string.Equals(e.Item1, normalizedGroup, StringComparison.OrdinalIgnoreCase)))
+                    && (string.IsNullOrWhiteSpace(groupPath) || string.Equals(e.Item1, normalizedGroup, StringComparison.OrdinalIgnoreCase)))
                 .ToArray();
 
             if (matches.Length == 0)

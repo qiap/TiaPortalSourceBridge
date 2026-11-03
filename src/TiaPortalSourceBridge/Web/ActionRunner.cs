@@ -52,6 +52,23 @@ namespace TiaPortalSourceBridge.Web
             }
         }
         private const int TrustTimeoutSeconds = 120;
+        internal static bool StartIoRead(string project, string plc, Action work)
+        {
+            ActionProgress progress;
+            lock (_sync) {
+                ActionProgress existing;
+                if (_lanes.TryGetValue("tia", out existing) && IsPending(existing.status)) return false;
+                progress = new ActionProgress { task_id = Guid.NewGuid().ToString("N"), project_path = project, plc_name = plc,
+                    actionName = "io-read", status = "running", stage = "reading", startTime = DateTime.Now, message = "正在读取 I/O 表与引用" };
+                _lanes["tia"] = progress; _last = progress; history.Add(progress);
+                if (history.Count > 100) history.Remove(history.First(a => !IsPending(a.status)));
+            }
+            new Thread(() => {
+                try { work(); Finish(progress, 0, null); }
+                catch (Exception ex) { Finish(progress, -1, ex.Message); }
+            }) { IsBackground = true, Name = "DashboardIoRead" }.Start();
+            return true;
+        }
         private const int ActionTimeoutMinutes = 30;
 
         internal static bool IsPending(string status) { return status == "running" || status == "outcome_unknown"; }

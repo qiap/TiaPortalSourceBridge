@@ -15,7 +15,7 @@ namespace TiaPortalSourceBridge.Mcp
         internal object[] DashboardToolDefinitions() { return ToolDefinitions(); }
         internal Dictionary<string, object> DashboardRead(string name, Dictionary<string, object> arguments)
         {
-            if (!new[] { "tia_list_open_projects", "tia_list_plcs", "tia_read_hardware_configuration" }.Contains(name))
+            if (!new[] { "tia_list_open_projects", "tia_list_plcs", "tia_read_hardware_configuration", "tia_list_tag_tables", "tia_read_tag_table", "tia_build_project_index", "tia_query_cross_references" }.Contains(name))
                 throw new ArgumentException("看板状态接口只允许读取工程与设备信息。");
             return CallTool(name, arguments);
         }

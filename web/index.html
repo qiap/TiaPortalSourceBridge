@@ -660,7 +660,7 @@
       <div class="logo-badge">TIA BRIDGE</div>
       <div class="brand-title">
         <span>控制看板</span>
-        <span class="version-tag" id="toolVersion">v4.1.2</span>
+        <span class="version-tag" id="toolVersion">v4.2.0</span>
       </div>
     </div>
 
@@ -738,6 +738,9 @@
     </button>
     <button class="tab-btn" onclick="switchTab('index')">
       📚 工程索引与速查
+    </button>
+    <button class="tab-btn" onclick="switchTab('io')">
+      🔌 I/O 表与引用
     </button>
     <button class="tab-btn" onclick="switchTab('simulation')">
       🎮 仿真驾驶舱
@@ -835,6 +838,41 @@
         <div class="console-box" id="executionConsole">
           <div class="console-line info">[系统就绪] TIA Portal Source Bridge 可视化控制台已加载。</div>
         </div>
+      </div>
+    </div>
+
+    <div id="tab-io" class="tab-content">
+      <div class="card" style="margin-bottom:20px;">
+        <div class="card-header" style="flex-wrap:wrap;gap:12px;">
+          <span class="card-title">🔌 PLC I/O 表与交叉引用</span>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn" id="ioReadButton" onclick="ioRead()">🔄 重新读取</button>
+            <button class="btn" id="ioExportButton" onclick="ioExport()" disabled>📥 导出 Excel</button>
+          </div>
+        </div>
+        <div id="ioTarget" style="word-break:break-all;color:var(--text-muted);margin-bottom:10px;">请选择工程与 PLC。</div>
+        <div id="ioMessage" role="status" aria-live="polite" style="margin-bottom:10px;">点击“重新读取”获取全部变量表及引用信息。只读取工程，不编译或保存。</div>
+        <div id="ioSummary" style="color:var(--text-muted);white-space:pre-wrap;margin-bottom:10px;"></div>
+        <details id="ioWarningsBox" hidden style="margin-bottom:12px;color:var(--warning,#fbbf24);"><summary>读取不完整项 / 警告</summary><pre id="ioWarnings" style="white-space:pre-wrap;word-break:break-word;"></pre></details>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+          <select id="ioArea" class="search-input" style="width:170px;" aria-label="地址区域" onchange="ioFilter()">
+            <option value="IO">I / Q 输入输出</option><option value="ALL">全部变量和常量</option><option value="I">I 输入</option><option value="Q">Q 输出</option><option value="M">M 存储区</option><option value="OTHER">其它地址</option><option value="CONST">常量</option>
+          </select>
+          <select id="ioTableFilter" class="search-input" style="width:250px;" aria-label="变量表" onchange="ioFilter()"><option value="">全部变量表</option></select>
+          <input id="ioSearch" class="search-input" style="flex:1;min-width:200px;" placeholder="搜索变量名、地址、注释、类型…" aria-label="搜索 I/O" oninput="ioSearchChanged()">
+        </div>
+        <div style="overflow:auto;max-height:560px;">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;"><thead style="position:sticky;top:0;background:var(--bg-card,#1e293b);"><tr>
+            <th style="padding:10px;text-align:left;">变量名</th><th>地址</th><th>类型</th><th>注释</th><th>变量表 / 组 / 单元</th><th>交叉引用</th>
+          </tr></thead><tbody id="ioRows"></tbody></table>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;margin-top:12px;"><button class="btn btn-sm" id="ioPrev" onclick="ioPage(-1)" disabled>上一页</button><span id="ioPageLabel">尚未读取</span><button class="btn btn-sm" id="ioNext" onclick="ioPage(1)" disabled>下一页</button></div>
+        <p style="color:var(--text-muted);font-size:12px;margin-top:12px;">显示 PLC 已声明变量；不含未分配变量的硬件通道和在线实时值。Excel 导出当前筛选范围的全部分页，并包含引用明细和覆盖说明。</p>
+      </div>
+      <div class="card" id="ioReferencesPanel" hidden>
+        <div class="card-header"><span class="card-title" id="ioReferencesTitle">交叉引用</span><button class="btn btn-sm" onclick="document.getElementById('ioReferencesPanel').hidden=true">关闭</button></div>
+        <div id="ioReferencesNote" style="color:var(--text-muted);margin-bottom:12px;"></div>
+        <div style="overflow:auto;max-height:450px;"><table style="width:100%;font-size:13px;text-align:left;"><thead><tr><th>引用块</th><th>路径</th><th>读写 / 关系</th><th>位置</th><th>证据</th><th>来源 / 状态</th></tr></thead><tbody id="ioReferencesRows"></tbody></table></div>
       </div>
     </div>
 
@@ -1009,6 +1047,7 @@
 
       if (tabId === 'diff') loadBackups();
       if (tabId === 'index') loadIndexSummary();
+      if (tabId === 'io') ioTargetChanged();
       if (tabId === 'simulation') loadSimulation();
       if (tabId === 'tools') loadTools();
       if (tabId === 'logs') fetchLogs();
@@ -1019,6 +1058,7 @@
         const res = await fetch('/api/status' + (isManual ? '?refresh=true' : ''), {cache: 'no-store'});
         const data = await res.json();
         currentStatus = data;
+        if (window.ioTargetChanged) window.ioTargetChanged();
         document.getElementById('toolCountNav').textContent = data.tool_count || 82;
         document.getElementById('toolCountTitle').textContent = data.tool_count || 82;
 
@@ -1634,5 +1674,6 @@
     });
     document.addEventListener('visibilitychange', () => { if (!document.hidden) browserHeartbeat(); });
   </script>
+  <script src="/io.js"></script>
 </body>
 </html>
