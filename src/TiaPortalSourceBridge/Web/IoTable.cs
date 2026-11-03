@@ -106,17 +106,18 @@ namespace TiaPortalSourceBridge.Web
             result.reference_coverage = "PLC 程序块内容 " + Text(data, "ready") + "/" + Text(data, "total") + " 已读取；不推断间接地址、跨软件单元绑定或 HMI 引用。零条证据不等于未使用。";
             foreach (var error in Maps(data, "errors")) result.warnings.Add(Text(error, "name") + ": " + Text(error, "state") + " " + Text(error, "error"));
         }
-        internal static void AttachNative(IoSnapshot result, Dictionary<string, object> data, string unit)
+        internal static void AttachNative(IoSnapshot result, Dictionary<string, object> data, string unit, string table, string group)
         {
-            var bySymbol = result.rows.Where(r => r.unit == unit).ToLookup(r => TagSymbol(r.name), StringComparer.OrdinalIgnoreCase);
-            var byAddress = result.rows.Where(r => r.unit == unit && r.address.Length > 0).ToLookup(r => Address(r.address), StringComparer.OrdinalIgnoreCase);
+            var scopedRows = result.rows.Where(r => r.unit == unit && r.table == table && r.group == group).ToArray();
+            var bySymbol = scopedRows.ToLookup(r => TagSymbol(r.name), StringComparer.OrdinalIgnoreCase);
+            var byAddress = scopedRows.Where(r => r.address.Length > 0).ToLookup(r => Address(r.address), StringComparer.OrdinalIgnoreCase);
             foreach (var source in Maps(data, "items")) {
                 var matches = bySymbol[TagSymbol(Text(source, "name"))].Concat(byAddress[Address(Text(source, "address"))]).Distinct();
                 foreach (var row in matches) foreach (var reference in Maps(source, "references")) foreach (var location in Maps(reference, "locations"))
                     row.references.Add(new IoReference { block = Text(reference, "name"), group = Text(reference, "path"), access = Text(location, "access"),
                         location = Text(location, "reference_location"), evidence = Text(location, "referenced_as_name"), source = "V21 官方交叉引用", state = "live" });
             }
-            if (Text(data, "truncated").Equals("True", StringComparison.OrdinalIgnoreCase)) result.warnings.Add("软件单元 " + (unit.Length == 0 ? "默认" : unit) + " 的官方引用返回达到上限，引用信息不完整。");
+            if (Text(data, "truncated").Equals("True", StringComparison.OrdinalIgnoreCase)) result.warnings.Add("变量表 " + unit + "/" + group + "/" + table + " 的官方引用返回达到上限，引用信息不完整。");
         }
     }
 }

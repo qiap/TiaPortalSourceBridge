@@ -37,13 +37,15 @@ namespace TiaPortalSourceBridge.Web
                 bool native = AppConfig.DetectProjectVersion(job.project) == "V21";
                 if (native) {
                     result.reference_source = "V21 官方交叉引用";
-                    result.reference_coverage = "实时读取 PLC / 软件单元的官方引用；仅关联精确符号或地址。无匹配结果不证明未使用。";
-                    foreach (string unit in tables.Select(t => Text(t, "unit_name")).Distinct()) {
-                        IoProgress(job, "读取 V21 官方交叉引用：" + (unit.Length == 0 ? "默认 PLC" : unit));
+                    result.reference_coverage = "逐个变量表读取官方引用；仅在同一变量表和软件单元内关联精确符号或地址。无匹配结果不证明未使用。";
+                    foreach (var table in tables) {
+                        string unit = Text(table, "unit_name"), name = Text(table, "name"), group = Text(table, "group_path");
+                        IoProgress(job, "读取 V21 官方交叉引用：" + unit + "/" + group + "/" + name);
                         try {
-                            var a = args(); a["scope_kind"] = "plc"; a["unit_name"] = unit; a["max_results"] = 2000;
-                            IoTable.AttachNative(result, ReadDashboard(_configPath, "tia_query_cross_references", a), unit);
-                        } catch (Exception ex) { result.warnings.Add("官方交叉引用读取失败：" + ex.Message); }
+                            var a = args(); a["scope_kind"] = "tag_table"; a["target_name"] = name; a["group_path"] = group.Length == 0 ? "/" : group;
+                            a["unit_name"] = unit; a["max_results"] = 2000;
+                            IoTable.AttachNative(result, ReadDashboard(_configPath, "tia_query_cross_references", a), unit, name, group);
+                        } catch (Exception ex) { result.warnings.Add("官方交叉引用 " + unit + "/" + group + "/" + name + " 读取失败：" + ex.Message); }
                     }
                 } else {
                     result.reference_source = "索引显式引用";

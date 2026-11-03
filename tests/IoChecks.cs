@@ -62,8 +62,10 @@ internal static class IoChecks
             IoTable.AttachIndex(special, Map(new { references = new[] { new { target = "\"Motor start\"", unit = "", evidence = "scope=GlobalVariable" } } }));
             Check(special.rows[0].references.Count == 1, "quoted tag name with spaces");
             var native = Map(new { truncated=true, items=new[] { new { name="Motor1", address="%I10.2", references=new[] { new { name="OfficialBlock", path="Main", locations=new[] { new { access="Read", reference_location="Network 8", referenced_as_name="Motor1" } } } } } } });
-            IoTable.AttachNative(snapshot, native, "");
+            IoTable.AttachNative(snapshot, native, "", "默认变量表", "");
             Check(rows[0].references.Count == 3 && snapshot.warnings.Count == 2, "native nesting and truncation");
+            IoTable.AttachNative(snapshot, Map(new { items = native["items"] }), "", "OtherTable", "");
+            Check(rows[0].references.Count == 3, "native references cannot cross tag tables");
             rows[0].comment = "=HYPERLINK(\"https://example.invalid\")\n中文 & < >";
             byte[] workbook = IoWorkbook.Create(snapshot, rows.ToArray());
             File.WriteAllBytes(args[0], workbook);
