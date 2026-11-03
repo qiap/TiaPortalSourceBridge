@@ -1,5 +1,7 @@
 # TIA Portal Source Bridge
 
+**简体中文** | [English](README.en.md)
+
 [![Offline regression](https://github.com/qiap/TiaPortalSourceBridge/actions/workflows/checks.yml/badge.svg)](https://github.com/qiap/TiaPortalSourceBridge/actions/workflows/checks.yml)
 
 连接 **Siemens TIA Portal** 与 **AI / 自动化工作流** 的本地桥接工具。
