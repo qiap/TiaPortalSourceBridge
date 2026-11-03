@@ -23,6 +23,21 @@
 
 完整工具及参数以运行中的 **MCP 工具字典**或 `tools/list` 返回结果为准。各模块的使用方法见[文档导航](#文档导航)。
 
+## 下载与使用
+
+普通用户无需下载源码或自行编译，选择一种方式即可：
+
+| 方式 | 下载 | 使用方法 |
+| --- | --- | --- |
+| ZIP 免安装版 | [下载 Portable.zip](https://github.com/qiap/TiaPortalSourceBridge/releases/latest/download/TiaPortalSourceBridge-4.1.1-Portable.zip) | 完整解压后双击 `WebDashboard.cmd` 或 `LaunchWeb.vbs` |
+| EXE 安装版 | [下载 Setup.exe](https://github.com/qiap/TiaPortalSourceBridge/releases/latest/download/TiaPortalSourceBridge-4.1.1-Setup.exe) | 运行安装程序，通过桌面或开始菜单打开 |
+
+两种方式均包含 V17/V21 引擎、默认配置和运行模板。先在 TIA Portal 中打开工程，再在看板选择工程和 PLC；目标电脑需满足下面的运行环境要求。
+
+[全部版本与发布说明](https://github.com/qiap/TiaPortalSourceBridge/releases) · [SHA-256 校验文件](https://github.com/qiap/TiaPortalSourceBridge/releases/latest/download/SHA256SUMS.txt)
+
+GitHub 的 **Code → Download ZIP** 和 Release 中自动生成的 **Source code** 是源码压缩包；需要解压即用，请选择上面的 **Portable.zip**。EXE 安装包目前未做代码签名。
+
 ## 环境要求
 
 - **系统**：Windows 10 / 11，64 位。
@@ -40,7 +55,7 @@
 
 两个版本的功能范围并不完全一致：V21 专属接口及仿真能力以工具说明为准。其他 TIA 版本、设备和 HMI 类型需要分别验证，不应视为已经完整兼容。离线测试通过也不代表目标工程已经通过 TIA 编译或运行验证。
 
-## 快速开始
+## 从源码运行
 
 以下步骤在 **PowerShell** 中执行。
 
@@ -140,7 +155,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\Build-Installe
   -CompilerPath 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe'
 ```
 
-安装包和 SHA-256 校验文件输出到 `artifacts/installer/`。脚本会重新编译双引擎并执行离线检查，使用独立生成的默认配置，不打包开发电脑的本机配置、日志或备份。
+EXE 安装包、ZIP 免安装包和 SHA-256 校验文件输出到 `artifacts/installer/`。两种运行包使用同一份构建产物。脚本会重新编译双引擎并执行离线检查，使用独立生成的默认配置，不打包开发电脑的本机配置、日志或备份。
 
 安装程序支持当前用户安装、桌面和开始菜单快捷方式、升级与卸载。升级保留配置；卸载保留使用过程中产生的配置、日志和备份。安装后的使用要求见 [安装说明](installer/INSTALL.txt)。
 

@@ -16,7 +16,7 @@ if (-not $CompilerPath -or -not (Test-Path -LiteralPath $CompilerPath)) {
     throw 'Install Inno Setup 6 (https://jrsoftware.org/isdl.php), or supply -CompilerPath.'
 }
 $stage = Join-Path $root ('.work\installer-' + [Guid]::NewGuid().ToString('N'))
-$payload = Join-Path $stage 'payload'
+$payload = Join-Path $stage "TiaPortalSourceBridge-$Version-Portable"
 $output = Join-Path $root 'artifacts\installer'
 New-Item -ItemType Directory -Force $payload,$output | Out-Null
 $binRelative = 'src\TiaPortalSourceBridge\bin\Release\net48'
@@ -40,13 +40,15 @@ foreach ($edition in @('main','v21')) {
     foreach ($name in @('config.json','mcp-config.json')) { [IO.File]::WriteAllText((Join-Path $dest $name), $config, $utf8) }
 }
 Copy-Item -LiteralPath (Join-Path $payload 'engines\v21\mcp-config.json') -Destination (Join-Path $payload 'mcp-config-v21.json')
-foreach ($name in @('web','app.ico','app.png','LaunchWeb.vbs','StartMcp.bat','StartTiaMcp.bat','StartTiaMcpV21.bat',
+foreach ($name in @('web','app.ico','app.png','LaunchWeb.vbs','CreateShortcuts.vbs','StartMcp.bat','StartTiaMcp.bat','StartTiaMcpV21.bat',
     'StartOnlineMcp.bat','StopTiaMcp.bat','Invoke-Online.ps1','Invoke-HmiAlarms.ps1','BuildProjectIndex.cmd',
     'Start-AutoResetSimulation.ps1','Start-StandardSimulation.ps1')) {
     Copy-Item -LiteralPath (Join-Path $root $name) -Destination $payload -Recurse
 }
 Get-ChildItem -LiteralPath $root -Filter '*.md' -File | Copy-Item -Destination $payload
 Copy-Item -LiteralPath (Join-Path $root 'installer\INSTALL.txt') -Destination $payload
+Copy-Item -LiteralPath (Join-Path $root 'installer\PORTABLE.txt') -Destination $payload
+[IO.File]::WriteAllText((Join-Path $payload 'WebDashboard.cmd'), "@echo off`r`nwscript.exe `"%~dp0LaunchWeb.vbs`" %*`r`n", [Text.Encoding]::ASCII)
 $main = Join-Path $payload "$binRelative\TiaPortalSourceBridge.exe"
 $v21 = Join-Path $payload "engines\v21\$binRelative\TiaPortalSourceBridge.exe"
 # Generate the catalog from the exact packaged engine without connecting to TIA.
@@ -77,4 +79,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Installer compilation failed' }
 $exe = Join-Path $output "TiaPortalSourceBridge-$Version-Setup.exe"
 $hash = (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash
 [IO.File]::WriteAllText(($exe + '.sha256'), "$hash  $([IO.Path]::GetFileName($exe))`r`n", $utf8)
-[pscustomobject]@{installer=$exe;sha256=$hash;payload=$payload} | ConvertTo-Json
+$zip = Join-Path $output "TiaPortalSourceBridge-$Version-Portable.zip"
+Compress-Archive -LiteralPath $payload -DestinationPath $zip -CompressionLevel Optimal -Force
+$zipHash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash
+[IO.File]::WriteAllText((Join-Path $output 'SHA256SUMS.txt'), "$hash  $([IO.Path]::GetFileName($exe))`r`n$zipHash  $([IO.Path]::GetFileName($zip))`r`n", $utf8)
+[pscustomobject]@{installer=$exe;sha256=$hash;portable=$zip;portable_sha256=$zipHash;payload=$payload} | ConvertTo-Json
