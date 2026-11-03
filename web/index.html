@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
@@ -660,7 +660,7 @@
       <div class="logo-badge">TIA BRIDGE</div>
       <div class="brand-title">
         <span>控制看板</span>
-        <span class="version-tag" id="toolVersion">v4.1.1</span>
+        <span class="version-tag" id="toolVersion">v4.1.2</span>
       </div>
     </div>
 
@@ -1605,7 +1605,7 @@
       `;
     }
 
-    // The final browser tab owns the dashboard lifetime; refresh has a server-side grace period.
+    // Track pages for status only. The service stops through the explicit Exit action.
     const dashboardPageId = (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
     const dashboardClientId = sessionStorage.getItem('tia-dashboard-tab') || dashboardPageId;
     sessionStorage.setItem('tia-dashboard-tab', dashboardClientId);
@@ -1623,13 +1623,9 @@
         fetch('/api/browser/release', {method:'POST', body:payload, keepalive:true}).catch(() => {});
       }
     }
-    window.addEventListener('beforeunload', releaseBrowserLease);
     window.addEventListener('pagehide', () => {
       dashboardLeaving = true; clearInterval(browserHeartbeatTimer);
-      const payload = new Blob([browserPayload()], {type:'application/json'});
-      if (!navigator.sendBeacon('/api/browser/release', payload)) {
-        fetch('/api/browser/release', {method:'POST', body:payload, keepalive:true}).catch(() => {});
-      }
+      releaseBrowserLease();
     });
     window.addEventListener('pageshow', event => {
       if (!event.persisted) return;

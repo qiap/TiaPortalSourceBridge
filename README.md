@@ -31,14 +31,16 @@
 
 | 方式 | 下载 | 使用方法 |
 | --- | --- | --- |
-| ZIP 免安装版 | [下载 Portable.zip](https://github.com/qiap/TiaPortalSourceBridge/releases/latest/download/TiaPortalSourceBridge-4.1.1-Portable.zip) | 完整解压后双击 `WebDashboard.cmd` 或 `LaunchWeb.vbs` |
-| EXE 安装版 | [下载 Setup.exe](https://github.com/qiap/TiaPortalSourceBridge/releases/latest/download/TiaPortalSourceBridge-4.1.1-Setup.exe) | 运行安装程序，通过桌面或开始菜单打开 |
+| ZIP 免安装版 | [下载 Portable.zip](https://github.com/qiap/TiaPortalSourceBridge/releases/latest/download/TiaPortalSourceBridge-4.1.2-Portable.zip) | 完整解压后双击 `WebDashboard.cmd` 或 `LaunchWeb.vbs` |
+| EXE 安装版 | [下载 Setup.exe](https://github.com/qiap/TiaPortalSourceBridge/releases/latest/download/TiaPortalSourceBridge-4.1.2-Setup.exe) | 运行安装程序，通过桌面或开始菜单打开 |
 
 两种方式均包含 V17/V21 引擎、默认配置和运行模板。先在 TIA Portal 中打开工程，再在看板选择工程和 PLC；目标电脑需满足下面的运行环境要求。
 
 [全部版本与发布说明](https://github.com/qiap/TiaPortalSourceBridge/releases) · [SHA-256 校验文件](https://github.com/qiap/TiaPortalSourceBridge/releases/latest/download/SHA256SUMS.txt)
 
 GitHub 的 **Code → Download ZIP** 和 Release 中自动生成的 **Source code** 是源码压缩包；需要解压即用，请选择上面的 **Portable.zip**。EXE 安装包目前未做代码签名。
+
+刷新、切换或关闭浏览器标签页不会停止后台服务。需要退出时，点击看板右上角的“退出服务”；正在执行的工程任务会先完成。
 
 ## 环境要求
 
