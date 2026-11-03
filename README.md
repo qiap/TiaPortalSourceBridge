@@ -148,6 +148,18 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Build-All.ps1 -NoTrust
 
 多工程场景中，调用应明确传入 `project_path`。推荐先获取工程树或任务上下文，再读取和修改相关对象，避免反复导出整个工程。连接管理详见 [MULTI_PROJECT.md](MULTI_PROJECT.md)。
 
+## AI Skill
+
+仓库提供 [tia-portal Skill](skills/tia-portal/SKILL.md)，指导 AI 使用现有 MCP 工具完成工程选择、索引检索、源码修改、备份与验证。Skill 不替代运行程序或 MCP 连接，也不会自动授予工程写入权限。
+
+在本机 Codex 中使用时，将整个 `skills/tia-portal` 文件夹复制到技能目录（默认 `~/.codex/skills/`；设置了 `CODEX_HOME` 时为其下的 `skills/`），并按上文接好 MCP。示例请求：
+
+```text
+使用 $tia-portal 分析当前工程的气缸互锁逻辑，先不要修改工程。
+```
+
+本技能指导 AI 的工程操作流程；运行包继续支持独立解压使用或 EXE 安装。
+
 ## 构建 Windows 安装包
 
 仓库包含 EXE 安装包构建脚本。构建机器还需安装 [Inno Setup 6](https://jrsoftware.org/isdl.php)：

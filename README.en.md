@@ -148,6 +148,18 @@ In your MCP client, use the same executable with arguments `mcp`, `--config`, an
 
 When managing multiple projects, specify `project_path` explicitly. Retrieve the project tree or task context before reading and modifying relevant objects, rather than repeatedly exporting the entire project. See [Multi-project connections](MULTI_PROJECT.md) for connection management details.
 
+## AI skill
+
+The repository includes a [tia-portal skill](skills/tia-portal/SKILL.md) that guides an AI through project selection, index lookup, source changes, backups, and verification using the existing MCP tools. The skill does not replace the runtime or MCP connection and does not automatically authorize project writes.
+
+For local Codex use, copy the entire `skills/tia-portal` folder into the skills directory (by default `~/.codex/skills/`, or `skills/` under `CODEX_HOME` when set), and configure MCP as described above. Example request:
+
+```text
+Use $tia-portal to analyze the cylinder interlocks in my selected project without modifying it.
+```
+
+The skill guides AI engineering workflows. The runtime remains independently usable as a portable ZIP or EXE installation.
+
 ## Build Windows packages
 
 The repository includes a Windows installer build script. The build machine also needs [Inno Setup 6](https://jrsoftware.org/isdl.php):

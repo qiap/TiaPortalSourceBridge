@@ -1,0 +1,4 @@
+interface:
+  display_name: "TIA Portal"
+  short_description: "Analyze and edit TIA projects through Source Bridge"
+  default_prompt: "Use $tia-portal to inspect my selected TIA Portal project and help with the requested engineering task."
