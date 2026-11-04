@@ -1,11 +1,13 @@
 @echo off
-rem Generates the desktop shortcut and the in-folder shortcut for THIS copy.
-rem Portable: every path is resolved from the folder this file sits in.
+setlocal
 cd /d "%~dp0"
-if not exist "%~dp0CreateShortcuts.vbs" (
-    echo CreateShortcuts.vbs is missing next to this file.
+set "exe=%~dp0src\TiaPortalSourceBridge\bin\Release\net48\TiaPortalSourceBridge.exe"
+if not exist "%exe%" set "exe=%~dp0online-bin\TiaPortalSourceBridge.exe"
+if not exist "%exe%" set "exe=%~dp0TiaPortalSourceBridge.exe"
+if not exist "%exe%" (
+    echo Dashboard EXE missing. Extract the entire ZIP first.
     pause
     exit /b 1
 )
-wscript.exe "%~dp0CreateShortcuts.vbs"
+"%exe%" create-shortcuts --config "%~dp0config.json" --notify
 exit /b %errorlevel%

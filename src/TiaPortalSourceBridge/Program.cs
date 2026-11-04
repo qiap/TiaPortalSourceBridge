@@ -43,6 +43,8 @@ namespace TiaPortalSourceBridge
 
             string command = args[0].Trim().ToLowerInvariant();
             string configPath = GetConfigPath(args);
+            if (command == "create-shortcuts")
+                return DashboardShortcut.Create(configPath, args.Contains("--folder-only"), args.Contains("--notify"));
 
             if (command == "mcp-project-worker")
                 return new McpServer(configPath, true).Run();

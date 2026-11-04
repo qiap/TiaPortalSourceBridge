@@ -10,22 +10,23 @@ $path = Join-Path $root 'TIA Portal Source Bridge.lnk'
 $script = Join-Path $root 'CreateShortcuts.vbs'
 & cscript.exe //nologo $script /folder-only
 if ($LASTEXITCODE -ne 0) { throw 'Shortcut generator failed' }
-$shell = New-Object -ComObject WScript.Shell
-$link = $shell.CreateShortcut($path)
-if ($link.TargetPath -ne $exe -or $link.WorkingDirectory -ne $root -or
-    $link.IconLocation -ne ($exe + ',0') -or $link.Arguments -cne ('web --hide-console --config "' + $config + '"')) {
+for ($i=0; !(Test-Path -LiteralPath $path) -and $i -lt 60; $i++) { Start-Sleep -Milliseconds 200 }
+$type = [Reflection.Assembly]::LoadFrom($exe).GetType('TiaPortalSourceBridge.Web.DashboardShortcut',$true)
+$flags = [Reflection.BindingFlags]'Static,NonPublic'
+$link = $type.GetMethod('Read',$flags).Invoke($null,[string[]]@($path))
+if ($link[0] -ne $exe -or $link[2] -ne $root -or $link[3] -ne $exe -or $link[4] -ne '0' -or
+    $link[1] -cne ('web --hide-console --config "' + $config + '"')) {
     throw 'Incorrect shortcut target, icon, arguments or working directory'
 }
 Add-Type -AssemblyName System.Drawing
-$icon = [Drawing.Icon]::ExtractAssociatedIcon($link.TargetPath)
+$icon = [Drawing.Icon]::ExtractAssociatedIcon($exe)
 if (!$icon) { throw 'Cannot extract executable icon' }
 $icon.Dispose()
 $listener = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback,0)
 $listener.Start()
 $port = $listener.LocalEndpoint.Port
 $listener.Stop()
-$link.Arguments += " --port $port --no-browser"
-$link.Save()
+$type.GetMethod('Write',$flags).Invoke($null,[string[]]@($path,$exe,($link[1] + " --port $port --no-browser"),$root))
 $server = Start-Process -FilePath $path -PassThru -WindowStyle Hidden
 $base = "http://localhost:$port"
 $up = $false
