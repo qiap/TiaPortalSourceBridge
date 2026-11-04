@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using TiaPortalSourceBridge.Configuration;
+using TiaPortalSourceBridge.Mcp;
 
 namespace TiaPortalSourceBridge.Web
 {
@@ -23,6 +24,9 @@ namespace TiaPortalSourceBridge.Web
         public DateTime endTime { get; set; }
         public int exitCode { get; set; }
         public List<string> logs { get; set; }
+
+        internal ExecutionLog execution;
+        internal string warning;
 
         public ActionProgress()
         {
@@ -52,7 +56,19 @@ namespace TiaPortalSourceBridge.Web
             }
         }
         private const int TrustTimeoutSeconds = 120;
-        internal static bool StartIoRead(string project, string plc, Action work)
+        internal static ExecutionRecord[] ExecutionRecords(string config)
+        {
+            var records = ExecutionLog.Read(config);
+            lock (_sync) {
+                foreach (var task in _lanes.Values) {
+                    if (task.execution == null || !IsPending(task.status) || task.actionName == "io-read") continue;
+                    var row = records.FirstOrDefault(r => r.id == task.execution.Id && r.status == "running");
+                    if (row != null) row.message = task.logs.LastOrDefault() ?? task.message;
+                }
+            }
+            return records;
+        }
+        internal static bool StartIoRead(string config, string project, string plc, Func<Action<string>, string> work)
         {
             ActionProgress progress;
             lock (_sync) {
@@ -64,7 +80,11 @@ namespace TiaPortalSourceBridge.Web
                 if (history.Count > 100) history.Remove(history.First(a => !IsPending(a.status)));
             }
             new Thread(() => {
-                try { work(); Finish(progress, 0, null); }
+                try {
+                    progress.execution = ExecutionLog.Begin(config, "看板", "io-read", project + " · " + plc);
+                    progress.warning = work(message => progress.execution.Update("running", message, false));
+                    Finish(progress, 0, null);
+                }
                 catch (Exception ex) { Finish(progress, -1, ex.Message); }
             }) { IsBackground = true, Name = "DashboardIoRead" }.Start();
             return true;
@@ -214,7 +234,14 @@ namespace TiaPortalSourceBridge.Web
                 if (!p.WaitForExit((int)timeout.TotalMilliseconds))
                 {
                     timedOut = true;
-                    lock (_sync) { var progress = _lanes[LaneOf(action)]; progress.status = "outcome_unknown"; progress.stage = "awaiting_result"; progress.message = "等待超时，后台仍在执行；请勿重复提交，完成后将自动更新结果。"; }
+                    ActionProgress pending;
+                    lock (_sync) {
+                        pending = _lanes[LaneOf(action)];
+                        pending.status = "outcome_unknown";
+                        pending.stage = "awaiting_result";
+                        pending.message = "等待超时，后台仍在执行；请勿重复提交，完成后将自动更新结果。";
+                    }
+                    if (pending.execution != null) pending.execution.Update("waiting", pending.message, false);
                     AppendLog(action, "等待超时，保留后台进程并继续等待最终结果。");
                     p.WaitForExit();
                 }
@@ -242,6 +269,16 @@ namespace TiaPortalSourceBridge.Web
                 }
                 _last = progress;
             }
+            if (progress.execution != null) {
+                string detail = progress.warning ?? progress.message;
+                if (progress.status == "failed" && string.IsNullOrEmpty(failMessage)) {
+                    lock (_sync) {
+                        var diagnostic = progress.logs.LastOrDefault(line => line.Contains("[ERR]") || line.Contains("错误") || line.Contains("失败"));
+                        if (diagnostic != null) detail += " " + diagnostic;
+                    }
+                }
+                progress.execution.Update(progress.warning != null && exitCode == 0 ? "warning" : progress.status, detail, true);
+            }
             AppendLog(progress.actionName, exitCode == 0 ? ">>> 任务完成: 成功。" : ">>> 任务未成功: " + progress.message);
         }
 
@@ -255,6 +292,7 @@ namespace TiaPortalSourceBridge.Web
 
             try
             {
+                progress.execution = ExecutionLog.Begin(configPath, "看板", action, projectPath + " · " + plcName);
                 AppendLog(action, ">>> 启动任务: " + action + " | " + progress.task_id + " | " + projectPath + " | " + plcName);
 
                 if (action == "trust")

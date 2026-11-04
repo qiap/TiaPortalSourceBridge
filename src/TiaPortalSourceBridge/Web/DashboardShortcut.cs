@@ -74,8 +74,9 @@ namespace TiaPortalSourceBridge.Web
                 config = Path.GetFullPath(config);
                 if (!File.Exists(config)) throw new FileNotFoundException("请先完整解压 ZIP。缺少配置文件", config);
                 string root = Path.GetDirectoryName(config);
-                string exe = Assembly.GetExecutingAssembly().Location;
-                string args = "web --hide-console --config \"" + config + "\"";
+                string exe = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "TiaPortalDashboard.exe");
+                if (!File.Exists(exe)) throw new FileNotFoundException("缺少看板启动程序，请完整安装或解压。", exe);
+                string args = "--config \"" + config + "\"";
                 var folders = folderOnly ? new[] {root} : new[] {root, Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory)};
                 foreach (string folder in folders) {
                     if (string.IsNullOrEmpty(folder)) throw new DirectoryNotFoundException("无法定位桌面目录。");

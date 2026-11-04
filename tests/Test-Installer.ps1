@@ -22,7 +22,7 @@ try {
     $shortcut = Join-Path ([Environment]::GetFolderPath('Programs')) ($group + '\TIA Portal Source Bridge.lnk')
     $shell = New-Object -ComObject WScript.Shell
     $link = $shell.CreateShortcut($shortcut)
-    if ($link.WorkingDirectory -ne $target -or $link.Arguments -ne ('"'+$target+'\LaunchWeb.vbs"')) { throw ('Shortcut mismatch: expected ' + $target + '; actual directory=' + $link.WorkingDirectory + '; arguments=' + $link.Arguments + '; exists=' + (Test-Path -LiteralPath $shortcut)) }
+    if ($link.TargetPath -ne (Join-Path (Split-Path $main) 'TiaPortalDashboard.exe') -or $link.WorkingDirectory -ne $target -or $link.Arguments -ne ('--config "'+$target+'\config.json"')) { throw ('Shortcut mismatch: expected ' + $target + '; actual directory=' + $link.WorkingDirectory + '; arguments=' + $link.Arguments + '; exists=' + (Test-Path -LiteralPath $shortcut)) }
     & python (Join-Path $PSScriptRoot 'Test-VersionRouting.py') $main $v21
     if ($LASTEXITCODE -ne 0) { throw 'Installed engine tests failed' }
     # Construct the real dashboard without starting listeners, MCP hosts or TIA connections.

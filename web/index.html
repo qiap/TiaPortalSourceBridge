@@ -650,6 +650,14 @@
       gap: 10px;
       margin-top: 20px;
     }
+    #tab-cylinder h3 {margin:18px 0 8px} #tab-cylinder p,#tab-cylinder details {margin:10px 0}
+    #tab-cylinder label {display:inline-flex;align-items:center;gap:8px;margin:4px 12px 8px 0}
+    #cyPoints {display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));margin:12px 0}
+    #cyPoints label {display:grid} #tab-cylinder label[hidden] {display:none}
+    .execution-table {border-collapse:collapse;width:100%;text-align:left;font-size:13px}
+    .execution-table th,.execution-table td {padding:8px;vertical-align:top;border-bottom:1px solid var(--border);overflow-wrap:anywhere}
+    .execution-table th {position:sticky;top:0;background:var(--bg-card,#1e293b)}
+    .execution-table th:nth-child(1),.execution-table th:nth-child(2),.execution-table td:first-child {white-space:nowrap}
   </style>
 </head>
 <body>
@@ -742,6 +750,7 @@
     <button class="tab-btn" onclick="switchTab('io')">
       🔌 I/O 表与引用
     </button>
+    <button class="tab-btn" onclick="switchTab('cylinder')">气缸生成</button>
     <button class="tab-btn" onclick="switchTab('simulation')">
       🎮 仿真驾驶舱
     </button>
@@ -799,6 +808,20 @@
         </div>
       </div>
 
+      <div id="dashboardExecutionSlot"><section class="card" id="executionJournal" style="margin-bottom:24px" aria-labelledby="executionTitle">
+        <div class="card-header" style="flex-wrap:wrap;gap:8px">
+          <span class="card-title" id="executionTitle">执行日志</span>
+          <label>显示 <select id="executionFilter" class="btn btn-sm">
+            <option value="all">全部任务</option><option value="running">执行中</option>
+            <option value="completed">成功</option><option value="failed">失败</option>
+            <option value="attention">警告、取消或结果待确认</option>
+          </select></label>
+        </div>
+        <div id="executionSummary" style="margin:8px 0;color:var(--text-muted)">正在连接执行日志…</div>
+        <div style="max-height:420px;overflow:auto">
+          <table class="execution-table"><thead><tr><th>开始时间</th><th>结果</th><th>来源 / 操作</th><th>工程或对象</th><th>耗时</th><th>进度或原因</th></tr></thead><tbody id="executionRows"></tbody></table>
+        </div>
+      </section></div>
       <!-- Quick Operations -->
       <div class="card" style="margin-bottom: 24px;">
         <div class="card-header">
@@ -959,6 +982,39 @@
     </div>
 
     <!-- TAB 4: Simulation Cockpit -->
+    <div id="tab-cylinder" class="tab-content">
+      <div class="card">
+        <div class="card-header"><span class="card-title">从已有气缸新建</span></div>
+        <p id="cyTarget"></p>
+        <div><button class="btn" id="cyCached">读取本地工程源码</button> <button class="btn" id="cyLive">从博途重新读取</button></div>
+        <p id="cyStatus" role="status" style="color:var(--text-muted);white-space:pre-wrap"></p>
+        <div id="cyEditor" hidden>
+          <h3>1. 选择样板</h3>
+          <label>宿主程序块 <select id="cyHost" class="btn"></select></label>
+          <label>样板实例 <select id="cySample" class="btn"></select></label>
+          <p id="cySkipped" style="color:var(--text-muted);white-space:pre-wrap"></p>
+          <details id="cyRulePanel"><summary>核对模板规则与原调用</summary>
+            <p>公共输入可以沿用。请核对工作位、原位、模式、互锁和报警下标的含义。</p>
+            <div id="cyRules" style="overflow:auto"></div>
+          </details>
+          <button class="btn" id="cySave">确认并保存项目模板</button>
+          <div id="cyBinding" hidden>
+            <h3>2. 新气缸与点位</h3>
+            <label>新实例名称 <input class="search-input" id="cyName" placeholder="例如 Z14" maxlength="64"></label>
+            <label id="cyAlarmLabel">新数组索引 <input class="search-input" id="cyAlarm" type="number" min="0" step="1"></label>
+            <div id="cyPoints"></div>
+            <button class="btn" id="cyGenerate">生成草稿和差异</button>
+          </div>
+          <div id="cyResult" hidden>
+            <h3>3. 核对生成结果</h3>
+            <p id="cyWarnings" style="white-space:pre-wrap;color:var(--warning,#fbbf24)"></p>
+            <div id="cyDiff" style="max-height:300px;overflow:auto"></div>
+            <pre id="cyCode" style="max-height:340px;overflow:auto;white-space:pre-wrap"></pre>
+            <button class="btn" id="cyDownload">下载 SCL 调用草稿</button>
+          </div>
+        </div>
+      </div>
+    </div>
     <div id="tab-simulation" class="tab-content">
       <div class="card" style="margin-bottom: 20px;">
         <div class="card-header">
@@ -998,6 +1054,7 @@
 
     <!-- TAB 6: Logs -->
     <div id="tab-logs" class="tab-content">
+      <div id="logsExecutionSlot"></div>
       <div class="card">
         <div class="card-header">
           <span class="card-title">📜 运行日志查看器</span>
@@ -1047,10 +1104,12 @@
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
       event.currentTarget.classList.add('active');
       document.getElementById('tab-' + tabId).classList.add('active');
+      if (window.showExecutionLog) window.showExecutionLog(tabId);
 
       if (tabId === 'diff') loadBackups();
       if (tabId === 'index') loadIndexSummary();
       if (tabId === 'io') ioTargetChanged();
+      if (tabId === 'cylinder' && window.cylinderSync) window.cylinderSync();
       if (tabId === 'simulation') loadSimulation();
       if (tabId === 'tools') loadTools();
       if (tabId === 'logs') fetchLogs();
@@ -1678,5 +1737,8 @@
     document.addEventListener('visibilitychange', () => { if (!document.hidden) browserHeartbeat(); });
   </script>
   <script src="/io.js"></script>
+  <script src="/execution.js"></script>
+  <script src="/cylinder-model.js"></script>
+  <script src="/cylinder.js"></script>
 </body>
 </html>

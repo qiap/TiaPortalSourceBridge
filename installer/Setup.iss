@@ -43,12 +43,12 @@ Source: "{#PayloadDir}\engines\v21\config.json"; DestDir: "{app}\engines\v21"; F
 Source: "{#PayloadDir}\engines\v21\mcp-config.json"; DestDir: "{app}\engines\v21"; Flags: onlyifdoesntexist uninsneveruninstall
 
 [Icons]
-Name: "{group}\TIA Portal Source Bridge"; Filename: "{app}\src\TiaPortalSourceBridge\bin\Release\net48\TiaPortalSourceBridge.exe"; Parameters: "web --hide-console --config ""{app}\config.json"""; WorkingDir: "{app}"; IconFilename: "{app}\src\TiaPortalSourceBridge\bin\Release\net48\TiaPortalSourceBridge.exe"
-Name: "{autodesktop}\TIA Portal Source Bridge"; Filename: "{app}\src\TiaPortalSourceBridge\bin\Release\net48\TiaPortalSourceBridge.exe"; Parameters: "web --hide-console --config ""{app}\config.json"""; WorkingDir: "{app}"; IconFilename: "{app}\src\TiaPortalSourceBridge\bin\Release\net48\TiaPortalSourceBridge.exe"; Tasks: desktopicon
+Name: "{group}\TIA Portal Source Bridge"; Filename: "{app}\src\TiaPortalSourceBridge\bin\Release\net48\TiaPortalDashboard.exe"; Parameters: "--config ""{app}\config.json"""; WorkingDir: "{app}"; IconFilename: "{app}\src\TiaPortalSourceBridge\bin\Release\net48\TiaPortalDashboard.exe"
+Name: "{autodesktop}\TIA Portal Source Bridge"; Filename: "{app}\src\TiaPortalSourceBridge\bin\Release\net48\TiaPortalDashboard.exe"; Parameters: "--config ""{app}\config.json"""; WorkingDir: "{app}"; IconFilename: "{app}\src\TiaPortalSourceBridge\bin\Release\net48\TiaPortalDashboard.exe"; Tasks: desktopicon
 Name: "{group}\Uninstall"; Filename: "{uninstallexe}"
 
 [Run]
-Filename: "{app}\src\TiaPortalSourceBridge\bin\Release\net48\TiaPortalSourceBridge.exe"; Parameters: "web --hide-console --config ""{app}\config.json"""; WorkingDir: "{app}"; Description: "Open TIA Portal Source Bridge"; Flags: postinstall nowait skipifsilent unchecked
+Filename: "{app}\src\TiaPortalSourceBridge\bin\Release\net48\TiaPortalDashboard.exe"; Parameters: "--config ""{app}\config.json"""; WorkingDir: "{app}"; Description: "Open TIA Portal Source Bridge"; Flags: postinstall nowait skipifsilent unchecked
 
 [Code]
 function InitializeSetup(): Boolean;

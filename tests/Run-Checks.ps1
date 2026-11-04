@@ -24,7 +24,7 @@ foreach ($test in @('Test-BrowserLifetime.ps1','Test-Reliability.ps1','Test-Perf
 }
 & python (Join-Path $PSScriptRoot 'Test-VersionRouting.py') $MainExecutable $V21Executable
 if ($LASTEXITCODE -ne 0) { throw 'Version routing checks failed' }
-foreach ($test in @('Test-ProjectDropdown.cjs', 'Test-IoPanel.cjs')) {
+foreach ($test in @('Test-ProjectDropdown.cjs', 'Test-IoPanel.cjs', 'Test-Cylinder.cjs')) {
     & node (Join-Path $PSScriptRoot $test)
     if ($LASTEXITCODE -ne 0) { throw ($test + ' failed') }
 }

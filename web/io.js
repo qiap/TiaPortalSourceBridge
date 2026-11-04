@@ -7,6 +7,7 @@
   const target = () => ({ project_path: currentStatus.active_project || currentStatus.project_path || '', plc_name: currentStatus.target_plc || '', target_token: currentStatus.target_token || '' });
   const same = (a, b) => !!a && !!b && normalize(a.project_path) === normalize(b.project_path) && a.plc_name === b.plc_name;
   const current = () => same(state.target, target());
+  window.cylinderIoState = () => ({id: state.ready && current() ? state.id : '', busy: state.busy, target: target()});
   const message = value => text('ioMessage', value);
   const cell = value => { const td = document.createElement('td'); td.textContent = value == null ? '' : String(value); td.style.cssText = 'padding:10px;border-bottom:1px solid #334155;white-space:pre-wrap;word-break:break-word;'; return td; };
   const empty = (id, value) => { const tr = document.createElement('tr'); const td = cell(value); td.colSpan = 6; tr.appendChild(td); el(id).replaceChildren(tr); };
@@ -25,6 +26,7 @@
     el('ioExportButton').disabled = state.busy || !state.ready || !current();
     el('ioPrev').disabled = !state.ready || !current() || state.page <= 1;
     el('ioNext').disabled = !state.ready || !current() || state.page >= state.pages;
+    if (window.cylinderSync) window.cylinderSync();
   }
   window.ioTargetChanged = () => {
     const t = target(); text('ioTarget', (t.project_path || '未选择工程') + '  ·  ' + (t.plc_name || '未选择 PLC'));

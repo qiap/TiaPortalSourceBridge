@@ -37,4 +37,13 @@ with tempfile.TemporaryDirectory(prefix='tia-routing-') as folder:
     for version, row in zip(['V17','V21'], rows[2:]):
         check(not row.get('isError'), str(row))
         check('version="'+version+'"' in row['structuredContent']['xml'], 'route '+version)
-    print('PASS: %d dual-engine protocol and routing checks (no TIA connection).' % checks)
+    # A routed V21 call traverses two processes but is a single client operation.
+    journal = root / 'logs' / 'execution'
+    read_tasks = lambda: [json.loads(p.read_text(encoding='utf-8')) for p in journal.glob('*.done')]
+    tasks = read_tasks()
+    check(len(tasks) == 2 and all(t['status'] == 'completed' for t in tasks), 'one success record per top-level call')
+    check(all(t['source'] == 'MCP' and '<Document' not in t['message'] for t in tasks), 'no successful PLC payloads logged')
+    failed = rpc(v21,engine/'mcp-config.json',[('tools/call',dict(name='unknown_fixture',arguments={}))])[0]
+    tasks = read_tasks()
+    check(failed['isError'] and any(t['action']=='unknown_fixture' and t['status']=='failed' and 'unknown_fixture' in t['message'] for t in tasks), 'direct V21 failure and reason visible to the main dashboard')
+    print('PASS: %d dual-engine protocol, execution log and routing checks (no TIA connection).' % checks)

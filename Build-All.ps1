@@ -26,7 +26,10 @@ foreach ($edition in @('v21', 'main')) {
             Publish-Exe (Join-Path $stage "$edition\$file") (Join-Path $destination $file)
         }
         Copy-Item -LiteralPath (Join-Path $destinationRoot 'templates') -Destination $destination -Recurse -Force
-        if ($edition -eq 'main') { Copy-Item -LiteralPath (Join-Path $root 'web') -Destination $destination -Recurse -Force }
+        if ($edition -eq 'main') {
+            Publish-Exe (Join-Path $stage 'main\TiaPortalDashboard.exe') (Join-Path $destination 'TiaPortalDashboard.exe')
+            Copy-Item -LiteralPath (Join-Path $root 'web') -Destination $destination -Recurse -Force
+        }
     }
 }
 $info = New-Object Diagnostics.ProcessStartInfo

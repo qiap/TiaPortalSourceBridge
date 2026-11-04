@@ -115,9 +115,7 @@ namespace TiaPortalSourceBridge.Mcp
                     ?? new Dictionary<string, object>();
                 using (var metrics = OperationMetrics.Begin())
                 {
-                    Dictionary<string, object> result;
-                    try { preparedIndexContext = null; InvalidateIndexBeforeMutation(name, arguments); result = CallTool(name, arguments); AttachIndexHint(name, arguments, result); }
-                    catch (Exception ex) { result = ToolResult("操作失败：" + RootMessage(ex), true, null); }
+                    var result = ExecuteLoggedTool(name, arguments);
                     if (StringArg(arguments, "response_mode") == "compact") CompactResponse(result);
                     metrics.Attach(result);
                     WriteResult(id, result);

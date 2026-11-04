@@ -2,7 +2,7 @@
 chcp 65001 >nul
 setlocal
 set "ROOT=%~dp0"
-set "EXE=%ROOT%src\TiaPortalSourceBridge\bin\Release\net48\TiaPortalSourceBridge.exe"
+set "EXE=%ROOT%src\TiaPortalSourceBridge\bin\Release\net48\TiaPortalDashboard.exe"
 
 if not exist "%EXE%" (
   call "%ROOT%build.bat"
@@ -17,9 +17,9 @@ if not exist "%EXE%" (
 title TIA Portal Source Bridge - 可视化控制看板
 
 if "%~1"=="" (
-  "%EXE%" web --config "%ROOT%config.json"
+  "%EXE%" --config "%ROOT%config.json"
 ) else (
-  "%EXE%" web --project "%~f1" --config "%ROOT%config.json"
+  "%EXE%" --project "%~f1" --config "%ROOT%config.json"
 )
 
 set "RESULT=%errorlevel%"

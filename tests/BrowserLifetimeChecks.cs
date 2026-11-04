@@ -59,6 +59,31 @@ internal static class BrowserLifetimeChecks
             Thread.Sleep(1200); // The old four-second exit deadline is already in the past.
             Check(listener.IsListening && (bool)running.GetValue(server), "last page release does not stop service");
             string url = "http://127.0.0.1:" + port;
+            var started = new ManualResetEvent(false);
+            var release = new ManualResetEvent(false);
+            Check(ActionRunner.StartIoRead(config, "offline", "PLC1", report => {
+                report("fixture: reading table 2");
+                started.Set();
+                if (!release.WaitOne(5000)) throw new TimeoutException("fixture timed out");
+                return "fixture: one table unavailable";
+            }), "start monitored task");
+            Check(started.WaitOne(5000), "progress available before completion");
+            string live = Request(server, listener, url, "/api/execution-log", null, 200);
+            Check(live.Contains("reading table 2") && live.Contains("\"running\""), "live progress visible while task blocked");
+            release.Set();
+            Check(SpinWait.SpinUntil(() => Directory.GetFiles(Path.Combine(root,"logs","execution"), "*.done").Length == 1, 5000), "result persisted");
+            string finished = Request(server, listener, url, "/api/execution-log", null, 200);
+            Check(finished.Contains("\"warning\"") && finished.Contains("one table unavailable"), "partial completion has a distinct status");
+            var partial = (HttpWebRequest)WebRequest.Create(url + "/api/build");
+            partial.Timeout = 5000;
+            var pending = partial.BeginGetResponse(null, null);
+            var context = listener.GetContext();
+            context.Response.SendChunked = true;
+            context.Response.OutputStream.WriteByte(32);
+            context.Response.OutputStream.Flush();
+            using (partial.EndGetResponse(pending)) {
+                typeof(WebServer).GetMethod("ProcessRequest", PrivateInstance).Invoke(server, new object[] { context });
+            }
             Check(Request(server, listener, url, "/", null, 200) == "refresh-check", "delayed refresh serves dashboard");
             lock (gate) { leases.Heartbeat("sleeping-tab", DateTime.UtcNow.AddSeconds(-120)); }
             Thread.Sleep(1200);
@@ -78,6 +103,12 @@ internal static class BrowserLifetimeChecks
             lock (laneGate) { lanes.Clear(); }
             running.SetValue(server, false); listener.Close();
             File.Delete(Path.Combine(root, "web", "index.html")); Directory.Delete(Path.Combine(root, "web"));
+            string journal = Path.Combine(root, "logs", "execution");
+            if (Directory.Exists(journal)) {
+                foreach (string file in Directory.GetFiles(journal)) File.Delete(file);
+                Directory.Delete(journal);
+                Directory.Delete(Path.Combine(root, "logs"));
+            }
             foreach (string file in Directory.GetFiles(root)) File.Delete(file);
             Directory.Delete(root);
         }

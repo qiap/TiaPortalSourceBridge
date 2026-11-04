@@ -15,10 +15,11 @@ namespace TiaPortalSourceBridge.Web
             public string id, project, plc, state = "reading", message = "准备读取", error = "";
             public IoSnapshot result;
             public bool cached;
+            public Action<string> report;
         }
         private readonly object ioGate = new object();
         private readonly Dictionary<string, IoJob> ioJobs = new Dictionary<string, IoJob>();
-        private void IoProgress(IoJob job, string message) { lock (ioGate) job.message = message; }
+        private void IoProgress(IoJob job, string message) { lock (ioGate) job.message = message; if (job.report != null) job.report(message); }
         private void ReadIo(IoJob job)
         {
             try {
@@ -37,6 +38,7 @@ namespace TiaPortalSourceBridge.Web
                     }
                     if (result.tables_read == 0) throw new InvalidOperationException("尚无可读的变量表源码，请先从博途重新读取。");
                     var blocks = store.IoBlocks(job.plc);
+                    result.cylinderBlocks = blocks;
                     IoMapping.Expand(result,blocks,store.IoSource);
                     IoDeclarations.Add(result,blocks,store.IoSource);
                     IoTable.AttachIndex(result,IndexJson.Map(store.IoReferenceSnapshot(job.plc)));
@@ -88,6 +90,7 @@ namespace TiaPortalSourceBridge.Web
                             }
                         }
                         var blocks = store.IoBlocks(job.plc);
+                        result.cylinderBlocks = blocks;
                         IoMapping.Expand(result,blocks,store.IoSource);
                         IoDeclarations.Add(result,blocks,store.IoSource);
                         if (!native) IoTable.AttachIndex(result, IndexJson.Map(store.IoReferenceSnapshot(job.plc)));
@@ -131,7 +134,11 @@ namespace TiaPortalSourceBridge.Web
                 }
                 var job = new IoJob { id = Guid.NewGuid().ToString("N"), project = project, plc = plc, cached = Text(map, "mode") == "source" };
                 lock (ioGate) {
-                    if (!ActionRunner.StartIoRead(project, plc, () => ReadIo(job))) { SendJson(response, 409, new { error = "已有工程任务正在执行，请稍后重新读取" }); return true; }
+                    if (!ActionRunner.StartIoRead(_configPath, project, plc, report => {
+                        job.report = report;
+                        ReadIo(job);
+                        return job.result.warnings.Count == 0 ? null : "读取完成，警告 " + job.result.warnings.Count + " 项：" + job.result.warnings[0];
+                    })) { SendJson(response, 409, new { error = "已有工程任务正在执行，请稍后重新读取" }); return true; }
                     while (ioJobs.Count >= 4) ioJobs.Remove(ioJobs.First().Key);
                     ioJobs.Add(job.id, job);
                 }
@@ -145,6 +152,27 @@ namespace TiaPortalSourceBridge.Web
                 if (found.state != "completed") { SendJson(response, 409, new { error = "读取尚未完成" }); return true; }
             }
             IoSnapshot snapshot = found.result;
+            if (path == "/api/io/cylinder-blocks") {
+                var hosts = snapshot.cylinderBlocks.Where(b => b.language != "DB").Select(b => new { b.id, b.group, b.name, b.unit_name });
+                SendJson(response, 200, new { blocks = hosts, warnings = snapshot.warnings.Count }); return true;
+            }
+            if (path == "/api/io/cylinder-template") {
+                string block = GetQueryParam(request, "block");
+                var host = snapshot.cylinderBlocks.FirstOrDefault(b => b.id == block && b.language != "DB");
+                if (host == null) { SendJson(response, 404, new { error = "该块不在本次读取的 PLC 源码中" }); return true; }
+                var store = new ProjectIndexStore(snapshot.project_path, AppConfig.DetectProjectVersion(snapshot.project_path));
+                var log = TiaPortalSourceBridge.Mcp.ExecutionLog.Begin(_configPath, "看板", "提取气缸样板源码", snapshot.plc_name + " · " + host.name);
+                object template;
+                try {
+                    template = CylinderSource.Read(snapshot, host, store.IoSource, store.Content);
+                    log.Update("completed", "已读取宿主源码和点位", true);
+                } catch (Exception ex) {
+                    log.Update("failed", ex.Message, true);
+                    throw;
+                }
+                SendJson(response, 200, template);
+                return true;
+            }
             var rows = IoTable.Filter(snapshot.rows, GetQueryParam(request, "area"), GetQueryParam(request, "q"), GetQueryParam(request, "table"));
             string view = GetQueryParam(request,"view"), group = GetQueryParam(request,"group");
             if (view == "points") rows = rows.Where(r => r.mapping_fc != null || r.data_type == "Bool");

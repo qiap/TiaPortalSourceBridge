@@ -44,4 +44,8 @@
     <Exec Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\..\..\Build-UiaInterop.ps1&quot; -Quiet" />
   </Target>
   <ItemGroup><Compile Include="../../shared/**/*.cs" Link="Shared/%(RecursiveDir)%(Filename)%(Extension)" /></ItemGroup>
+  <Target Name="BuildDashboardLauncher" AfterTargets="Build">
+    <Csc Sources="../../dashboard-launcher/Program.cs" TargetType="winexe" Platform="x64"
+         References="@(ReferencePath)" Win32Icon="$(ApplicationIcon)" OutputAssembly="$(TargetDir)TiaPortalDashboard.exe" />
+  </Target>
 </Project>

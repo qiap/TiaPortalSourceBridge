@@ -311,23 +311,30 @@ namespace TiaPortalSourceBridge.Web
             HttpListenerRequest request = context.Request;
             HttpListenerResponse response = context.Response;
 
-            // CORS headers
-            response.Headers.Add("Access-Control-Allow-Origin", "*");
-            response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-            response.Headers.Add("Access-Control-Allow-Headers", "Content-Type");
-
-            if (request.HttpMethod == "OPTIONS")
-            {
-                response.StatusCode = 204;
-                response.Close();
-                return;
-            }
-
             try
             {
+                // CORS headers
+                response.Headers.Add("Access-Control-Allow-Origin", "*");
+                response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+                response.Headers.Add("Access-Control-Allow-Headers", "Content-Type");
+
+                if (request.HttpMethod == "OPTIONS")
+                {
+                    response.StatusCode = 204;
+                    response.Close();
+                    return;
+                }
+
                 string rawUrl = request.RawUrl ?? "/";
                 string path = rawUrl.Split('?')[0];
 
+                if (path == "/api/execution-log") {
+                    response.Headers.Remove("Access-Control-Allow-Origin");
+                    response.Headers["Cache-Control"] = "no-store";
+                    if (request.HttpMethod != "GET") SendJson(response, 405, new { error = "仅支持读取" });
+                    else SendJson(response, 200, new { tasks = ActionRunner.ExecutionRecords(_configPath) });
+                    return;
+                }
                 if (HandleIo(context, path)) return;
 
                 if (path.StartsWith("/api/", StringComparison.OrdinalIgnoreCase))
@@ -341,11 +348,21 @@ namespace TiaPortalSourceBridge.Web
             }
             catch (Exception ex)
             {
-                SendJson(response, 500, new Dictionary<string, object>
+                // A disconnected browser can fail after headers are already on the wire.
+                // Keep failures to send the error response inside this request's thread.
+                try
                 {
-                    { "error", ex.Message },
-                    { "stack", ex.StackTrace }
-                });
+                    SendJson(response, 500, new Dictionary<string, object>
+                    {
+                        { "error", ex.Message },
+                        { "stack", ex.StackTrace }
+                    });
+                }
+                catch (Exception sendError)
+                {
+                    Console.Error.WriteLine("Web response ended: " + sendError.Message);
+                    response.Abort();
+                }
             }
         }
 
@@ -566,11 +583,11 @@ namespace TiaPortalSourceBridge.Web
                     try
                     {
                         string json = File.ReadAllText(catFile, Encoding.UTF8);
-                        IndexCatalog cat = new JavaScriptSerializer().Deserialize<IndexCatalog>(json);
+                        IndexCatalog cat = IndexJson.Serializer().Deserialize<IndexCatalog>(json);
                         if (cat != null && cat.objects != null)
                         {
                             var owners = cat.objects
-                                .Where(o => (o.kind == "Block" || o.kind == "TagTable") && !string.IsNullOrWhiteSpace(o.owner))
+                                .Where(o => (o.kind == "plc.block" || o.kind == "plc.tags" || o.kind == "Block" || o.kind == "TagTable") && !string.IsNullOrWhiteSpace(o.owner))
                                 .Select(o => o.owner)
                                 .Distinct(StringComparer.OrdinalIgnoreCase);
 
