@@ -1,7 +1,7 @@
 TIA Portal Source Bridge — 免安装版
 
 1. 将整个 ZIP 解压到有写入权限的文件夹，不要直接在压缩包内运行。
-2. 双击 WebDashboard.cmd 或 LaunchWeb.vbs 打开浏览器看板。
+2. 双击 WebDashboard.cmd 打开看板。如启动失败，请查看窗口中的错误信息。
 3. 在 TIA Portal 中打开目标工程，然后在看板中选择工程与 PLC。
 4. 如需桌面快捷方式，双击“创建快捷方式.bat”，即可在桌面和解压目录生成快捷方式。也可双击 CreateShortcuts.vbs。
 
@@ -13,3 +13,5 @@ TIA Portal Source Bridge — 免安装版
 免安装版不会登记 Windows 卸载程序。退出后可删除程序目录，删除前保留自己的数据。
 
 刷新或关闭标签页不会停止后台服务。退出前请点击看板右上角的“退出服务”。
+
+升级或移动免安装版后，请从新目录再次运行 CreateShortcuts.vbs，更新桌面快捷方式的目标和图标。

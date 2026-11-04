@@ -4,20 +4,20 @@ Option Explicit
 ' after the package is extracted anywhere. ASCII only on purpose: Windows Script
 ' Host reads .vbs with the ANSI code page, so non-ASCII text here would garble.
 
-Dim fso, shell, root, exePath, vbsPath, iconPath, result
+Dim fso, shell, root, exePath, configPath, result, failures
 
 Set fso = CreateObject("Scripting.FileSystemObject")
 Set shell = CreateObject("WScript.Shell")
 
 root = fso.GetParentFolderName(WScript.ScriptFullName)
-vbsPath = root & "\LaunchWeb.vbs"
+configPath = root & "\config.json"
 
 exePath = root & "\src\TiaPortalSourceBridge\bin\Release\net48\TiaPortalSourceBridge.exe"
 If Not fso.FileExists(exePath) Then exePath = root & "\online-bin\TiaPortalSourceBridge.exe"
 If Not fso.FileExists(exePath) Then exePath = root & "\TiaPortalSourceBridge.exe"
 
-If Not fso.FileExists(vbsPath) Then
-    Report "LaunchWeb.vbs was not found next to this script:" & vbCrLf & vbsPath, 16
+If Not fso.FileExists(configPath) Then
+    Report "config.json was not found. Extract the entire ZIP before creating shortcuts:" & vbCrLf & configPath, 16
     WScript.Quit 1
 End If
 
@@ -27,19 +27,17 @@ If Not fso.FileExists(exePath) Then
     WScript.Quit 1
 End If
 
-iconPath = root & "\app_v3.ico"
-If Not fso.FileExists(iconPath) Then iconPath = root & "\app.ico"
-If Not fso.FileExists(iconPath) Then iconPath = exePath
-
+failures = 0
 result = ""
-result = result & MakeLink(shell.SpecialFolders("Desktop") & "\TIA Portal Source Bridge.lnk", "Desktop")
+If Not WScript.Arguments.Named.Exists("folder-only") Then
+    result = MakeLink(shell.SpecialFolders("Desktop") & "\TIA Portal Source Bridge.lnk", "Desktop")
+End If
 result = result & MakeLink(root & "\TIA Portal Source Bridge.lnk", "Tool folder")
-
-Report "Shortcuts created:" & vbCrLf & vbCrLf & result & vbCrLf & _
-       "Target : wscript.exe" & vbCrLf & _
-       "Script : " & vbsPath & vbCrLf & _
-       "WorkDir: " & root & vbCrLf & _
-       "Icon   : " & iconPath, 64
+If failures > 0 Then
+    Report "Shortcut creation failed:" & vbCrLf & result, 16
+    WScript.Quit 1
+End If
+Report "Shortcuts created:" & vbCrLf & result & vbCrLf & "Target: " & exePath, 64
 
 Sub Report(text, icon)
     If LCase(fso.GetFileName(WScript.FullName)) = "cscript.exe" Then
@@ -50,28 +48,27 @@ Sub Report(text, icon)
 End Sub
 
 Function MakeLink(lnkPath, label)
-    Dim sc
+    Dim sc, args, detail
     On Error Resume Next
+    args = "web --hide-console --config " & Chr(34) & configPath & Chr(34)
     Set sc = shell.CreateShortcut(lnkPath)
-    If Err.Number <> 0 Then
-        MakeLink = "  [FAILED] " & label & ": " & Err.Description & vbCrLf
-        Err.Clear
-        Exit Function
-    End If
-
-    sc.TargetPath = shell.ExpandEnvironmentStrings("%SystemRoot%") & "\System32\wscript.exe"
-    sc.Arguments = Chr(34) & vbsPath & Chr(34)
+    sc.TargetPath = exePath
+    sc.Arguments = args
     sc.WorkingDirectory = root
-    sc.IconLocation = iconPath & ",0"
+    sc.IconLocation = exePath & ",0"
     sc.Description = "TIA Portal Source Bridge Dashboard"
     sc.Save
-
-    If Err.Number <> 0 Then
-        MakeLink = "  [FAILED] " & label & ": " & Err.Description & vbCrLf
-        Err.Clear
-        Exit Function
+    detail = Err.Description
+    If detail = "" Then
+        Set sc = shell.CreateShortcut(lnkPath)
+        If StrComp(sc.TargetPath, exePath, vbTextCompare) <> 0 Or sc.Arguments <> args Then detail = "Saved target or arguments differ."
+        If Err.Number <> 0 Then detail = Err.Description
     End If
-
-    MakeLink = "  [OK] " & label & " -> " & lnkPath & vbCrLf
     On Error GoTo 0
+    If detail <> "" Then
+        failures = failures + 1
+        MakeLink = "  [FAILED] " & label & ": " & detail & vbCrLf
+    Else
+        MakeLink = "  [OK] " & label & " -> " & lnkPath & vbCrLf
+    End If
 End Function

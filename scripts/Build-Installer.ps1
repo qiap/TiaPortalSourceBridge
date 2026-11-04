@@ -1,6 +1,6 @@
 ﻿param(
     [string]$CompilerPath,
-    [ValidatePattern('^\d+\.\d+\.\d+(\.\d+)?$')][string]$Version = '4.3.1'
+    [ValidatePattern('^\d+\.\d+\.\d+(\.\d+)?$')][string]$Version = '4.3.2'
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -48,7 +48,7 @@ foreach ($name in @('web','app.ico','app.png','LaunchWeb.vbs','CreateShortcuts.v
 Get-ChildItem -LiteralPath $root -Filter '*.md' -File | Copy-Item -Destination $payload
 Copy-Item -LiteralPath (Join-Path $root 'installer\INSTALL.txt') -Destination $payload
 Copy-Item -LiteralPath (Join-Path $root 'installer\PORTABLE.txt') -Destination $payload
-[IO.File]::WriteAllText((Join-Path $payload 'WebDashboard.cmd'), "@echo off`r`nwscript.exe `"%~dp0LaunchWeb.vbs`" %*`r`n", [Text.Encoding]::ASCII)
+Copy-Item -LiteralPath (Join-Path $root 'WebDashboard.cmd') -Destination $payload
 $main = Join-Path $payload "$binRelative\TiaPortalSourceBridge.exe"
 $v21 = Join-Path $payload "engines\v21\$binRelative\TiaPortalSourceBridge.exe"
 # Generate the catalog from the exact packaged engine without connecting to TIA.
@@ -91,6 +91,8 @@ try {
         }
     }
 } finally { $archive.Dispose() }
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root 'tests\Test-PortableShortcut.ps1') -Zip $zip
+if ($LASTEXITCODE -ne 0) { throw 'Portable shortcut launch test failed' }
 $zipHash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash
 [IO.File]::WriteAllText((Join-Path $output 'SHA256SUMS.txt'), "$hash  $([IO.Path]::GetFileName($exe))`r`n$zipHash  $([IO.Path]::GetFileName($zip))`r`n", $utf8)
 [pscustomobject]@{installer=$exe;sha256=$hash;portable=$zip;portable_sha256=$zipHash;payload=$payload} | ConvertTo-Json
