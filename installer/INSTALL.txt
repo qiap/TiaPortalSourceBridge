@@ -1,4 +1,4 @@
-TIA Portal Source Bridge 4.3.0
+TIA Portal Source Bridge 4.3.1
 
 安装说明
 1. 支持 Windows 10/11 64 位，需 .NET Framework 4.8 或更新版本。

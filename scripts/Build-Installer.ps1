@@ -1,6 +1,6 @@
-param(
+﻿param(
     [string]$CompilerPath,
-    [ValidatePattern('^\d+\.\d+\.\d+(\.\d+)?$')][string]$Version = '4.3.0'
+    [ValidatePattern('^\d+\.\d+\.\d+(\.\d+)?$')][string]$Version = '4.3.1'
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -40,7 +40,7 @@ foreach ($edition in @('main','v21')) {
     foreach ($name in @('config.json','mcp-config.json')) { [IO.File]::WriteAllText((Join-Path $dest $name), $config, $utf8) }
 }
 Copy-Item -LiteralPath (Join-Path $payload 'engines\v21\mcp-config.json') -Destination (Join-Path $payload 'mcp-config-v21.json')
-foreach ($name in @('web','app.ico','app.png','LaunchWeb.vbs','CreateShortcuts.vbs','StartMcp.bat','StartTiaMcp.bat','StartTiaMcpV21.bat',
+foreach ($name in @('web','app.ico','app.png','LaunchWeb.vbs','CreateShortcuts.vbs','创建快捷方式.bat','StartMcp.bat','StartTiaMcp.bat','StartTiaMcpV21.bat',
     'StartOnlineMcp.bat','StopTiaMcp.bat','Invoke-Online.ps1','Invoke-HmiAlarms.ps1','BuildProjectIndex.cmd',
     'Start-AutoResetSimulation.ps1','Start-StandardSimulation.ps1')) {
     Copy-Item -LiteralPath (Join-Path $root $name) -Destination $payload -Recurse
@@ -81,6 +81,16 @@ $hash = (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash
 [IO.File]::WriteAllText(($exe + '.sha256'), "$hash  $([IO.Path]::GetFileName($exe))`r`n", $utf8)
 $zip = Join-Path $output "TiaPortalSourceBridge-$Version-Portable.zip"
 Compress-Archive -LiteralPath $payload -DestinationPath $zip -CompressionLevel Optimal -Force
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$archive = [IO.Compression.ZipFile]::OpenRead($zip)
+try {
+    $entries = @($archive.Entries | ForEach-Object { $_.FullName.Replace('\','/') })
+    foreach ($launcher in @('创建快捷方式.bat','CreateShortcuts.vbs','LaunchWeb.vbs')) {
+        if ("TiaPortalSourceBridge-$Version-Portable/$launcher" -cnotin $entries) {
+            throw "Portable ZIP is missing launcher: $launcher"
+        }
+    }
+} finally { $archive.Dispose() }
 $zipHash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash
 [IO.File]::WriteAllText((Join-Path $output 'SHA256SUMS.txt'), "$hash  $([IO.Path]::GetFileName($exe))`r`n$zipHash  $([IO.Path]::GetFileName($zip))`r`n", $utf8)
 [pscustomobject]@{installer=$exe;sha256=$hash;portable=$zip;portable_sha256=$zipHash;payload=$payload} | ConvertTo-Json
