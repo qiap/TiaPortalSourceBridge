@@ -1,4 +1,4 @@
-﻿[
+[
     {
         "name":  "tia_list_process_library",
         "description":  "检索本地 V21 工艺模板与知识库目录，不连接博途。按 id 读取详情，再渲染模板。",
@@ -625,7 +625,7 @@
     },
     {
         "name":  "tia_read_hmi_configuration",
-        "description":  "快速列出或批量读取经典 HMI 画面/模板/弹窗/变量表/脚本/文本图形列表/周期/连接。默认只返回目录；include_xml/include_model 可获取完整可编辑内容。",
+        "description":  "快速列出或批量读取经典 HMI 画面/模板/弹窗/变量表/脚本/文本图形列表/周期/连接。默认只返回目录；集成连接及部分控件不在接口覆盖范围，空列表不能证明不存在。include_xml/include_model 返回可导出的内容。",
         "inputSchema":  {
                             "type":  "object",
                             "properties":  {
@@ -680,60 +680,60 @@
                         }
     },
     {
-        "name": "tia_write_hmi_configuration",
-        "description": "默认只预检查经典 HMI；整批校验后写入并强制回读核对类型和绑定。V21 要求有效事务；回滚状态需核验。不保存、不下载。",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "project_path": {
-                    "type": "string",
-                    "description": "TIA Portal V21 项目文件完整路径（.ap21 或多用户本地会话 .als21）。只管理一个项目时可省略；管理多个项目时必须明确指定，禁止默认切换目标。"
-                },
-                "hmi_name": {
-                    "type": "string",
-                    "description": "HMI 完整名称或精确别名"
-                },
-                "objects_json": {
-                    "type": "string",
-                    "description": "对象数组，每项 kind/group_path/xml 或 model"
-                },
-                "compile": {
-                    "type": "boolean",
-                    "description": "默认 true"
-                },
-                "skip_unchanged": {
-                    "type": "boolean",
-                    "description": "默认 true；严格比较对象 XML 完全相同时跳过导入。"
-                },
-                "confirm": {
-                    "type": "boolean",
-                    "description": "确认写入离线 HMI 组态"
-                },
-                "response_mode": {
-                    "type": "string",
-                    "enum": [
-                        "full",
-                        "compact"
-                    ],
-                    "description": "默认 full 保持兼容；compact 不在文本内容中重复 structuredContent 已包含的 XML/源码，减少响应体积。"
-                },
-                "dry_run": {
-                    "type": "boolean",
-                    "description": "默认 true：只预检查；实际写入必须 dry_run=false 且 confirm=true"
-                }
-            },
-            "required": [
-                "objects_json"
-            ],
-            "additionalProperties": false
-        },
-        "annotations": {
-            "title": "tia_write_hmi_configuration",
-            "readOnlyHint": false,
-            "destructiveHint": true,
-            "idempotentHint": false,
-            "openWorldHint": false
-        }
+        "name":  "tia_write_hmi_configuration",
+        "description":  "默认只预检查经典 HMI；整批校验后写入并强制回读核对类型和绑定。尝试 V21 事务，回滚状态需核验。不保存、不下载。",
+        "inputSchema":  {
+                            "type":  "object",
+                            "properties":  {
+                                               "project_path":  {
+                                                                    "type":  "string",
+                                                                    "description":  "TIA Portal V21 项目文件完整路径（.ap21 或多用户本地会话 .als21）。只管理一个项目时可省略；管理多个项目时必须明确指定，禁止默认切换目标。"
+                                                                },
+                                               "hmi_name":  {
+                                                                "type":  "string",
+                                                                "description":  "HMI 完整名称或精确别名"
+                                                            },
+                                               "objects_json":  {
+                                                                    "type":  "string",
+                                                                    "description":  "对象数组，每项 kind/group_path/xml 或 model；变量必须明确 DataType/HmiDataType"
+                                                                },
+                                               "dry_run":  {
+                                                               "type":  "boolean",
+                                                               "description":  "默认 true：只预检查；实际写入必须 dry_run=false 且 confirm=true"
+                                                           },
+                                               "compile":  {
+                                                               "type":  "boolean",
+                                                               "description":  "默认 true"
+                                                           },
+                                               "skip_unchanged":  {
+                                                                      "type":  "boolean",
+                                                                      "description":  "默认 true；严格比较对象 XML 完全相同时跳过导入。"
+                                                                  },
+                                               "confirm":  {
+                                                               "type":  "boolean",
+                                                               "description":  "确认写入离线 HMI 组态"
+                                                           },
+                                               "response_mode":  {
+                                                                     "type":  "string",
+                                                                     "enum":  [
+                                                                                  "full",
+                                                                                  "compact"
+                                                                              ],
+                                                                     "description":  "默认 full 保持兼容；compact 不在文本内容中重复 structuredContent 已包含的 XML/源码，减少响应体积。"
+                                                                 }
+                                           },
+                            "required":  [
+                                             "objects_json"
+                                         ],
+                            "additionalProperties":  false
+                        },
+        "annotations":  {
+                            "title":  "tia_write_hmi_configuration",
+                            "readOnlyHint":  false,
+                            "destructiveHint":  true,
+                            "idempotentHint":  false,
+                            "openWorldHint":  false
+                        }
     },
     {
         "name":  "tia_disconnect",
@@ -3007,85 +3007,87 @@
                         }
     },
     {
-        "name": "tia_build_project_index",
-        "description": "建立可迁移的通用工程索引。默认只扫描目录，不导出全部源码；detail_level=content 分批读取选中 PLC/UDT/变量表/HMI/硬件内容，提取结构及显式引用并保留本地源快照。max_objects 限制每批，默认内容仅建立 PLC 层，HMI/硬件按需或 include_all_content=true；重复调用继续未完成部分；单对象失败记录后继续。不会编译、保存或修改博途工程。",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "project_path": {
-                    "type": "string",
-                    "description": "博途项目完整路径；多项目时必须指定。索引保存在工程旁 .tia-source-index/项目文件名/，随工程迁移。"
-                },
-                "detail_level": {
-                    "type": "string",
-                    "enum": [
-                        "catalog",
-                        "content"
-                    ]
-                },
-                "kind_filter": {
-                    "type": "string",
-                    "description": "对象类别前缀：plc.block/plc.type/plc.tags/hmi.screens/hmi.tag_tables/hmi.text_lists/hmi./hardware；省略时全部。"
-                },
-                "owner_filter": {
-                    "type": "string",
-                    "description": "PLC/HMI 所属设备名称关键字，用于限制查询和内容读取。"
-                },
-                "group_prefix": {
-                    "type": "string",
-                    "description": "组路径前缀，避免对无关组建立内容索引。"
-                },
-                "name_filter": {
-                    "type": "string",
-                    "description": "对象名称关键字"
-                },
-                "include_all_content": {
-                    "type": "boolean",
-                    "description": "默认false；内容默认优先 PLC/DB/UDT/变量表。true 包含 HMI/硬件，或用 kind_filter 指定阶段。"
-                },
-                "max_objects": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 1000,
-                    "description": "内容每批上限，默认25"
-                },
-                "refresh_catalog": {
-                    "type": "boolean",
-                    "description": "默认false；重新扫描目录，并将原内容标记待刷新，以覆盖博途手动修改。"
-                },
-                "time_budget_ms": {
-                    "type": "integer",
-                    "minimum": 100,
-                    "maximum": 60000,
-                    "description": "每批软时间预算，默认15000；在单个对象读取完成后检查，不强行中断 Openness 调用。"
-                },
-                "force": {
-                    "type": "boolean",
-                    "description": "默认false；true重新读取已完成或失败对象，可重试编译后恢复可导出的块。"
-                },
-                "include_hardware": {
-                    "type": "boolean",
-                    "description": "目录扫描包含硬件结构，默认true"
-                },
-                "response_mode": {
-                    "type": "string",
-                    "enum": [
-                        "full",
-                        "compact"
-                    ],
-                    "description": "默认 full 保持兼容；compact 不在文本内容中重复 structuredContent 已包含的 XML/源码，减少响应体积。"
-                }
-            },
-            "required": [],
-            "additionalProperties": false
-        },
-        "annotations": {
-            "title": "tia_build_project_index",
-            "readOnlyHint": false,
-            "destructiveHint": false,
-            "idempotentHint": true,
-            "openWorldHint": false
-        }
+        "name":  "tia_build_project_index",
+        "description":  "建立可迁移的通用工程索引。默认只扫描目录，不导出全部源码；detail_level=content 分批读取选中 PLC/UDT/变量表/HMI/硬件内容，提取结构及显式引用并保留本地源快照。max_objects 限制每批，默认内容仅建立 PLC 层，HMI/硬件按需或 include_all_content=true；重复调用继续未完成部分；单对象失败记录后继续。不会编译、保存或修改博途工程。",
+        "inputSchema":  {
+                            "type":  "object",
+                            "properties":  {
+                                               "project_path":  {
+                                                                    "type":  "string",
+                                                                    "description":  "博途项目完整路径；多项目时必须指定。索引保存在工程旁 .tia-source-index/项目文件名/，随工程迁移。"
+                                                                },
+                                               "detail_level":  {
+                                                                    "type":  "string",
+                                                                    "enum":  [
+                                                                                 "catalog",
+                                                                                 "content"
+                                                                             ]
+                                                                },
+                                               "kind_filter":  {
+                                                                   "type":  "string",
+                                                                   "description":  "对象类别前缀：plc.block/plc.type/plc.tags/hmi.screens/hmi.tag_tables/hmi.text_lists/hmi./hardware；省略时全部。"
+                                                               },
+                                               "owner_filter":  {
+                                                                    "type":  "string",
+                                                                    "description":  "PLC/HMI 所属设备名称关键字，用于限制查询和内容读取。"
+                                                                },
+                                               "group_prefix":  {
+                                                                    "type":  "string",
+                                                                    "description":  "组路径前缀，避免对无关组建立内容索引。"
+                                                                },
+                                               "name_filter":  {
+                                                                   "type":  "string",
+                                                                   "description":  "对象名称关键字"
+                                                               },
+                                               "include_all_content":  {
+                                                                           "type":  "boolean",
+                                                                           "description":  "默认false；内容默认优先 PLC/DB/UDT/变量表。true 包含 HMI/硬件，或用 kind_filter 指定阶段。"
+                                                                       },
+                                               "max_objects":  {
+                                                                   "type":  "integer",
+                                                                   "minimum":  1,
+                                                                   "maximum":  1000,
+                                                                   "description":  "内容每批上限，默认25"
+                                                               },
+                                               "refresh_catalog":  {
+                                                                       "type":  "boolean",
+                                                                       "description":  "默认false；重新扫描目录，并将原内容标记待刷新，以覆盖博途手动修改。"
+                                                                   },
+                                               "time_budget_ms":  {
+                                                                      "type":  "integer",
+                                                                      "minimum":  100,
+                                                                      "maximum":  60000,
+                                                                      "description":  "每批软时间预算，默认15000；在单个对象读取完成后检查，不强行中断 Openness 调用。"
+                                                                  },
+                                               "force":  {
+                                                             "type":  "boolean",
+                                                             "description":  "默认false；true重新读取已完成或失败对象，可重试编译后恢复可导出的块。"
+                                                         },
+                                               "include_hardware":  {
+                                                                        "type":  "boolean",
+                                                                        "description":  "目录扫描包含硬件结构，默认true"
+                                                                    },
+                                               "response_mode":  {
+                                                                     "type":  "string",
+                                                                     "enum":  [
+                                                                                  "full",
+                                                                                  "compact"
+                                                                              ],
+                                                                     "description":  "默认 full 保持兼容；compact 不在文本内容中重复 structuredContent 已包含的 XML/源码，减少响应体积。"
+                                                                 }
+                                           },
+                            "required":  [
+
+                                         ],
+                            "additionalProperties":  false
+                        },
+        "annotations":  {
+                            "title":  "tia_build_project_index",
+                            "readOnlyHint":  false,
+                            "destructiveHint":  false,
+                            "idempotentHint":  true,
+                            "openWorldHint":  false
+                        }
     },
     {
         "name":  "tia_get_project_tree",

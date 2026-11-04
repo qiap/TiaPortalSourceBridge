@@ -14,6 +14,17 @@ namespace TiaPortalSourceBridge.Indexing
                 Save();
             }
         }
+        internal IndexEntry[] IoBlocks(string owner)
+        {
+            var snapshot = Snapshot();
+            return Load().objects.Where(e => e.kind == "plc.block" && string.Equals(owner,e.owner,StringComparison.OrdinalIgnoreCase)
+                && State(e,snapshot) == "ready").ToArray();
+        }
+        internal string IoSource(IndexEntry entry)
+        {
+            if (string.IsNullOrEmpty(entry.content_hash) || !HashHexRegex.IsMatch(entry.content_hash)) throw new System.IO.IOException("未找到源码：" + entry.name);
+            return System.IO.File.ReadAllText(System.IO.Path.Combine(Root,"source",entry.content_hash + ".xml"));
+        }
         // One pass over the selected PLC; do not mix same-named tags from other PLCs.
         internal object IoReferenceSnapshot(string owner)
         {

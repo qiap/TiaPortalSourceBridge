@@ -10,7 +10,7 @@
   const message = value => text('ioMessage', value);
   const cell = value => { const td = document.createElement('td'); td.textContent = value == null ? '' : String(value); td.style.cssText = 'padding:10px;border-bottom:1px solid #334155;white-space:pre-wrap;word-break:break-word;'; return td; };
   const empty = (id, value) => { const tr = document.createElement('tr'); const td = cell(value); td.colSpan = 6; tr.appendChild(td); el(id).replaceChildren(tr); };
-  const filters = () => ({ area: el('ioArea').value, q: el('ioSearch').value, table: el('ioTableFilter').value });
+  const filters = () => ({ area: el('ioArea').value, q: el('ioSearch').value, table: el('ioTableFilter').value, group: el('ioGroupFilter').value, view: el('ioView').value });
   const url = (path, extra = {}) => '/api/io/' + path + '?' + new URLSearchParams({ id: state.id, ...filters(), ...extra });
   async function json(path, options) {
     const response = await fetch(path, { cache: 'no-store', ...options });
@@ -36,7 +36,7 @@
     }
     controls();
   };
-  window.ioRead = async () => {
+  window.ioRead = async (mode = "live") => {
     if (state.busy) return;
     const selected = target();
     if (!selected.target_token || !selected.plc_name) { message('请先选择工程与 PLC，等待目标识别完成。'); return; }
@@ -44,7 +44,7 @@
     el('ioReferencesPanel').hidden = true; el('ioWarningsBox').hidden = true; text('ioSummary', '');
     empty('ioRows', '正在读取新的数据快照…'); message('正在启动读取…'); controls();
     try {
-      const started = await json('/api/io/read', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(selected) });
+      const started = await json('/api/io/read', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...selected, mode }) });
       state.id = started.id;
       while (true) {
         const status = await json(url('status'));
@@ -53,7 +53,7 @@
         if (status.state === 'completed') break;
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
-      if (current()) { el('ioTableFilter').replaceChildren(new Option('全部变量表', '')); await load(true); }
+      if (current()) { el('ioGroupFilter').replaceChildren(new Option('全部工程组', '')); el('ioTableFilter').replaceChildren(new Option('全部变量表', '')); await load(true); }
       else message('上一目标读取已完成。请重新读取当前工程 / PLC。');
     } catch (error) { message('读取失败：' + error.message); }
     finally { state.busy = false; controls(); }
@@ -64,7 +64,18 @@
     try {
       const data = await json(url('data', { page: state.page }));
       if (sequence !== state.sequence || id !== state.id || !current()) return;
+      if (el('ioView').value === 'points' && !Array.isArray(data.groups)) {
+        state.ready = false;
+        text('ioSummary', '');
+        text('ioPageLabel', '');
+        el('ioReferencesPanel').hidden = true;
+        empty('ioRows', '当前看板服务仅返回原始变量表。退出并重开看板后，选择“读取本地源码”查看 DB 成员。');
+        message('当前运行的看板服务尚未支持 Bool 映射点位。');
+        controls();
+        return;
+      }
       state.ready = true; state.page = data.page; state.pages = Math.max(1, Math.ceil(data.total / data.page_size));
+      if (resetTables) (data.groups || []).forEach(g => el("ioGroupFilter").add(new Option(g,g)));
       if (resetTables) data.tables.forEach(table => el('ioTableFilter').add(new Option(table, table)));
       text('ioSummary', '读取完成：' + new Date(data.read_completed_utc).toLocaleString() + '  ·  变量表 ' + data.tables_read + '/' + data.tables_total + '  ·  当前筛选 ' + data.total + ' / 全部 ' + data.total_all + ' 项\n' + data.reference_source + '：' + data.reference_coverage);
       el('ioWarningsBox').hidden = data.warnings.length === 0; text('ioWarnings', data.warnings.join('\n'));
@@ -72,7 +83,7 @@
       const fragment = document.createDocumentFragment();
       data.rows.forEach(row => {
         const tr = document.createElement('tr');
-        [row.name, row.address || (row.area === 'CONST' ? '常量 = ' + row.value : '—'), row.data_type, row.comment, [row.table, row.group, row.unit].filter(Boolean).join(' / ')].forEach(v => tr.appendChild(cell(v)));
+        [row.name, row.address || (row.area === 'CONST' ? '常量 = ' + row.value : row.area === 'DB' ? 'DB 内部' : row.area === 'LOCAL' ? '块内符号' : '—'), row.data_type, row.comment, [row.origin, row.mapping_group, row.mapping_fc, row.carrier, row.table, row.group, row.unit].filter(Boolean).join(' / ')].forEach(v => tr.appendChild(cell(v)));
         const td = cell(''), button = document.createElement('button'); button.className = 'btn btn-sm'; button.textContent = row.reference_count + ' 条证据';
         button.addEventListener('click', () => references(row.id)); td.appendChild(button); tr.appendChild(td); fragment.appendChild(tr);
       });

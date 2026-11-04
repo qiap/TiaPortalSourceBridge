@@ -31,6 +31,10 @@ namespace TiaPortalSourceBridge.Web
         public string data_type { get; set; }
         public string comment { get; set; }
         public string value { get; set; }
+        public string mapping_group { get; set; }
+        public string mapping_fc { get; set; }
+        public string carrier { get; set; }
+        public string origin { get; set; }
         public List<IoReference> references { get; set; }
         public IoRow() { references = new List<IoReference>(); }
     }
@@ -89,12 +93,12 @@ namespace TiaPortalSourceBridge.Web
             query = (query ?? "").Trim();
             return rows.Where(r => (string.IsNullOrEmpty(area) || area == "ALL" || (area == "IO" ? r.area == "I" || r.area == "Q" : r.area == area))
                 && (string.IsNullOrEmpty(table) || r.unit + "/" + r.group + "/" + r.table == table)
-                && (query.Length == 0 || string.Join(" ", new[] { r.name, r.address, r.data_type, r.comment, r.table, r.group, r.unit }).IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0));
+                && (query.Length == 0 || string.Join(" ", new[] { r.name, r.address, r.data_type, r.comment, r.table, r.group, r.unit, r.mapping_fc, r.mapping_group, r.carrier }).IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0));
         }
         // Matching is scoped by software unit. No substring matches such as Motor1 -> Motor10.
         internal static void AttachIndex(IoSnapshot result, Dictionary<string, object> data)
         {
-            var bySymbol = result.rows.ToLookup(r => r.unit + "\n" + TagSymbol(r.name), StringComparer.OrdinalIgnoreCase);
+            var bySymbol = result.rows.ToLookup(r => r.unit + "\n" + (r.mapping_fc == null && r.origin == null ? TagSymbol(r.name) : Symbol(r.name)), StringComparer.OrdinalIgnoreCase);
             var byAddress = result.rows.Where(r => r.address.Length > 0).ToLookup(r => r.unit + "\n" + Address(r.address), StringComparer.OrdinalIgnoreCase);
             foreach (var reference in Maps(data, "references")) {
                 string target = Text(reference, "target"), unit = Text(reference, "unit"), evidence = Text(reference, "evidence");

@@ -52,8 +52,8 @@ namespace TiaPortalSourceBridge.Web
         }
         private static IEnumerable<string[]> IoRows(IEnumerable<IoRow> rows)
         {
-            yield return new[] { "变量名", "地址", "区域", "数据类型", "注释", "变量表", "组路径", "软件单元", "常量值", "引用证据条数" };
-            foreach (var r in rows) yield return new[] { r.name, r.address, r.area, r.data_type, r.comment, r.table, r.group, r.unit, r.value, r.references.Count.ToString() };
+            yield return new[] { "变量名", "地址", "区域", "数据类型", "注释", "变量表", "组路径", "软件单元", "常量值", "引用证据条数", "映射程序组", "映射块", "物理字节变量", "点位来源" };
+            foreach (var r in rows) yield return new[] { r.name, r.address, r.area, r.data_type, r.comment, r.table, r.group, r.unit, r.value, r.references.Count.ToString(), r.mapping_group, r.mapping_fc, r.carrier, r.origin };
         }
         private static IEnumerable<string[]> ReferenceRows(IEnumerable<IoRow> rows)
         {

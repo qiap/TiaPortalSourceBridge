@@ -32,10 +32,46 @@ internal static class IoChecks
         using(response) using(var memory = new MemoryStream()) { Check((int)response.StatusCode == expected, path + " status"); response.GetResponseStream().CopyTo(memory); bytes = memory.ToArray(); }
         Check(thread.Join(5000) && error == null, "HTTP response completes"); return bytes;
     }
+    static void VerifyByteMapping()
+    {
+        var fc = IndexEntry.Create("plc.block","PLC","Area/Station","Map","LAD","1");
+        var db = IndexEntry.Create("plc.block","PLC","Data","Signals","DB","12");
+        string fields = "<Member Name='Input' Datatype='Struct'><Member Name='Stop' Datatype='Bool'><Comment><Text>stop</Text></Comment></Member></Member><Member Name='Output' Datatype='Struct'><Member Name='Lamp' Datatype='Bool'/></Member>";
+        string dbXml = "<Document><SW.Blocks.GlobalDB><AttributeList><Name>Signals</Name><Number>12</Number><MemoryLayout>Standard</MemoryLayout><Interface><Sections><Section Name='Static'>" + fields + "</Section></Sections></Interface></AttributeList></SW.Blocks.GlobalDB></Document>";
+        Func<string,string,string> op = (name,access) => "<StlStatement><StlToken Text='" + name + "'/><Access Scope='" + (access.StartsWith("<Symbol") ? "GlobalVariable" : "Address") + "'>" + access + "</Access></StlStatement>";
+        string input = "<Symbol><Component Name='InByte'/></Symbol>", output = "<Symbol><Component Name='OutByte'/></Symbol>";
+        string db0 = "<Address Area='DB' Type='Byte' BlockNumber='12' BitOffset='0'/>", db2 = db0.Replace("Offset='0'", "Offset='16'");
+        string xml = "<StatementList>" + op("L",input) + op("T",db0) + op("L",db2) + op("T",output) + "</StatementList>";
+        Func<string,string,IoSnapshot> expand = (code,layout) => {
+            var snap = new IoSnapshot();
+            snap.rows.Add(new IoRow { id="i", name="InByte", data_type="Byte", address="%IB50", unit="", area="I" });
+            snap.rows.Add(new IoRow { id="q", name="OutByte", data_type="Byte", address="%QB60", unit="", area="Q" });
+            IoMapping.Expand(snap,new[] { fc,db },e => e == fc ? code : layout); return snap;
+        };
+        var rows = expand(xml,dbXml).rows.Where(r => r.mapping_fc != null).ToArray();
+        Check(rows.Length == 2 && rows[0].address == "%I50.0" && rows[0].name == "Signals.Input.Stop" && rows[0].comment == "stop", "byte input to DB bool");
+        Check(rows[1].address == "%Q60.0" && rows[1].name == "Signals.Output.Lamp" && rows[1].mapping_group == "Area/Station", "aligned DB output and project folder");
+        Check(expand(xml,dbXml.Replace("Standard","Optimized")).rows.Count == 2, "no absolute layout inferred for optimized DB");
+        Check(expand(xml.Replace("</StlStatement>","</StlStatement><StlStatement><StlToken Text='NOP'/></StlStatement>"),dbXml).rows.Count == 2,"no mapping across intervening instruction");
+        Check(expand(xml,dbXml.Replace("Datatype='Struct'","Datatype='Unknown'")).rows.Count == 2, "unknown layout cannot generate points");
+    }
+    static void VerifyArrayDeclarations()
+    {
+        var db = IndexEntry.Create("plc.block","PLC","Station/Alarm","Flags","DB","12");
+        string xml = "<Document><SW.Blocks.GlobalDB><AttributeList><Name>Flags</Name><Interface><Sections><Section Name='Static'><Member Name='Alarm' Datatype='Array[-1..0, 2..3] of Bool'><Subelement Path='-1,3'><Comment><Text>door open</Text></Comment></Subelement></Member><Member Name='Packed' Datatype='Array[20..21] of Byte'/><Member Name='Sub' Datatype='Struct'><Member Name='Ok' Datatype='Bool'/></Member></Section></Sections></Interface></AttributeList></SW.Blocks.GlobalDB></Document>";
+        var snapshot = new IoSnapshot();
+        IoDeclarations.Add(snapshot,new[] { db },e => xml);
+        Check(snapshot.rows.Count == 21 && snapshot.rows.All(r => r.area=="DB" && r.group=="Station/Alarm" && r.address==""),"DB group and symbolic addresses");
+        Check(snapshot.rows.Single(r => r.name=="Flags.Alarm[-1,3]").comment=="door open" && snapshot.rows.Any(r=>r.name=="Flags.Alarm[0,2]"),"two dimensional signed bounds and per-element comments");
+        Check(snapshot.rows.Count(r => r.origin.Contains("Byte")) == 16 && snapshot.rows.Any(r=>r.name=="Flags.Packed[21].%X7"),"each packed byte contributes eight labelled bits");
+        Check(snapshot.rows.Any(r=>r.name=="Flags.Sub.Ok") && snapshot.rows.Select(r=>r.id).Distinct().Count()==21,"struct Bool and distinct element identities");
+    }
     static int Main(string[] args)
     {
         string root = Path.Combine(Path.GetTempPath(), "tia-io-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(root);
         try {
+            VerifyByteMapping();
+            VerifyArrayDeclarations();
             string xml = "<Document><SW.Tags.PlcTagTable><ObjectList><SW.Tags.PlcTag><AttributeList><Name>Motor1</Name><DataTypeName>Bool</DataTypeName><LogicalAddress>%I10.2</LogicalAddress></AttributeList><ObjectList><MultilingualText CompositionName='Comment'><ObjectList><MultilingualTextItem><AttributeList><Culture>zh-CN</Culture><Text>启动 &amp; 复位</Text></AttributeList></MultilingualTextItem></ObjectList></MultilingualText></ObjectList></SW.Tags.PlcTag><SW.Tags.PlcUserConstant><AttributeList><Name>Limit</Name><DataTypeName>Int</DataTypeName><Value>10</Value></AttributeList></SW.Tags.PlcUserConstant></ObjectList></SW.Tags.PlcTagTable></Document>";
             var rows = IoTable.Parse(xml, "默认变量表", "", "").ToList();
             Check(rows.Count == 2 && rows[0].area == "I" && rows[1].area == "CONST", "tags and constants");

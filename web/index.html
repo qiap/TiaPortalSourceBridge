@@ -660,7 +660,7 @@
       <div class="logo-badge">TIA BRIDGE</div>
       <div class="brand-title">
         <span>控制看板</span>
-        <span class="version-tag" id="toolVersion">v4.2.0</span>
+        <span class="version-tag" id="toolVersion">v4.3.0</span>
       </div>
     </div>
 
@@ -846,6 +846,7 @@
         <div class="card-header" style="flex-wrap:wrap;gap:12px;">
           <span class="card-title">🔌 PLC I/O 表与交叉引用</span>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn" onclick="ioRead('source')">读取本地源码</button>
             <button class="btn" id="ioReadButton" onclick="ioRead()">🔄 重新读取</button>
             <button class="btn" id="ioExportButton" onclick="ioExport()" disabled>📥 导出 Excel</button>
           </div>
@@ -855,8 +856,10 @@
         <div id="ioSummary" style="color:var(--text-muted);white-space:pre-wrap;margin-bottom:10px;"></div>
         <details id="ioWarningsBox" hidden style="margin-bottom:12px;color:var(--warning,#fbbf24);"><summary>读取不完整项 / 警告</summary><pre id="ioWarnings" style="white-space:pre-wrap;word-break:break-word;"></pre></details>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+          <select id="ioView" class="search-input" aria-label="点位视图" onchange="ioFilter()"><option value="points">全部 Bool 点位（含数组与映射）</option><option value="raw">原始变量表</option><option value="all">点位和原始变量</option></select>
+          <select id="ioGroupFilter" class="search-input" aria-label="工程组" onchange="ioFilter()"><option value="">全部工程组</option></select>
           <select id="ioArea" class="search-input" style="width:170px;" aria-label="地址区域" onchange="ioFilter()">
-            <option value="IO">I / Q 输入输出</option><option value="ALL">全部变量和常量</option><option value="I">I 输入</option><option value="Q">Q 输出</option><option value="M">M 存储区</option><option value="OTHER">其它地址</option><option value="CONST">常量</option>
+            <option value="ALL">全部区域（含 DB / 局部）</option><option value="DB">DB 内部</option><option value="LOCAL">块接口 / 局部</option><option value="IO">I / Q 输入输出</option><option value="I">I 输入</option><option value="Q">Q 输出</option><option value="M">M 存储区</option><option value="OTHER">其它地址</option><option value="CONST">常量</option>
           </select>
           <select id="ioTableFilter" class="search-input" style="width:250px;" aria-label="变量表" onchange="ioFilter()"><option value="">全部变量表</option></select>
           <input id="ioSearch" class="search-input" style="flex:1;min-width:200px;" placeholder="搜索变量名、地址、注释、类型…" aria-label="搜索 I/O" oninput="ioSearchChanged()">

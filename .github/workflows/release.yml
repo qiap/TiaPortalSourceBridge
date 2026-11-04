@@ -1,0 +1,33 @@
+name: Build release packages
+on:
+  push:
+    tags: ['v[0-9]*']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Build, test and package both engines
+        shell: powershell
+        run: |
+          $version = $env:GITHUB_REF_NAME.Substring(1)
+          if ($version -notmatch '^\d+\.\d+\.\d+$') { throw 'Expected a release tag vX.Y.Z' }
+          ./scripts/Build-Installer.ps1 -Version $version
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-packages
+          if-no-files-found: error
+          path: |
+            artifacts/installer/*-Portable.zip
+            artifacts/installer/*-Setup.exe
+            artifacts/installer/SHA256SUMS.txt

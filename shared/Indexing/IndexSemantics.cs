@@ -22,7 +22,7 @@ namespace TiaPortalSourceBridge.Indexing
             return (area == "DB" ? "DB" + Attr(n, "BlockNumber") + ".DB" + size : "%" + area + (size == "X" ? "" : size))
                 + (bits / 8) + (size == "X" ? "." + (bits % 8) : "");
         }
-        private static string Operand(XmlNode access)
+        internal static string Operand(XmlNode access)
         {
             var symbol = access.SelectSingleNode("*[local-name()='Symbol']");
             if (symbol != null) return (Attr(access, "Scope") == "LocalVariable" ? "#" : "") + Symbol(symbol);

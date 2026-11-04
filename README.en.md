@@ -31,8 +31,8 @@ You do not need to download the source or compile the application. Choose either
 
 | Package | Download | How to run |
 | --- | --- | --- |
-| Portable ZIP | [Download Portable.zip](https://github.com/qiap/TiaPortalSourceBridge/releases/latest/download/TiaPortalSourceBridge-4.2.0-Portable.zip) | Extract the entire archive, then double-click `WebDashboard.cmd` or `LaunchWeb.vbs` |
-| Windows installer | [Download Setup.exe](https://github.com/qiap/TiaPortalSourceBridge/releases/latest/download/TiaPortalSourceBridge-4.2.0-Setup.exe) | Run the installer, then open the application from the desktop or Start menu |
+| Portable ZIP | [Download Portable.zip](https://github.com/qiap/TiaPortalSourceBridge/releases/latest/download/TiaPortalSourceBridge-4.3.0-Portable.zip) | Extract the entire archive, then double-click `WebDashboard.cmd` or `LaunchWeb.vbs` |
+| Windows installer | [Download Setup.exe](https://github.com/qiap/TiaPortalSourceBridge/releases/latest/download/TiaPortalSourceBridge-4.3.0-Setup.exe) | Run the installer, then open the application from the desktop or Start menu |
 
 Both packages include the V17/V21 engines, default configuration, and runtime templates. Open your project in TIA Portal first, then select the project and PLC in the dashboard. The target computer must meet the requirements below.
 

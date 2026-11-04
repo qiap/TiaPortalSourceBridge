@@ -14,6 +14,7 @@ namespace TiaPortalSourceBridge.Web
         {
             public string id, project, plc, state = "reading", message = "准备读取", error = "";
             public IoSnapshot result;
+            public bool cached;
         }
         private readonly object ioGate = new object();
         private readonly Dictionary<string, IoJob> ioJobs = new Dictionary<string, IoJob>();
@@ -23,38 +24,57 @@ namespace TiaPortalSourceBridge.Web
             try {
                 var result = new IoSnapshot { project_path = job.project, plc_name = job.plc, read_started_utc = DateTime.UtcNow.ToString("o") };
                 Func<Dictionary<string, object>> args = () => new Dictionary<string, object> { { "project_path", job.project }, { "plc_name", job.plc }, { "response_mode", "compact" } };
-                var tables = IoTable.Maps(ReadDashboard(_configPath, "tia_list_tag_tables", args()), "tag_tables").ToArray();
-                result.tables_total = tables.Length;
-                foreach (var table in tables) {
-                    string name = Text(table, "name"), group = Text(table, "group_path"), unit = Text(table, "unit_name");
-                    IoProgress(job, "变量表 " + (result.tables_read + 1) + "/" + tables.Length + "：" + name);
-                    try {
-                        var a = args(); a["table_name"] = name; a["group_path"] = group.Length == 0 ? "/" : group; a["unit_name"] = unit;
-                        result.rows.AddRange(IoTable.Parse(Text(ReadDashboard(_configPath, "tia_read_tag_table", a), "xml"), name, group, unit));
-                        result.tables_read++;
-                    } catch (Exception ex) { result.warnings.Add("变量表 " + unit + "/" + group + "/" + name + " 读取失败：" + ex.Message); }
-                }
-                bool native = AppConfig.DetectProjectVersion(job.project) == "V21";
-                if (native) {
-                    result.reference_source = "V21 官方交叉引用";
-                    result.reference_coverage = "逐个变量表读取官方引用；仅在同一变量表和软件单元内关联精确符号或地址。无匹配结果不证明未使用。";
-                    foreach (var table in tables) {
-                        string unit = Text(table, "unit_name"), name = Text(table, "name"), group = Text(table, "group_path");
-                        IoProgress(job, "读取 V21 官方交叉引用：" + unit + "/" + group + "/" + name);
+                var store = new ProjectIndexStore(job.project, AppConfig.DetectProjectVersion(job.project));
+                if (job.cached) {
+                    if (!store.Exists) throw new InvalidOperationException("尚无本地源码，请先从博途重新读取。");
+                    var cachedTables = store.Select("plc.tags",job.plc,"","").Where(e => string.Equals(e.owner,job.plc,StringComparison.OrdinalIgnoreCase)).ToArray();
+                    result.tables_total = cachedTables.Length;
+                    foreach (var table in cachedTables) {
                         try {
-                            var a = args(); a["scope_kind"] = "tag_table"; a["target_name"] = name; a["group_path"] = group.Length == 0 ? "/" : group;
-                            a["unit_name"] = unit; a["max_results"] = 2000;
-                            IoTable.AttachNative(result, ReadDashboard(_configPath, "tia_query_cross_references", a), unit, name, group);
-                        } catch (Exception ex) { result.warnings.Add("官方交叉引用 " + unit + "/" + group + "/" + name + " 读取失败：" + ex.Message); }
+                            result.rows.AddRange(IoTable.Parse(store.IoSource(table),table.name,table.group,table.unit_name));
+                            result.tables_read++;
+                        } catch (Exception ex) { result.warnings.Add(table.name + "：" + ex.Message); }
                     }
+                    if (result.tables_read == 0) throw new InvalidOperationException("尚无可读的变量表源码，请先从博途重新读取。");
+                    var blocks = store.IoBlocks(job.plc);
+                    IoMapping.Expand(result,blocks,store.IoSource);
+                    IoDeclarations.Add(result,blocks,store.IoSource);
+                    IoTable.AttachIndex(result,IndexJson.Map(store.IoReferenceSnapshot(job.plc)));
+                    var times = cachedTables.Concat(blocks).Select(e => e.indexed_utc).Where(t => !string.IsNullOrEmpty(t)).OrderBy(t => t).ToArray();
+                    result.reference_coverage = "本地源码快照；源码时间 UTC " + times.FirstOrDefault() + " 至 " + times.LastOrDefault() + "。 " + result.reference_coverage;
                 } else {
-                    result.reference_source = "索引显式引用";
-                    result.reference_coverage = "尚未完成引用读取；零条证据不等于未使用。";
+                    var tables = IoTable.Maps(ReadDashboard(_configPath, "tia_list_tag_tables", args()), "tag_tables").ToArray();
+                    result.tables_total = tables.Length;
+                    foreach (var table in tables) {
+                        string name = Text(table, "name"), group = Text(table, "group_path"), unit = Text(table, "unit_name");
+                        IoProgress(job, "变量表 " + (result.tables_read + 1) + "/" + tables.Length + "：" + name);
+                        try {
+                            var a = args(); a["table_name"] = name; a["group_path"] = group.Length == 0 ? "/" : group; a["unit_name"] = unit;
+                            result.rows.AddRange(IoTable.Parse(Text(ReadDashboard(_configPath, "tia_read_tag_table", a), "xml"), name, group, unit));
+                            result.tables_read++;
+                        } catch (Exception ex) { result.warnings.Add("变量表 " + unit + "/" + group + "/" + name + " 读取失败：" + ex.Message); }
+                    }
+                    bool native = AppConfig.DetectProjectVersion(job.project) == "V21";
+                    if (native) {
+                        result.reference_source = "V21 官方交叉引用";
+                        result.reference_coverage = "逐个变量表读取官方引用；仅在同一变量表和软件单元内关联精确符号或地址。无匹配结果不证明未使用。";
+                        foreach (var table in tables) {
+                            string unit = Text(table, "unit_name"), name = Text(table, "name"), group = Text(table, "group_path");
+                            IoProgress(job, "读取 V21 官方交叉引用：" + unit + "/" + group + "/" + name);
+                            try {
+                                var a = args(); a["scope_kind"] = "tag_table"; a["target_name"] = name; a["group_path"] = group.Length == 0 ? "/" : group;
+                                a["unit_name"] = unit; a["max_results"] = 2000;
+                                IoTable.AttachNative(result, ReadDashboard(_configPath, "tia_query_cross_references", a), unit, name, group);
+                            } catch (Exception ex) { result.warnings.Add("官方交叉引用 " + unit + "/" + group + "/" + name + " 读取失败：" + ex.Message); }
+                        }
+                    }
+                    if (!native) result.reference_source = "索引显式引用";
+                    if (!native) result.reference_coverage = "尚未完成引用读取；零条证据不等于未使用。";
                     try {
                         IoProgress(job, "重新扫描工程目录，准备更新 PLC 引用");
                         var a = args(); a["detail_level"] = "catalog"; a["refresh_catalog"] = true; a["include_hardware"] = false;
                         ReadDashboard(_configPath, "tia_build_project_index", a);
-                        var store = new ProjectIndexStore(job.project, AppConfig.DetectProjectVersion(job.project));
+
                         store.RefreshIoContent(job.plc);
                         int batches = 0;
                         while (true) {
@@ -67,7 +87,10 @@ namespace TiaPortalSourceBridge.Web
                                 result.warnings.Add("引用读取未全部完成：批次无进展或达到读取上限。"); break;
                             }
                         }
-                        IoTable.AttachIndex(result, IndexJson.Map(store.IoReferenceSnapshot(job.plc)));
+                        var blocks = store.IoBlocks(job.plc);
+                        IoMapping.Expand(result,blocks,store.IoSource);
+                        IoDeclarations.Add(result,blocks,store.IoSource);
+                        if (!native) IoTable.AttachIndex(result, IndexJson.Map(store.IoReferenceSnapshot(job.plc)));
                     } catch (Exception ex) { result.warnings.Add("引用读取失败：" + ex.Message); }
                 }
                 result.rows = result.rows.OrderBy(r => r.area).ThenBy(IoTable.SortAddress).ThenBy(r => r.name).ToList();
@@ -77,6 +100,16 @@ namespace TiaPortalSourceBridge.Web
                 lock (ioGate) { job.state = "failed"; job.error = ex.Message; job.message = "读取失败"; }
                 throw;
             }
+        }
+        private static IEnumerable<string> ProjectGroups(IoRow row)
+        {
+            if (row.origin != null && row.mapping_fc == null) return new[] { row.group ?? "" };
+            if (row.mapping_fc != null) return new[] { row.mapping_group ?? "" };
+            return row.references.Select(r => r.group).Concat(new[] { row.group }).Where(g => !string.IsNullOrEmpty(g));
+        }
+        private static IEnumerable<string> Parents(string path)
+        {
+            while (!string.IsNullOrEmpty(path)) { yield return path; int split = path.LastIndexOf('/'); path = split < 0 ? "" : path.Substring(0,split); }
         }
         private bool HandleIo(HttpListenerContext context, string path)
         {
@@ -96,7 +129,7 @@ namespace TiaPortalSourceBridge.Web
                 if (plc.Length == 0 || !File.Exists(project) || !actionTargets.Verify(project, plc, Text(map, "target_token"))) {
                     SendJson(response, 409, new { error = "请先选择有效工程与 PLC，等待识别完成后重新读取" }); return true;
                 }
-                var job = new IoJob { id = Guid.NewGuid().ToString("N"), project = project, plc = plc };
+                var job = new IoJob { id = Guid.NewGuid().ToString("N"), project = project, plc = plc, cached = Text(map, "mode") == "source" };
                 lock (ioGate) {
                     if (!ActionRunner.StartIoRead(project, plc, () => ReadIo(job))) { SendJson(response, 409, new { error = "已有工程任务正在执行，请稍后重新读取" }); return true; }
                     while (ioJobs.Count >= 4) ioJobs.Remove(ioJobs.First().Key);
@@ -112,15 +145,22 @@ namespace TiaPortalSourceBridge.Web
                 if (found.state != "completed") { SendJson(response, 409, new { error = "读取尚未完成" }); return true; }
             }
             IoSnapshot snapshot = found.result;
-            var rows = IoTable.Filter(snapshot.rows, GetQueryParam(request, "area"), GetQueryParam(request, "q"), GetQueryParam(request, "table")).ToArray();
+            var rows = IoTable.Filter(snapshot.rows, GetQueryParam(request, "area"), GetQueryParam(request, "q"), GetQueryParam(request, "table"));
+            string view = GetQueryParam(request,"view"), group = GetQueryParam(request,"group");
+            if (view == "points") rows = rows.Where(r => r.mapping_fc != null || r.data_type == "Bool");
+            if (view == "raw") rows = rows.Where(r => r.mapping_fc == null && r.origin == null);
+            if (!string.IsNullOrEmpty(group)) rows = rows.Where(r => ProjectGroups(r).Any(g => g == group || g.StartsWith(group + "/",StringComparison.OrdinalIgnoreCase)));
+            var filtered = rows.ToArray();
             if (path == "/api/io/data") {
                 int page; if (!int.TryParse(GetQueryParam(request, "page"), out page) || page < 1) page = 1;
-                page = Math.Min(page, Math.Max(1, (rows.Length + 99) / 100));
+                page = Math.Min(page, Math.Max(1, (filtered.Length + 99) / 100));
                 SendJson(response, 200, new { id = found.id, project_path = snapshot.project_path, plc_name = snapshot.plc_name, read_started_utc = snapshot.read_started_utc, read_completed_utc = snapshot.read_completed_utc,
                     tables_read = snapshot.tables_read, tables_total = snapshot.tables_total, reference_source = snapshot.reference_source, reference_coverage = snapshot.reference_coverage, warnings = snapshot.warnings,
-                    total = rows.Length, total_all = snapshot.rows.Count, page = page, page_size = 100,
-                    tables = snapshot.rows.Select(r => r.unit + "/" + r.group + "/" + r.table).Distinct().ToArray(),
-                    rows = rows.Skip((page - 1) * 100).Take(100).Select(r => new { r.id, r.table, r.group, r.unit, r.name, r.address, r.area, r.data_type, r.comment, r.value, reference_count = r.references.Count }).ToArray() }); return true;
+                    total = filtered.Length, total_all = snapshot.rows.Count, page = page, page_size = 100,
+                    groups = snapshot.rows.SelectMany(ProjectGroups).SelectMany(Parents).Distinct().OrderBy(g => g).ToArray(),
+                    declared_bits = true,
+                    tables = snapshot.rows.Where(r => !string.IsNullOrEmpty(r.table)).Select(r => r.unit + "/" + r.group + "/" + r.table).Distinct().ToArray(),
+                    rows = filtered.Skip((page - 1) * 100).Take(100).Select(r => new { r.id, r.table, r.group, r.unit, r.name, r.address, r.area, r.data_type, r.comment, r.value, r.mapping_group, r.mapping_fc, r.carrier, r.origin, reference_count = r.references.Count }).ToArray() }); return true;
             }
             if (path == "/api/io/references") {
                 var row = snapshot.rows.FirstOrDefault(r => r.id == GetQueryParam(request, "row"));
@@ -128,7 +168,7 @@ namespace TiaPortalSourceBridge.Web
                 SendJson(response, 200, new { row.name, row.address, total = row.references.Count, references = row.references, coverage = snapshot.reference_coverage }); return true;
             }
             if (path == "/api/io/export") {
-                byte[] bytes = IoWorkbook.Create(snapshot, rows);
+                byte[] bytes = IoWorkbook.Create(snapshot, filtered);
                 response.ContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
                 response.Headers["Content-Disposition"] = "attachment; filename=\"TIA-IO-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss") + ".xlsx\"";
                 response.ContentLength64 = bytes.Length; response.OutputStream.Write(bytes, 0, bytes.Length); response.Close(); return true;
