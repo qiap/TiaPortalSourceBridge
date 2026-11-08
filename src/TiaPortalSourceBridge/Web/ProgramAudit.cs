@@ -21,7 +21,8 @@ namespace TiaPortalSourceBridge.Web
         public List<AuditFinding> findings { get; set; }
         public List<string> warnings { get; set; }
         public Dictionary<string, object> coverage { get; set; }
-        public AuditReport() { schema = 1; findings = new List<AuditFinding>(); warnings = new List<string>(); coverage = new Dictionary<string, object>(); }
+        public AuditCallGraph call_graph { get; set; }
+        public AuditReport() { schema = 2; findings = new List<AuditFinding>(); warnings = new List<string>(); coverage = new Dictionary<string, object>(); }
     }
     internal sealed class AuditFinding
     {
@@ -330,11 +331,14 @@ namespace TiaPortalSourceBridge.Web
                     suggestion = "核对所有写入者、执行条件与调用顺序；I/O 映射和设备控制的分工需结合项目设计确认。",
                     locations = group.Take(MaxLocations + 1).Select(s => s.Location).ToList() });
             }
-            if (scan.Truncated) { if (report.warnings.Count >= 200) report.warnings.RemoveAt(199); report.warnings.Add("结果已截断：最多 " + MaxFindings + " 条发现、每条 " + MaxLocations + " 个位置、" + MaxWriteSites + " 个写入证据。请缩小工程范围后核对。"); }
+            report.call_graph = CallGraphAudit.Run(snapshot, source, scan.Add, scan.Warn);
+            scan.Truncated |= report.call_graph.truncated;
+            if (scan.Truncated) { if (report.warnings.Count >= 200) report.warnings.RemoveAt(199); report.warnings.Add("结果或证据达到数量上限，报告不完整：体检最多 " + MaxFindings + " 条发现、每条 " + MaxLocations + " 个位置、" + MaxWriteSites + " 个写入证据；调用关系的限制见对应说明。请结合源码核对。"); }
             report.coverage = new Dictionary<string, object> { { "blocks_total", blocks.Length }, { "blocks_read", scan.Read }, { "blocks_parsed", scan.Parsed },
                 { "programs_total", snapshot.cylinderProgramsTotal }, { "programs_read", snapshot.cylinderProgramsRead }, { "tag_tables_total", snapshot.tables_total }, { "tag_tables_read", snapshot.tables_read },
                 { "native_tags", native.Length }, { "addresses_checked", declarations.Count }, { "templates", templates.Count }, { "template_calls_checked", scan.Calls },
-                { "supported_write_sites", scan.Sites }, { "unsupported_blocks", scan.Unsupported }, { "truncated", scan.Truncated }, { "limitations", limitations } };
+                { "supported_write_sites", scan.Sites }, { "unsupported_blocks", scan.Unsupported }, { "truncated", scan.Truncated },
+                { "limitations", limitations.Concat(report.call_graph.limitations).Distinct().ToArray() } };
             return report;
         }
     }

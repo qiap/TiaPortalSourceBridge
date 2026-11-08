@@ -689,6 +689,19 @@
     .audit-finding summary {cursor:pointer;padding:8px 0}
     .audit-finding .execution-table td:first-child {white-space:normal}
     .audit-finding .audit-evidence {overflow:auto;margin-top:8px}
+    .audit-view-switch {display:flex;gap:8px;margin:18px 0}
+    .audit-view-switch [aria-pressed="true"] {background:var(--primary,#06b6d4);color:#fff}
+    .audit-graph-table {overflow:auto;max-height:560px;border:1px solid var(--card-border);border-radius:8px}
+    .audit-graph-table .execution-table {margin:0;min-width:660px}
+    .audit-graph-table .execution-table td:first-child {white-space:normal}
+    .audit-graph-table td {overflow-wrap:anywhere}
+    .audit-graph-table tr[data-selected="true"] {background:rgba(6,182,212,.12)}
+    #auditGraphBoundary {border-left:3px solid var(--warning,#fbbf24);padding:8px 12px;background:var(--bg)}
+    #auditGraphLimits summary {cursor:pointer;color:var(--warning,#fbbf24)}
+    #auditGraphLimitList {padding-left:22px}
+    #auditGraphSelected {margin:20px 0;padding:16px;border:1px solid var(--card-border);border-radius:8px;background:var(--bg)}
+    #auditGraphPath {display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    #auditGraphPath .btn {overflow-wrap:anywhere;white-space:normal;text-align:left}
   </style>
 </head>
 <body>
@@ -1038,7 +1051,7 @@
       <div class="card">
         <div class="card-header"><span class="card-title">PLC 程序体检</span></div>
         <p id="auditTarget" style="color:var(--text-muted)">请先选择工程与 PLC。</p>
-        <p>基于源码快照检查地址重叠、多处写入，以及已保存气缸模板要求连接的参数。体检不修改或编译工程，不下载到 PLC。</p>
+        <p>基于源码快照检查地址重叠、多处写入、模板参数接线及实例复用，并查看 OB 调用路径。体检不修改或编译工程，不下载到 PLC。</p>
         <div class="audit-actions">
           <button class="btn" id="auditCached">读取本地源码并体检</button>
           <button class="btn" id="auditLive">从博途重新读取并体检</button>
@@ -1057,14 +1070,51 @@
           <p id="auditSummary"></p>
           <details id="auditLimits"><summary id="auditLimitsSummary">检查范围与未覆盖项</summary><ul id="auditLimitList"></ul></details>
           <p>“待核对”表示发现了需要人工判断的现象，不代表已经确认逻辑错误。没有发现问题也不代表程序已通过安全验证。</p>
+          <div class="audit-view-switch" role="group" aria-label="体检结果视图">
+            <button class="btn" id="auditFindingsView" aria-pressed="true">发现与证据</button>
+            <button class="btn" id="auditGraphView" aria-pressed="false">调用关系</button>
+          </div>
+          <div id="auditFindingsPanel">
           <div class="audit-filters">
             <select id="auditSeverity" class="search-input" aria-label="结果级别"><option value="all">全部级别</option><option value="warning">待核对</option><option value="info">提示</option></select>
-            <select id="auditRule" class="search-input" aria-label="检查规则"><option value="all">全部规则</option><option value="address_overlap">地址重叠</option><option value="multiple_writes">多处写入</option><option value="template_pin">模板参数接线</option></select>
+            <select id="auditRule" class="search-input" aria-label="检查规则"><option value="all">全部规则</option><option value="address_overlap">地址重叠</option><option value="multiple_writes">多处写入</option><option value="template_pin">模板参数接线</option><option value="instance_reuse">实例多处调用</option><option value="no_ob_path">未发现 OB 调用路径</option></select>
             <input id="auditSearch" class="search-input" placeholder="搜索地址、符号、程序块或证据" aria-label="搜索体检结果">
           </div>
           <p id="auditFilterSummary" style="color:var(--text-muted)"></p>
           <div id="auditFindings"></div>
           <div class="audit-actions"><button class="btn btn-sm" id="auditPrev" disabled>上一页</button><span id="auditPage"></span><button class="btn btn-sm" id="auditNext" disabled>下一页</button></div>
+          </div>
+          <section id="auditGraphPanel" hidden>
+            <p id="auditGraphSummary"></p>
+            <p id="auditGraphBoundary"></p>
+            <details id="auditGraphLimits"><summary id="auditGraphLimitsSummary">调用分析说明</summary><ul id="auditGraphLimitList"></ul></details>
+            <div id="auditGraphContent" hidden>
+              <h4>程序块与 OB 路径</h4>
+              <div class="audit-filters">
+                <input id="auditGraphNodeSearch" class="search-input" placeholder="搜索程序块、组路径或软件单元" aria-label="搜索调用程序块">
+                <select id="auditGraphNodeStatus" class="search-input" aria-label="调用路径状态"><option value="all">全部路径状态</option><option value="root">OB 入口</option><option value="reachable">已找到 OB 路径</option><option value="no_ob_path">未发现 OB 路径</option><option value="unknown">无法判定</option></select>
+              </div>
+              <p id="auditGraphNodeSummary" style="color:var(--text-muted)"></p>
+              <div class="audit-graph-table"><table class="execution-table"><thead><tr><th>程序块 / 组路径 / 软件单元</th><th>类型</th><th>OB 路径状态</th><th>操作</th></tr></thead><tbody id="auditGraphNodes"></tbody></table></div>
+              <div class="audit-actions"><button class="btn btn-sm" id="auditGraphNodePrev">上一页</button><span id="auditGraphNodePage"></span><button class="btn btn-sm" id="auditGraphNodeNext">下一页</button></div>
+              <section id="auditGraphSelected" hidden>
+                <h4 id="auditGraphSelectedTitle"></h4>
+                <p id="auditGraphSelectedNote"></p>
+                <div id="auditGraphPath"></div>
+                <p id="auditGraphSelectedCounts" style="color:var(--text-muted)"></p>
+                <button class="btn btn-sm" id="auditGraphClear">取消选择，查看全部调用</button>
+              </section>
+              <h4>显式调用位置</h4>
+              <div class="audit-filters">
+                <input id="auditGraphCallSearch" class="search-input" placeholder="搜索调用者、被调用块、实例或证据" aria-label="搜索调用位置">
+                <select id="auditGraphDirection" class="search-input" aria-label="调用方向"><option value="all">全部调用</option><option value="outgoing">所选块调用了谁</option><option value="incoming">谁调用了所选块</option></select>
+                <select id="auditGraphResolution" class="search-input" aria-label="调用目标解析"><option value="all">全部目标</option><option value="resolved">已定位的目标</option><option value="unresolved">尚未定位的目标</option></select>
+              </div>
+              <p id="auditGraphCallSummary" style="color:var(--text-muted)"></p>
+              <div class="audit-graph-table"><table class="execution-table"><thead><tr><th>调用者 / 位置</th><th>被调用块 / 解析状态</th><th>状态实例</th><th>证据</th></tr></thead><tbody id="auditGraphCalls"></tbody></table></div>
+              <div class="audit-actions"><button class="btn btn-sm" id="auditGraphCallPrev">上一页</button><span id="auditGraphCallPage"></span><button class="btn btn-sm" id="auditGraphCallNext">下一页</button></div>
+            </div>
+          </section>
           <p style="color:var(--text-muted)">Excel 报告包含本次体检的全部结果、定位证据和覆盖说明，不受页面筛选影响。</p>
         </section>
       </div>

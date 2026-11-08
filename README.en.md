@@ -15,7 +15,7 @@ The application runs on Windows and provides a unified entry point for separate 
 | Module | Capabilities |
 | --- | --- |
 | Web dashboard | View project and connection status, run engineering tasks, review backup diffs, search indexes, and inspect logs |
-| Program audit | Read-only checks for explicit I/Q/M declaration overlap, multiple write sites, and missing connections required by saved templates; includes evidence, coverage notes, and Excel reports |
+| Program audit | Read-only checks for explicit address overlap, multiple writes, missing template connections, and instance reuse; browse OB paths and caller/callee evidence, and export Excel reports |
 | PLC source | Read and import SCL, DB, UDT, and SimaticML XML, individually or in batches |
 | Cylinder execution history | Persistent generation, inspection, and recovery records with per-block results, compiler warnings, backups, and save status; inspect a failed operation before continuing or restoring it |
 | Project index | Browse the project tree, search content, find explicit references, and retrieve task context |
@@ -64,7 +64,11 @@ Enter a cylinder name, instance name, array index, and unused I/O points, then a
 
 Select a project and PLC, then open **程序体检** (Program audit). Read the local source cache or read fresh sources from TIA Portal before scanning; an existing completed snapshot can also be checked directly. Reports identify the source, timestamps, coverage, and relevant blocks, networks, and variables. Filter by rule or text, or export the full report and its coverage notes to Excel, independently of the current filter.
 
-The first version checks supported explicit I/Q/M declarations, LAD coils and call parameters, and selected STL write instructions. Template connection checks use only reviewed cylinder templates that still match the current project. Aliases and multiple writes may be intentional and require review of execution order and device requirements. Complete SCL/GRAPH control flow, Temp initialization, dynamic addressing, hardware addresses, DB layouts, and HMI/external writes are not covered. No findings does not establish logical safety. Analysis does not modify, compile, save, or download the engineering project.
+Checks cover supported explicit I/Q/M declarations, LAD coils and call parameters, and selected STL write instructions. Template connection checks use only reviewed cylinder templates that still match the current project. Aliases and multiple writes may be intentional and require review of execution order and device requirements.
+
+The **调用关系** (Call relationships) view uses every identified OB in the snapshot as an entry point. Select a block to inspect one discovered OB path and its incoming or outgoing call sites and instances. Unresolved calls remain visible. Multiple calls to the same identified instance DB or host-local multi-instance produce a review note; software units and local instances in different hosts remain separate. A missing OB path means no path was found within the recognized snapshot, not that a block never executes or can be deleted. Missing sources, unresolved targets, and output limits are disclosed. Excel reports add call-relationship and OB-path worksheets.
+
+Complete SCL/GRAPH control flow, Temp initialization, dynamic addressing, hardware addresses, DB layouts, and HMI/external writes are not covered. Timer and edge-trigger instances without verifiable identities are excluded from reuse conclusions. No findings does not establish logical safety. Analysis does not modify, compile, save, or download the engineering project.
 
 The service retains up to four reports in memory. Export Excel files to keep them after restarting the tool.
 

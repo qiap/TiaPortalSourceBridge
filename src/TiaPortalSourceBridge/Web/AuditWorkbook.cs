@@ -29,7 +29,8 @@ namespace TiaPortalSourceBridge.Web
         private static string Rule(string value)
         {
             return value == "address_overlap" ? "地址区间重叠" : value == "multiple_writes" ? "多处写入" :
-                value == "template_pin" ? "模板要求连接的参数" : value;
+                value == "template_pin" ? "模板要求连接的参数" : value == "instance_reuse" ? "同一实例多处调用" :
+                value == "no_ob_path" ? "未发现 OB 调用路径" : value;
         }
         private static string Severity(string value) { return value == "warning" ? "需核对" : value == "info" ? "提示" : value; }
         private static string Confidence(string value) { return value == "confirmed" ? "现象已确认" : value == "review" ? "需人工核对" : value; }
@@ -116,6 +117,18 @@ namespace TiaPortalSourceBridge.Web
                 } else yield return new[] { "覆盖 / " + label, Text(item.Value) };
             }
             foreach (string warning in report.warnings ?? new List<string>()) yield return new[] { "读取或检查说明", warning };
+            if (report.call_graph != null) {
+                var graph = report.call_graph;
+                yield return new[] { "调用关系 / 程序块数", Text((graph.nodes ?? new List<AuditCallNode>()).Count) };
+                yield return new[] { "调用关系 / 已识别调用数", Text(graph.calls_total) };
+                yield return new[] { "调用关系 / 已定位目标调用数", Text(graph.calls_resolved) };
+                yield return new[] { "调用关系 / 已识别实例调用数", Text(graph.instances_resolved) };
+                yield return new[] { "调用关系 / 覆盖不完整", Text(graph.partial) };
+                yield return new[] { "调用关系 / 结果达到上限", Text(graph.truncated) };
+                yield return new[] { "调用关系 / 导出范围", "报告中保留的全部调用位置与全部节点的已识别 OB 路径，不受页面筛选影响。路径按步骤分行；每个节点仅展示一条已识别路径，不代表唯一调用路径或实际执行顺序。" };
+                yield return new[] { "调用关系 / 结论边界", "未找到 OB 路径不等于死代码；共享实例可能是有意设计。未解析调用、源码缺失或截断会使调用关系不完整。" };
+                foreach (string limitation in graph.limitations ?? new List<string>()) yield return new[] { "调用关系 / 检查限制", limitation };
+            }
         }
         private static IEnumerable<string[]> Findings(IList<AuditFinding> findings)
         {
@@ -129,6 +142,46 @@ namespace TiaPortalSourceBridge.Web
             foreach (var finding in findings) foreach (var location in finding.locations ?? new List<AuditLocation>())
                 yield return new[] { finding.id, location.block, location.group, location.unit, location.network, location.location, location.symbol, location.address, location.access, location.evidence };
         }
+        private static string PathStatus(string value)
+        {
+            return value == "root" ? "OB 入口" : value == "reachable" ? "存在已识别的 OB 调用路径" :
+                value == "no_ob_path" ? "已识别调用中未发现 OB 路径" : value == "unknown" ? "尚未核对" : value;
+        }
+        private static string SourceStatus(string value)
+        { return value == "parsed" ? "已解析" : value == "unsupported" ? "未完整覆盖" : value == "unread" ? "未读取" : value; }
+        private static string Resolution(string value)
+        { return value == "resolved" ? "已定位" : value == "external" ? "外部或系统目标" : value == "ambiguous" ? "目标存在歧义" : value == "unresolved" ? "未定位" : value; }
+        private static string InstanceStatus(string value)
+        { return value == "resolved" ? "已识别" : value == "unsupported" ? "实例形式未覆盖" : value == "none" ? "无实例" : value; }
+        private static string InstanceScope(string value)
+        { return value == "global" || value == "GlobalVariable" ? "全局背景 DB" : value == "local" || value == "LocalVariable" ? "宿主内多重实例" : value; }
+        private static AuditCallNode Node(IDictionary<string, AuditCallNode> nodes, string id)
+        { AuditCallNode node; return id != null && nodes.TryGetValue(id, out node) ? node : null; }
+        private static IEnumerable<string[]> Calls(AuditCallGraph graph, IDictionary<string, AuditCallNode> nodes)
+        {
+            yield return new[] { "调用编号", "调用方编号", "调用方", "调用方组路径", "调用方软件单元", "被调用编号", "被调用程序块", "调用中目标名称", "类型", "被调用组路径", "被调用软件单元", "目标解析", "实例", "实例作用域", "实例识别", "网络", "位置", "符号", "地址", "关系类型", "证据" };
+            foreach (var call in graph.calls ?? new List<AuditCallSite>()) {
+                var caller = Node(nodes, call.caller_id); var callee = Node(nodes, call.callee_id); var location = call.location ?? new AuditLocation();
+                yield return new[] { call.id, call.caller_id, caller == null ? location.block : caller.name, caller == null ? location.group : caller.group,
+                    caller == null ? location.unit : caller.unit, call.callee_id, callee == null ? call.callee_name : callee.name, call.callee_name, call.callee_type,
+                    callee == null ? "" : callee.group, callee == null ? "" : callee.unit, Resolution(call.resolution), call.instance, InstanceScope(call.instance_scope),
+                    InstanceStatus(call.instance_status), location.network, location.location, location.symbol, location.address, location.access, location.evidence };
+            }
+        }
+        private static IEnumerable<string[]> Paths(AuditCallGraph graph, IDictionary<string, AuditCallNode> nodes)
+        {
+            yield return new[] { "程序块编号", "程序块", "组路径", "软件单元", "类型", "源码状态", "OB 路径状态", "入口 OB 编号", "入口 OB", "路径步骤", "路径节点编号", "路径程序块", "路径组路径", "路径软件单元", "路径节点类型", "说明" };
+            foreach (var node in graph.nodes ?? new List<AuditCallNode>()) {
+                var root = Node(nodes, node.root_id); var path = node.path ?? new List<string>();
+                for (int i = 0; i < Math.Max(path.Count, 1); i++) {
+                    string stepId = path.Count == 0 ? "" : path[i]; var step = Node(nodes, stepId);
+                    yield return new[] { node.id, node.name, node.group, node.unit, node.kind, SourceStatus(node.source_status), PathStatus(node.status),
+                        node.root_id, root == null ? "" : root.name, path.Count == 0 ? "" : Text(i + 1), stepId,
+                        step == null ? (stepId.Length == 0 ? "" : "未在报告节点中定位") : step.name,
+                        step == null ? "" : step.group, step == null ? "" : step.unit, step == null ? "" : step.kind, node.note };
+                }
+            }
+        }
         internal static byte[] Create(AuditReport report)
         {
             if (report == null) throw new ArgumentNullException("report");
@@ -136,6 +189,19 @@ namespace TiaPortalSourceBridge.Web
             if (findings.Any(f => f == null || (f.locations != null && f.locations.Any(l => l == null)))) throw new InvalidOperationException("体检报告包含不完整的发现或证据，无法导出。");
             CheckRowCount((long)findings.Count + 1);
             CheckRowCount(findings.Sum(f => f.locations == null ? 0L : f.locations.Count) + 1);
+            var graph = report.call_graph;
+            Dictionary<string, AuditCallNode> nodes = null;
+            if (graph != null) {
+                var graphNodes = graph.nodes ?? new List<AuditCallNode>(); var calls = graph.calls ?? new List<AuditCallSite>();
+                if (graphNodes.Any(n => n == null || string.IsNullOrEmpty(n.id) || n.path != null && n.path.Any(p => p == null)) || calls.Any(c => c == null))
+                    throw new InvalidOperationException("调用关系包含不完整节点、路径或调用，无法导出。");
+                if (graphNodes.Select(n => n.id).Distinct(StringComparer.Ordinal).Count() != graphNodes.Count)
+                    throw new InvalidOperationException("调用关系节点编号重复，无法可靠定位路径。");
+                nodes = graphNodes.ToDictionary(n => n.id, StringComparer.Ordinal);
+                CheckRowCount((long)calls.Count + 1);
+                CheckRowCount(graphNodes.Sum(n => Math.Max(n.path == null ? 0L : n.path.Count, 1L)) + 1);
+            }
+            string[] names = graph == null ? new[] { "概览", "发现清单", "定位证据" } : new[] { "概览", "发现清单", "定位证据", "调用关系", "OB调用路径" };
             using (var memory = new MemoryStream()) {
                 using (var zip = new ZipArchive(memory, ZipArchiveMode.Create, true)) {
                     using (var writer = Writer(zip, "[Content_Types].xml")) {
@@ -144,7 +210,7 @@ namespace TiaPortalSourceBridge.Web
                             writer.WriteStartElement("Default"); writer.WriteAttributeString("Extension", type[0]); writer.WriteAttributeString("ContentType", type[1]); writer.WriteEndElement();
                         }
                         foreach (var type in new[] { new[] { "/xl/workbook.xml", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml" }, new[] { "/xl/styles.xml", "application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml" } }
-                            .Concat(Enumerable.Range(1, 3).Select(n => new[] { "/xl/worksheets/sheet" + n + ".xml", "application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml" }))) {
+                            .Concat(Enumerable.Range(1, names.Length).Select(n => new[] { "/xl/worksheets/sheet" + n + ".xml", "application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml" }))) {
                             writer.WriteStartElement("Override"); writer.WriteAttributeString("PartName", type[0]); writer.WriteAttributeString("ContentType", type[1]); writer.WriteEndElement();
                         }
                         writer.WriteEndElement();
@@ -152,19 +218,22 @@ namespace TiaPortalSourceBridge.Web
                     using (var writer = Writer(zip, "_rels/.rels")) { writer.WriteStartElement("Relationships", "http://schemas.openxmlformats.org/package/2006/relationships"); Relationship(writer, "rId1", "officeDocument", "xl/workbook.xml"); writer.WriteEndElement(); }
                     using (var writer = Writer(zip, "xl/workbook.xml")) {
                         writer.WriteStartElement("workbook", Ns); writer.WriteStartElement("sheets");
-                        string[] names = { "概览", "发现清单", "定位证据" };
                         for (int i = 1; i <= names.Length; i++) { writer.WriteStartElement("sheet"); writer.WriteAttributeString("name", names[i - 1]); writer.WriteAttributeString("sheetId", i.ToString()); writer.WriteAttributeString("r", "id", "http://schemas.openxmlformats.org/officeDocument/2006/relationships", "rId" + i); writer.WriteEndElement(); }
                         writer.WriteEndElement(); writer.WriteEndElement();
                     }
                     using (var writer = Writer(zip, "xl/_rels/workbook.xml.rels")) {
                         writer.WriteStartElement("Relationships", "http://schemas.openxmlformats.org/package/2006/relationships");
-                        for (int i = 1; i <= 3; i++) Relationship(writer, "rId" + i, "worksheet", "worksheets/sheet" + i + ".xml");
-                        Relationship(writer, "rId4", "styles", "styles.xml"); writer.WriteEndElement();
+                        for (int i = 1; i <= names.Length; i++) Relationship(writer, "rId" + i, "worksheet", "worksheets/sheet" + i + ".xml");
+                        Relationship(writer, "rId" + (names.Length + 1), "styles", "styles.xml"); writer.WriteEndElement();
                     }
                     using (var writer = Writer(zip, "xl/styles.xml")) writer.WriteRaw("<styleSheet xmlns=\"" + Ns + "\"><fonts count=\"2\"><font><sz val=\"11\"/><name val=\"Calibri\"/></font><font><b/><sz val=\"11\"/><color rgb=\"FFFFFFFF\"/><name val=\"Calibri\"/></font></fonts><fills count=\"3\"><fill><patternFill patternType=\"none\"/></fill><fill><patternFill patternType=\"gray125\"/></fill><fill><patternFill patternType=\"solid\"><fgColor rgb=\"FF1E293B\"/><bgColor indexed=\"64\"/></patternFill></fill></fills><borders count=\"1\"><border/></borders><cellStyleXfs count=\"1\"><xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\"/></cellStyleXfs><cellXfs count=\"2\"><xf numFmtId=\"49\" fontId=\"0\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyAlignment=\"1\"><alignment vertical=\"top\" wrapText=\"1\"/></xf><xf numFmtId=\"49\" fontId=\"1\" fillId=\"2\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyFill=\"1\" applyAlignment=\"1\"><alignment vertical=\"top\" wrapText=\"1\"/></xf></cellXfs><cellStyles count=\"1\"><cellStyle name=\"Normal\" xfId=\"0\" builtinId=\"0\"/></cellStyles></styleSheet>");
                     Sheet(zip, 1, Overview(report, findings), new double[] { 30, 100 });
                     Sheet(zip, 2, Findings(findings), new double[] { 24, 24, 14, 20, 42, 32, 65, 65, 14 });
                     Sheet(zip, 3, Evidence(findings), new double[] { 24, 28, 35, 25, 12, 45, 42, 20, 22, 75 });
+                    if (graph != null) {
+                        Sheet(zip, 4, Calls(graph, nodes), new double[] { 24, 24, 28, 30, 24, 24, 28, 28, 12, 30, 24, 20, 35, 24, 22, 12, 40, 35, 20, 20, 70 });
+                        Sheet(zip, 5, Paths(graph, nodes), new double[] { 24, 28, 30, 24, 12, 18, 35, 24, 28, 12, 24, 28, 30, 24, 12, 70 });
+                    }
                 }
                 return memory.ToArray();
             }

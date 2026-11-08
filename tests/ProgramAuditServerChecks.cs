@@ -193,12 +193,25 @@ internal static class ProgramAuditServerChecks
             var report = (Dictionary<string, object>)finished["result"]; var findings = CylinderWritePipeline.Rows(report, "findings"); var coverage = (Dictionary<string, object>)report["coverage"];
             Check(findings.Any(r => Text(r, "rule") == "address_overlap") && findings.Any(r => Text(r, "rule") == "template_pin"), "HTTP analysis uses both supplied native tags and local template/source content");
             Check(Text(coverage, "source_mode") == "local_cache" && Text(coverage, "source_note") == f.Snapshot.reference_coverage && Convert.ToInt32(coverage["templates"]) == 1, "report preserves cache origin and exact template coverage");
+            var graph = (Dictionary<string, object>)report["call_graph"];
+            var calls = CylinderWritePipeline.Rows(graph, "calls");
+            Check(Convert.ToInt32(report["schema"]) == 2 && CylinderWritePipeline.Rows(graph, "nodes").Length == 2 && calls.Length == 2,
+                "HTTP report exposes full call graph for the same source snapshot");
+            Check(calls.All(c => Text(c, "caller_id") == "host" && Text(c, "callee_id") == "fb" && Text(c, "resolution") == "resolved"),
+                "call graph keeps exact caller and target identities in API results");
+            Check(Convert.ToBoolean(graph["partial"]) && CylinderWritePipeline.Rows(graph, "nodes").All(n => Text(n, "status") != "no_ob_path"),
+                "snapshot without an OB is explicitly partial and does not classify unreachable code");
             var exported = Request(server, listener, url, "/api/io/audit-export?id=" + id + "&limit=1&rule=missing", "GET", null, 200, url);
             Check(exported.ContentType == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" && exported.Disposition.Contains(id + ".xlsx") && exported.Cache == "no-store", "download has Excel MIME, stable report filename and no-cache policy");
             using (var zip = new ZipArchive(new MemoryStream(exported.Bytes), ZipArchiveMode.Read)) {
                 var doc = new XmlDocument { XmlResolver = null }; using (var reader = zip.GetEntry("xl/worksheets/sheet2.xml").Open()) doc.Load(reader);
                 Check(doc.SelectNodes("//*[local-name()='row']").Count == findings.Length + 1, "download includes whole immutable report despite page/filter query fields");
                 Check(zip.GetEntry("xl/worksheets/sheet3.xml") != null, "download contains detailed evidence worksheet");
+                Check(zip.GetEntry("xl/worksheets/sheet4.xml") != null && zip.GetEntry("xl/worksheets/sheet5.xml") != null,
+                    "new report download includes call relationships and OB path sheets");
+                using (var reader = zip.GetEntry("xl/worksheets/sheet4.xml").Open()) doc.Load(reader);
+                Check(doc.SelectNodes("//*[local-name()='row']").Count == calls.Length + 1,
+                    "export includes all call sites independently of UI filtering");
             }
             string secondId = Text(Request(server, listener, url, "/api/io/audit-run", "POST", body, 202).Json, "id");
             admitted.Add(secondId);
@@ -215,6 +228,14 @@ internal static class ProgramAuditServerChecks
         string basePath = Path.GetFullPath(args.Length == 0 ? Path.GetTempPath() : args[0]);
         string root = Path.GetFullPath(Path.Combine(basePath, "pa-" + Guid.NewGuid().ToString("N").Substring(0, 12)));
         try {
+            var sizeReport = new AuditReport { call_graph = new AuditCallGraph() };
+            WebServer.ValidateAuditResponse(sizeReport, 4096);
+            sizeReport.call_graph.calls.Add(new AuditCallSite { callee_name = new string('x', 8192) });
+            bool oversized = false;
+            try { WebServer.ValidateAuditResponse(sizeReport, 4096); }
+            catch (InvalidOperationException ex) { oversized = ex.Message.Contains("无法完整展示"); }
+            Check(oversized && sizeReport.call_graph.calls.Single().callee_name.Length == 8192,
+                "oversized call graph cannot be marked completed with an unreadable status or silently shortened evidence");
             Templates(Path.Combine(root, "templates")); Http(Path.Combine(root, "http"));
             if (!root.StartsWith(basePath.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) || !Path.GetFileName(root).StartsWith("pa-", StringComparison.Ordinal)) throw new Exception("unexpected fixture cleanup path");
             if (Directory.Exists(root)) Directory.Delete(root, true);

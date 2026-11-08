@@ -2,13 +2,19 @@
 (() => {
   const el=id=>document.getElementById(id);
   if(!el('auditRun'))return;
-  const rules={address_overlap:'地址重叠',multiple_writes:'多处写入',template_pin:'模板参数接线'};
+  const rules={address_overlap:'地址重叠',multiple_writes:'多处写入',template_pin:'模板参数接线',instance_reuse:'实例多处调用',no_ob_path:'未发现 OB 调用路径'};
   const severity={warning:'待核对',info:'提示'};
   const coverageNames={programs_total:'PLC 程序总数',programs_read:'已读取 PLC 程序',tag_tables_total:'变量表总数',tag_tables_read:'已读取变量表',blocks_total:'程序块总数',blocks_read:'已读取程序块',blocks_parsed:'已解析程序块',native_tags:'原始变量声明',addresses_checked:'已检查地址',templates:'有效项目模板',template_calls_checked:'已检查模板调用',supported_write_sites:'已识别写入位置',unsupported_blocks:'部分或全部行为未覆盖的块'};
   const sources={local_cache:'本地缓存源码（本次未重新读取博途）',tia_readback:'从博途读取的源码快照'};
-  const accessNames={declaration:'变量声明',writes:'写入',reads_writes:'读取与写入',connection:'参数连接'};
+  const accessNames={declaration:'变量声明',writes:'写入',reads_writes:'读取与写入',connection:'参数连接',calls:'调用',call:'调用',call_path:'调用路径',instance_call:'实例调用'};
+  const graphStatuses={root:'OB 入口',reachable:'已找到 OB 路径',no_ob_path:'未发现 OB 路径',unknown:'无法判定'};
+  const resolutions={resolved:'已定位',external:'当前快照外的目标',ambiguous:'目标有歧义',unresolved:'尚未定位'};
+  const instanceStatuses={resolved:'实例身份已识别',unsupported:'实例身份未覆盖',none:'无状态实例'};
+  const instanceScopes={global:'全局背景 DB',local:'宿主内多重实例',GlobalVariable:'全局背景 DB',LocalVariable:'宿主内多重实例'};
   const pageSize=50;
   let sequence=0,busy=false,phase='',pending=null,report=null,reportContext=null,jobId='',page=1,exporting=false;
+  let graph=null,graphNodes=[],graphCalls=[],nodeMap=new Map(),nodeSearch=new Map(),callSearch=new Map(),selectedNodeId='',nodePage=1,callPage=1;
+  const graphPageSize=25;
   const state=()=>window.cylinderIoState?.()||{id:'',target:{},busy:false};
   const normalized=value=>String(value||'').replace(/\\/g,'/').toLowerCase();
   const sameTarget=(a,b)=>!!a&&!!b&&normalized(a.project_path)===normalized(b.project_path)&&a.plc_name===b.plc_name;
@@ -100,7 +106,7 @@
     el('auditLimits').open=false;
     const counts=report.findings.reduce((a,f)=>(a[f.severity]=(a[f.severity]||0)+1,a),{});
     el('auditSummary').textContent='共 '+report.findings.length+' 项发现 · 待核对 '+(counts.warning||0)+' 项 · 提示 '+(counts.info||0)+' 项';
-    renderFindings();sync();
+    renderFindings();prepareGraph();showView('findings');sync();
   }
   function renderFindings() {
     if(!report)return;
@@ -123,7 +129,102 @@
       wrapper.append(table);detail.append(wrapper);card.append(detail);return card;
     });
     el('auditFindings').replaceChildren(...nodes);
-    if(!filtered.length)el('auditFindings').append(text('p',report.findings.length?'没有符合当前筛选的结果。':'在当前覆盖范围内未发现这三类现象；请查看未覆盖项，不能据此认定程序安全。'));
+    if(!filtered.length)el('auditFindings').append(text('p',report.findings.length?'没有符合当前筛选的结果。':'在当前覆盖范围内未发现所检查的现象；请查看未覆盖项，不能据此认定程序安全。'));
+  }
+  function showView(view) {
+    const calls=view==='graph';
+    el('auditFindingsPanel').hidden=calls;el('auditGraphPanel').hidden=!calls;
+    el('auditFindingsView').setAttribute('aria-pressed',String(!calls));el('auditGraphView').setAttribute('aria-pressed',String(calls));
+  }
+  const nodeLabel=node=>node?[node.name,node.group,node.unit?'单元 '+node.unit:''].filter(Boolean).join(' / '):'';
+  const graphText=value=>String(value??'').toLocaleLowerCase();
+  function nodeLink(id,fallback) {
+    const node=nodeMap.get(id);
+    if(!node)return text('span',fallback||id||'未识别');
+    const button=text('button',nodeLabel(node),'btn btn-sm');button.type='button';button.dataset.nodeId=id;button.onclick=()=>selectNode(id);return button;
+  }
+  function prepareGraph() {
+    graph=report?.call_graph&&Array.isArray(report.call_graph.nodes)&&Array.isArray(report.call_graph.calls)?report.call_graph:null;
+    graphNodes=graph?graph.nodes.filter(n=>n&&typeof n.id==='string'):[];
+    nodeMap=new Map(graphNodes.map(n=>[n.id,n]));
+    graphCalls=graph?graph.calls.filter(c=>c&&typeof c.caller_id==='string'):[];
+    nodeSearch=new Map(graphNodes.map(n=>[n,graphText([n.name,n.group,n.unit,n.kind].join(' '))]));
+    callSearch=new Map(graphCalls.map(c=>[c,graphText([nodeLabel(nodeMap.get(c.caller_id)),nodeLabel(nodeMap.get(c.callee_id)),c.callee_name,c.instance,c.instance_scope,JSON.stringify(c.location||{})].join(' '))]));
+    selectedNodeId='';nodePage=1;callPage=1;
+    for(const id of ['auditGraphNodeSearch','auditGraphCallSearch'])el(id).value='';
+    for(const id of ['auditGraphNodeStatus','auditGraphDirection','auditGraphResolution'])el(id).value='all';
+    el('auditGraphContent').hidden=!graph;
+    el('auditGraphSelected').hidden=true;
+    if(!graph) {
+      el('auditGraphSummary').textContent='这份报告未包含调用关系数据，请重新检查当前快照。';
+      el('auditGraphBoundary').textContent='旧报告仍可查看和导出；缺少调用数据不代表工程没有调用。';
+      el('auditGraphLimits').hidden=true;return;
+    }
+    el('auditGraphSummary').textContent='程序块 '+graphNodes.length+' 个 · OB 入口 '+graphNodes.filter(n=>n.status==='root').length+' 个 · 已记录调用 '+graphCalls.length+' / '+(graph.calls_total??graphCalls.length)+' 处 · 已定位目标 '+(graph.calls_resolved??0)+' 处 · 已识别状态实例 '+(graph.instances_resolved??0)+' 处';
+    el('auditGraphBoundary').textContent=(graph.partial?'调用关系覆盖不完整。':'基于当前可解析的显式调用。')+(graph.truncated?'节点、调用或路径达到上限，结果已截断。':'')+'路径表示源码中存在调用关系，不代表运行时一定执行；未发现 OB 路径不等于死代码。';
+    const notes=[...new Set(Array.isArray(graph.limitations)?graph.limitations:[])];
+    el('auditGraphLimitList').replaceChildren(...notes.map(note=>text('li',note)));
+    el('auditGraphLimits').hidden=!notes.length;el('auditGraphLimits').open=false;
+    el('auditGraphLimitsSummary').textContent='调用分析说明 · '+notes.length+' 条（点击查看）';
+    renderGraphNodes();renderGraphSelected();renderGraphCalls();
+  }
+  function renderGraphNodes() {
+    if(!graph)return;
+    const query=graphText(el('auditGraphNodeSearch').value.trim()),status=el('auditGraphNodeStatus').value;
+    const filtered=graphNodes.filter(n=>(status==='all'||n.status===status)&&(!query||nodeSearch.get(n).includes(query)));
+    const pages=Math.max(1,Math.ceil(filtered.length/graphPageSize));nodePage=Math.max(1,Math.min(nodePage,pages));
+    el('auditGraphNodeSummary').textContent='当前筛选 '+filtered.length+' / 已记录 '+graphNodes.length+' 个程序块';
+    el('auditGraphNodePage').textContent='第 '+nodePage+' / '+pages+' 页';el('auditGraphNodePrev').disabled=nodePage<=1;el('auditGraphNodeNext').disabled=nodePage>=pages;
+    const rows=filtered.slice((nodePage-1)*graphPageSize,nodePage*graphPageSize).map(n=>{
+      const row=document.createElement('tr');row.dataset.selected=String(n.id===selectedNodeId);
+      row.append(text('td',nodeLabel(n)),text('td',n.kind),text('td',graphStatuses[n.status]||n.status||'无法判定'));
+      const operation=text('td',''),button=text('button',n.id===selectedNodeId?'已选择':'查看路径与调用','btn btn-sm');button.dataset.nodeId=n.id;button.onclick=()=>selectNode(n.id);operation.append(button);row.append(operation);return row;
+    });
+    el('auditGraphNodes').replaceChildren(...rows);
+    if(!filtered.length){const row=document.createElement('tr'),cell=text('td','没有符合筛选条件的程序块。');cell.colSpan=4;row.append(cell);el('auditGraphNodes').append(row);}
+  }
+  function selectNode(id) {
+    if(!nodeMap.has(id))return;
+    selectedNodeId=id;callPage=1;el('auditGraphDirection').value='outgoing';
+    el('auditGraphCallSearch').value='';el('auditGraphResolution').value='all';
+    renderGraphNodes();renderGraphSelected();renderGraphCalls();
+  }
+  function renderGraphSelected() {
+    const node=nodeMap.get(selectedNodeId);el('auditGraphSelected').hidden=!node;
+    el('auditGraphDirection').querySelectorAll('option').forEach(option=>{if(option.value!=='all')option.disabled=!node;});
+    if(!node)return;
+    el('auditGraphSelectedTitle').textContent=nodeLabel(node);
+    el('auditGraphSelectedNote').textContent=(graphStatuses[node.status]||'无法判定')+(node.note?' · '+node.note:'');
+    const ids=Array.isArray(node.path)?node.path:[],path=[];
+    if(ids.length) {
+      path.push(text('span','一条已识别的 OB 路径：'));
+      ids.slice(0,256).forEach((id,index)=>{if(index)path.push(text('span','→'));path.push(nodeLink(id,'快照中缺少节点：'+id));});
+      if(ids.length>256)path.push(text('span','路径显示达到上限，其余节点省略。'));
+    } else path.push(text('span',node.status==='root'?'此块本身是 OB 入口。':'当前报告未提供可确认的 OB 路径；请结合未覆盖项核对。'));
+    el('auditGraphPath').replaceChildren(...path);
+    el('auditGraphSelectedCounts').textContent='当前记录：调用其他块 '+graphCalls.filter(c=>c.caller_id===node.id).length+' 处 · 被其他块调用 '+graphCalls.filter(c=>c.callee_id===node.id).length+' 处';
+  }
+  function renderGraphCalls() {
+    if(!graph)return;
+    const query=graphText(el('auditGraphCallSearch').value.trim()),direction=el('auditGraphDirection').value,resolution=el('auditGraphResolution').value;
+    const filtered=graphCalls.filter(c=>{
+      if(direction!=='all'&&(!selectedNodeId||(direction==='outgoing'?c.caller_id!==selectedNodeId:c.callee_id!==selectedNodeId)))return false;
+      if(resolution!=='all'&&(resolution==='resolved'?c.resolution!=='resolved':c.resolution==='resolved'))return false;
+      return !query||callSearch.get(c).includes(query);
+    });
+    const pages=Math.max(1,Math.ceil(filtered.length/graphPageSize));callPage=Math.max(1,Math.min(callPage,pages));
+    const scope=direction==='all'?'全部调用':direction==='outgoing'?'所选块的下游调用':'所选块的上游调用';
+    el('auditGraphCallSummary').textContent=scope+' · 当前筛选 '+filtered.length+' / 已记录 '+graphCalls.length+' 处';
+    el('auditGraphCallPage').textContent='第 '+callPage+' / '+pages+' 页';el('auditGraphCallPrev').disabled=callPage<=1;el('auditGraphCallNext').disabled=callPage>=pages;
+    const rows=filtered.slice((callPage-1)*graphPageSize,callPage*graphPageSize).map(c=>{
+      const row=document.createElement('tr'),location=c.location||{},caller=text('td',''),callee=text('td',''),instance=text('td','');
+      caller.append(nodeLink(c.caller_id,location.block||c.caller_id),text('p',[location.network?'网络 '+location.network:'',location.location].filter(Boolean).join(' · ')));
+      callee.append(nodeLink(c.callee_id,c.callee_name||'未知目标'),text('p',[c.callee_type==='instruction'?'内置指令':c.callee_type,resolutions[c.resolution]||c.resolution||'尚未定位'].filter(Boolean).join(' · ')));
+      instance.append(text('span',c.instance||'—'),text('p',[instanceScopes[c.instance_scope]||c.instance_scope,instanceStatuses[c.instance_status]||c.instance_status].filter(Boolean).join(' · ')));
+      row.append(caller,callee,instance,text('td',location.evidence||'未提供额外证据'));return row;
+    });
+    el('auditGraphCalls').replaceChildren(...rows);
+    if(!filtered.length){const row=document.createElement('tr'),cell=text('td','没有符合筛选条件的显式调用；请结合分析覆盖范围核对。');cell.colSpan=4;row.append(cell);el('auditGraphCalls').append(row);}
   }
   async function exportReport() {
     sync();if(el('auditExport').disabled)return;
@@ -142,5 +243,12 @@
   ['auditSeverity','auditRule'].forEach(id=>el(id).onchange=()=>{page=1;renderFindings();});
   el('auditSearch').oninput=()=>{page=1;renderFindings();};
   el('auditPrev').onclick=()=>{page--;renderFindings();};el('auditNext').onclick=()=>{page++;renderFindings();};
+  el('auditFindingsView').onclick=()=>showView('findings');el('auditGraphView').onclick=()=>showView('graph');
+  el('auditGraphNodeSearch').oninput=()=>{nodePage=1;renderGraphNodes();};el('auditGraphNodeStatus').onchange=()=>{nodePage=1;renderGraphNodes();};
+  el('auditGraphNodePrev').onclick=()=>{nodePage--;renderGraphNodes();};el('auditGraphNodeNext').onclick=()=>{nodePage++;renderGraphNodes();};
+  el('auditGraphCallSearch').oninput=()=>{callPage=1;renderGraphCalls();};
+  for(const id of ['auditGraphDirection','auditGraphResolution'])el(id).onchange=()=>{callPage=1;renderGraphCalls();};
+  el('auditGraphCallPrev').onclick=()=>{callPage--;renderGraphCalls();};el('auditGraphCallNext').onclick=()=>{callPage++;renderGraphCalls();};
+  el('auditGraphClear').onclick=()=>{selectedNodeId='';callPage=1;el('auditGraphDirection').value='all';el('auditGraphResolution').value='all';el('auditGraphCallSearch').value='';renderGraphNodes();renderGraphSelected();renderGraphCalls();};
   window.auditSync=sync;sync();setInterval(sync,750);
 })();

@@ -20,6 +20,17 @@ namespace TiaPortalSourceBridge.Web
         private readonly object auditGate = new object();
         private readonly Dictionary<string, AuditJob> auditJobs = new Dictionary<string, AuditJob>();
 
+        internal static void ValidateAuditResponse(AuditReport report, int maximumCharacters = 64 * 1024 * 1024 - 65536)
+        {
+            // Reserve room for the status envelope. A completed job must remain
+            // readable through the same bounded JSON transport as its status.
+            var json = CylinderWritePipeline.Json(); json.MaxJsonLength = maximumCharacters;
+            try { json.Serialize(report); }
+            catch (InvalidOperationException ex) {
+                throw new InvalidOperationException("体检报告超出可返回的大小或结构限制，无法完整展示；未生成截断报告。请缩小读取范围后重试。", ex);
+            }
+        }
+
         // Only rules already saved for this exact project/PLC/host are accepted.
         // An obsolete or conflicting template is reported as uncovered, never guessed.
         internal static IList<AuditTemplate> AuditTemplates(string root, IoSnapshot snapshot,
@@ -122,7 +133,8 @@ namespace TiaPortalSourceBridge.Web
                 report.id = job.id; report.warnings.AddRange(warnings);
                 report.coverage["source_mode"] = snapshot.cached ? "local_cache" : "tia_readback";
                 report.coverage["source_note"] = snapshot.result.reference_coverage ?? "";
-                string message = "体检完成，发现 " + report.findings.Count + " 项待核对；请同时查看覆盖范围。";
+                ValidateAuditResponse(report);
+                string message = "体检完成：待核对 " + report.findings.Count(f => f.severity == "warning") + " 项，提示 " + report.findings.Count(f => f.severity == "info") + " 项；请同时查看覆盖范围。";
                 log.Update(report.findings.Count > 0 || report.warnings.Count > 0 ? "warning" : "completed", message, true);
                 lock (auditGate) {
                     job.result = report; job.state = "completed";
