@@ -21,6 +21,9 @@ namespace TiaPortalSourceBridge.Web
     }
     internal sealed class IoRow
     {
+        // Only set from a native, single-language comment declaration. Keep the
+        // displayed/exported comment unchanged and never guess labels in text.
+        internal string singleLanguageComment;
         public string id { get; set; }
         public string table { get; set; }
         public string group { get; set; }
@@ -82,11 +85,11 @@ namespace TiaPortalSourceBridge.Web
                 var a = tag.SelectSingleNode("*[local-name()='AttributeList']"); if (a == null) continue;
                 string name = Child(a, "Name"), address = Child(a, "LogicalAddress"), normalized = Address(address);
                 string area = tag.LocalName == "SW.Tags.PlcUserConstant" ? "CONST" : Regex.IsMatch(normalized, "^[IQM][BWD]?\\d+(\\.[0-7])?$") ? normalized.Substring(0, 1) : "OTHER";
-                var comments = tag.SelectNodes("./*[local-name()='ObjectList']/*[local-name()='MultilingualText' and @CompositionName='Comment']//*[local-name()='MultilingualTextItem']/*[local-name()='AttributeList']")
-                    .Cast<XmlNode>().Select(n => (Child(n, "Culture").Length == 0 ? "" : Child(n, "Culture") + ": ") + Child(n, "Text")).ToArray();
+                var commentNodes = tag.SelectNodes("./*[local-name()='ObjectList']/*[local-name()='MultilingualText' and @CompositionName='Comment']//*[local-name()='MultilingualTextItem']/*[local-name()='AttributeList']").Cast<XmlNode>().ToArray();
+                var comments = commentNodes.Select(n => (Child(n, "Culture").Length == 0 ? "" : Child(n, "Culture") + ": ") + Child(n, "Text")).ToArray();
                 yield return new IoRow { id = IndexJson.Hash(unit + "\n" + group + "\n" + table + "\n" + name), table = table, group = group, unit = unit,
                     name = name, address = address, area = area, data_type = Child(a, "DataTypeName"), value = Child(a, "Value"),
-                    comment = comments.Length == 0 ? Child(a, "Comment") : string.Join("\n", comments) };
+                    comment = comments.Length == 0 ? Child(a, "Comment") : string.Join("\n", comments), singleLanguageComment = commentNodes.Length == 1 ? Child(commentNodes[0], "Text") : null };
             }
         }
         internal static long SortAddress(IoRow row)

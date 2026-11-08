@@ -60,6 +60,14 @@ Read the project, select an existing cylinder, and review its parameter roles be
 
 Enter a cylinder name, instance name, array index, and unused I/O points, then add it to the batch list. Each batch supports up to 20 cylinders using the same template. The tool checks duplicate names, instances, indices, and physical I/O addresses, combines changes into one write per block, and compiles, reads back, and saves the result together. Failed batches retain their execution records. Project templates and operation history are local data excluded from source control.
 
+### Electrical Excel I/O reconciliation
+
+In **I/O 表与引用** (I/O tables and references), open **电气 Excel 点表对账**. Read the current PLC snapshot, upload an `.xlsx` file, and choose the sheet, header row, and address/name/type/comment columns. Address and name are required; type and comment are optional. Select native tag tables or mapped physical I/O points, then choose the software unit and table scope.
+
+The read-only report identifies changed fields, entries listed on only one side, duplicate names/addresses, overlapping address ranges, ambiguous matches, and invalid Excel data. It retains original Excel row numbers and PLC candidate values. I/Q/M bit, byte, word, and double-word addresses are normalized, including `%`, German E/A notation, and leading zeros. Mapped points use complete symbolic names. Overlaps can be intentional aliases, and zero reference evidence does not establish that an address is unused. Target, snapshot, or column changes invalidate the displayed comparison.
+
+This first version does not write to the engineering project. It accepts `.xlsx` files up to 8 MB, 20 sheets, 20000 nonempty rows in total, and 128 columns; save legacy `.xls` files as `.xlsx` first. Hidden rows are included and Excel filters are not applied. Formulas, error cells, and merged data cells are explicitly marked for correction; paste them as individual values first. Comparisons use the selected snapshot, not live values, unassigned hardware channels, or external device usage. The process keeps the latest three uploads and reports in memory. Export to retain the overview, all comparison rows, and PLC candidate evidence independently of the page filter.
+
 ### Program audit
 
 Select a project and PLC, then open **程序体检** (Program audit). Read the local source cache or read fresh sources from TIA Portal before scanning; an existing completed snapshot can also be checked directly. Reports identify the source, timestamps, coverage, and relevant blocks, networks, and variables. Filter by rule or text, or export the full report and its coverage notes to Excel, independently of the current filter.

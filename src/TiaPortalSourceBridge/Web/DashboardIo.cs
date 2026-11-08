@@ -126,7 +126,7 @@ namespace TiaPortalSourceBridge.Web
             if (!string.IsNullOrEmpty(originText) && (!Uri.TryCreate(originText, UriKind.Absolute, out origin) || origin.Scheme != request.Url.Scheme || origin.Host != request.Url.Host || origin.Port != request.Url.Port)) {
                 SendJson(response, 403, new { error = "仅允许本地看板访问" }); return true;
             }
-            if (HandleAudit(context, path) || HandleCylinderHistory(context, path) || HandleCylinderRecovery(context, path) || HandleCylinderTemplates(context, path) || HandleCylinderBatchPreview(context, path) || HandleCylinderApply(context, path)) return true;
+            if (HandleIoReconcile(context, path) || HandleAudit(context, path) || HandleCylinderHistory(context, path) || HandleCylinderRecovery(context, path) || HandleCylinderTemplates(context, path) || HandleCylinderBatchPreview(context, path) || HandleCylinderApply(context, path)) return true;
             if (path == "/api/io/read" && request.HttpMethod == "POST") {
                 if (shutdownRequested) { SendJson(response, 503, new { error = "服务正在退出" }); return true; }
                 if (request.ContentLength64 < 0 || request.ContentLength64 > 16384) { SendJson(response, 413, new { error = "请求过大" }); return true; }

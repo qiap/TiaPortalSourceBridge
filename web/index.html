@@ -962,6 +962,48 @@
         <div style="display:flex;align-items:center;gap:12px;margin-top:12px;"><button class="btn btn-sm" id="ioPrev" onclick="ioPage(-1)" disabled>上一页</button><span id="ioPageLabel">尚未读取</span><button class="btn btn-sm" id="ioNext" onclick="ioPage(1)" disabled>下一页</button></div>
         <p style="color:var(--text-muted);font-size:12px;margin-top:12px;">显示 PLC 已声明变量；不含未分配变量的硬件通道和在线实时值。Excel 导出当前筛选范围的全部分页，并包含引用明细和覆盖说明。</p>
       </div>
+      <div class="card" id="ioReconcilePanel" style="margin-bottom:20px;">
+        <div class="card-header"><span class="card-title">电气 Excel 点表对账</span><span style="color:var(--text-muted)">只读比较</span></div>
+        <p>上传电气点表，选择列和 PLC 范围，查看两边的差异。支持 .xlsx（不超过 8 MB）；不会修改变量表或映射块。</p>
+        <p id="recTarget" style="color:var(--text-muted);overflow-wrap:anywhere"></p>
+        <div class="audit-actions">
+          <button class="btn" id="recCached">读取本地 PLC 点表</button><button class="btn" id="recLive">重新读取博途点表</button>
+          <label>选择 Excel <input id="recFile" type="file" accept=".xlsx" style="max-width:320px"></label><button class="btn" id="recUpload" disabled>读取 Excel</button>
+        </div>
+        <p id="recStatus" role="status" aria-live="polite">先读取 PLC 点表，再上传 Excel 并核对列对应关系。</p>
+        <div id="recMapping" hidden>
+          <p id="recFileName" style="overflow-wrap:anywhere"></p>
+          <div class="audit-actions">
+            <label>工作表 <select class="search-input" id="recSheet"></select></label>
+            <label>表头行 <input class="search-input" id="recHeader" type="number" min="1" max="1048576" style="width:100px"></label>
+            <button class="btn" id="recPreview">更新表头预览</button>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:14px 0">
+            <label>地址列（必选）<select class="search-input" id="recAddress" style="width:100%"></select></label>
+            <label>名称列（必选）<select class="search-input" id="recName" style="width:100%"></select></label>
+            <label>类型列（可选）<select class="search-input" id="recType" style="width:100%"></select></label>
+            <label>注释列（可选）<select class="search-input" id="recComment" style="width:100%"></select></label>
+          </div>
+          <details><summary>查看 Excel 预览（前 5 条数据、前 12 列）</summary><div style="overflow:auto"><table class="execution-table" id="recSample"></table></div></details>
+          <div class="audit-actions" style="margin:16px 0">
+            <label>PLC 范围 <select class="search-input" id="recScope"><option value="native">原始变量表</option><option value="mapped">映射后的 I/O 点位</option></select></label>
+            <label>软件单元 <select class="search-input" id="recUnit"></select></label>
+            <label>变量表 <select class="search-input" id="recTable"></select></label>
+          </div>
+          <p style="color:var(--text-muted)">只比较所选范围的显式 I/Q/M 地址。映射点位使用完整符号名称；同一物理地址的多个符号会保留为候选，供你核对。公式和合并数据单元格请先粘贴为逐行普通值。</p>
+          <button class="btn btn-primary" id="recRun" disabled>开始只读对账</button>
+        </div>
+        <div id="recReport" hidden style="margin-top:20px">
+          <h3>对账结果</h3><p id="recReportSource" style="color:var(--text-muted);white-space:pre-wrap;overflow-wrap:anywhere"></p><p id="recSummary"></p>
+          <details><summary>对账范围与说明</summary><ul id="recWarnings"></ul></details>
+          <div class="audit-actions" style="margin:14px 0">
+            <select id="recFilter" class="search-input" aria-label="对账结果筛选"><option value="differences">全部差异</option><option value="all">全部结果</option><option value="different">字段差异</option><option value="excel_only">仅 Excel 列出</option><option value="plc_only">仅 PLC 列出</option><option value="conflict">地址或名称冲突</option><option value="ambiguous">存在多个匹配</option><option value="invalid">Excel 数据待修正</option><option value="match">所选字段一致</option></select>
+            <input id="recSearch" class="search-input" placeholder="搜索地址、名称、注释或差异" aria-label="搜索对账结果"><button class="btn" id="recExport" disabled>导出完整对账报告</button>
+          </div>
+          <div style="overflow:auto;max-height:650px"><table class="execution-table" style="min-width:1100px"><thead><tr><th>Excel 行</th><th>结果 / 说明</th><th>Excel 地址</th><th>PLC 地址</th><th>Excel 名称 / 类型 / 注释</th><th>PLC 名称 / 类型 / 注释</th><th>PLC 来源 / 引用</th></tr></thead><tbody id="recRows"></tbody></table></div>
+          <div class="audit-actions" style="margin-top:12px"><button class="btn btn-sm" id="recPrev">上一页</button><span id="recPage"></span><button class="btn btn-sm" id="recNext">下一页</button></div>
+        </div>
+      </div>
       <div class="card" id="ioReferencesPanel" hidden>
         <div class="card-header"><span class="card-title" id="ioReferencesTitle">交叉引用</span><button class="btn btn-sm" onclick="document.getElementById('ioReferencesPanel').hidden=true">关闭</button></div>
         <div id="ioReferencesNote" style="color:var(--text-muted);margin-bottom:12px;"></div>
@@ -1909,6 +1951,7 @@
     document.addEventListener('visibilitychange', () => { if (!document.hidden) browserHeartbeat(); });
   </script>
   <script src="/io.js"></script>
+  <script src="/io-reconcile.js"></script>
   <script src="/execution.js"></script>
   <script src="/cylinder-model.js"></script>
   <script src="/cylinder-naming.js"></script>
