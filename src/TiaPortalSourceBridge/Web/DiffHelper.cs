@@ -23,6 +23,8 @@ namespace TiaPortalSourceBridge.Web
         public List<DiffLine> lines { get; set; }
         public bool isBinary { get; set; }
         public string error { get; set; }
+        public SemanticDiffResult semantic { get; set; }
+        public object evidence { get; set; }
 
         public FileDiffResult()
         {
@@ -43,10 +45,11 @@ namespace TiaPortalSourceBridge.Web
 
             try
             {
-                string[] oldLines = File.Exists(oldFilePath) ? File.ReadAllLines(oldFilePath, Encoding.UTF8) : new string[0];
-                string[] newLines = File.Exists(newFilePath) ? File.ReadAllLines(newFilePath, Encoding.UTF8) : new string[0];
-
-                return ComputeDiff(oldLines, newLines, result);
+                if (!File.Exists(oldFilePath) || !File.Exists(newFilePath)) throw new IOException("对比文件缺失，不能将缺失源码视为删除。");
+                if (new FileInfo(oldFilePath).Length > 8 * 1024 * 1024 || new FileInfo(newFilePath).Length > 8 * 1024 * 1024) throw new IOException("单个对比文件不得超过 8 MiB。");
+                var compared = CompareText(File.ReadAllText(oldFilePath, Encoding.UTF8), File.ReadAllText(newFilePath, Encoding.UTF8), result.fileName);
+                compared.oldPath = oldFilePath; compared.newPath = newFilePath;
+                return compared;
             }
             catch (Exception ex)
             {
@@ -62,10 +65,22 @@ namespace TiaPortalSourceBridge.Web
                 fileName = displayName
             };
 
+            if (oldText == null || newText == null || oldText.Length > 8 * 1024 * 1024 || newText.Length > 8 * 1024 * 1024) { result.error = "源码缺失或超过大小限制。"; return result; }
+            if (TooManyLines(oldText) || TooManyLines(newText)) { result.error = "单份源码超过 100000 行，请缩小对比对象。"; return result; }
+            result.semantic = SemanticDiff.Compare(oldText, newText);
             string[] oldLines = string.IsNullOrEmpty(oldText) ? new string[0] : oldText.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
             string[] newLines = string.IsNullOrEmpty(newText) ? new string[0] : newText.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.None);
 
             return ComputeDiff(oldLines, newLines, result);
+        }
+
+        private static bool TooManyLines(string text)
+        {
+            int count = 1;
+            for (int i = 0; i < text.Length; i++)
+                if (text[i] == '\r' || text[i] == '\n' && (i == 0 || text[i - 1] != '\r'))
+                    if (++count > 100000) return true;
+            return false;
         }
 
         private static FileDiffResult ComputeDiff(string[] oldLines, string[] newLines, FileDiffResult result)
@@ -93,7 +108,7 @@ namespace TiaPortalSourceBridge.Web
             var suffix = new List<DiffLine>();
             while (endOld >= start && endNew >= start && string.Equals(oldLines[endOld], newLines[endNew], StringComparison.Ordinal))
             {
-                suffix.Insert(0, new DiffLine
+                suffix.Add(new DiffLine
                 {
                     type = "same",
                     oldLine = endOld + 1,
@@ -108,7 +123,7 @@ namespace TiaPortalSourceBridge.Web
             int midOldLen = endOld - start + 1;
             int midNewLen = endNew - start + 1;
 
-            if (midOldLen > 0 && midNewLen > 0 && midOldLen * midNewLen <= 4000000)
+            if (midOldLen > 0 && midNewLen > 0 && (long)midOldLen * midNewLen <= 4000000)
             {
                 int[,] lcs = new int[midOldLen + 1, midNewLen + 1];
                 for (int i = 0; i < midOldLen; i++)
@@ -197,6 +212,7 @@ namespace TiaPortalSourceBridge.Web
                 }
             }
 
+            suffix.Reverse();
             result.lines.AddRange(suffix);
             return result;
         }

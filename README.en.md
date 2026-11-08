@@ -68,6 +68,14 @@ The read-only report identifies changed fields, entries listed on only one side,
 
 This first version does not write to the engineering project. It accepts `.xlsx` files up to 8 MB, 20 sheets, 20000 nonempty rows in total, and 128 columns; save legacy `.xls` files as `.xlsx` first. Hidden rows are included and Excel filters are not applied. Formulas, error cells, and merged data cells are explicitly marked for correction; paste them as individual values first. Comparisons use the selected snapshot, not live values, unassigned hardware channels, or external device usage. The process keeps the latest three uploads and reports in memory. Export to retain the overview, all comparison rows, and PLC candidate evidence independently of the page filter.
 
+### Structural change review
+
+Open **变更审查与 Diff** and select a backup to compare against the indexed source snapshot for the selected project and PLC. Structural changes cover tag names, addresses, types and comments; block interfaces and DB/UDT member order, types and start values; and program networks matched by position. Filter by area, expand before/after values, or switch to the original line diff. Backup and snapshot timestamps and SHA256 hashes remain visible.
+
+Comparison does not connect to or write to TIA Portal. For fresh evidence, reread from TIA on the I/O page first. Missing, stale, altered or ambiguous snapshots produce an error rather than an apparent deletion. The list shows the latest 100 matching backups, including batch subdirectories. Legacy backup metadata lacks software-unit identity, so unit-scoped objects are not automatically matched.
+
+This first version compares XML structure, ignoring export-envelope timestamps and known object IDs. Supported LAD/SCL network UIds are normalized together with their references; unknown structures retain identifiers conservatively. Networks are matched by order, so insertion or movement can produce multiple changes. Member renames appear as removal and addition. GRAPH/STL and unknown structures may retain ID noise; plain text and SimaticSD retain the original text comparison. The tool does not establish logical equivalence or predict DB offsets, download reinitialization or HMI impacts. Each source is limited to 8 MiB and the complete response to 32 MiB; exceeding a limit produces an explicit error.
+
 ### Program audit
 
 Select a project and PLC, then open **程序体检** (Program audit). Read the local source cache or read fresh sources from TIA Portal before scanning; an existing completed snapshot can also be checked directly. Reports identify the source, timestamps, coverage, and relevant blocks, networks, and variables. Filter by rule or text, or export the full report and its coverage notes to Excel, independently of the current filter.

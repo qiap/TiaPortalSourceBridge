@@ -1284,106 +1284,26 @@ namespace TiaPortalSourceBridge.Web
                 return;
             }
 
-            if (path.Equals("/api/backups", StringComparison.OrdinalIgnoreCase))
+            if (path == "/api/backups" || path == "/api/diff")
             {
-                string backupDir = Path.Combine(rootDir, "block-backups");
-                var list = new List<Dictionary<string, object>>();
-
-                if (Directory.Exists(backupDir))
-                {
-                    var metaFiles = Directory.GetFiles(backupDir, "*.meta.json")
-                        .Select(f => new FileInfo(f))
-                        .OrderByDescending(f => f.LastWriteTimeUtc)
-                        .Take(100);
-
-                    foreach (var fi in metaFiles)
-                    {
-                        try
-                        {
-                            string metaJson = File.ReadAllText(fi.FullName, Encoding.UTF8);
-                            var meta = _json.Deserialize<Dictionary<string, object>>(metaJson);
-                            string xmlFile = fi.FullName.Substring(0, fi.FullName.Length - ".meta.json".Length);
-                            long xmlSize = File.Exists(xmlFile) ? new FileInfo(xmlFile).Length : 0;
-
-                            list.Add(new Dictionary<string, object>
-                            {
-                                { "meta_file", fi.Name },
-                                { "xml_file", Path.GetFileName(xmlFile) },
-                                { "xml_size", xmlSize },
-                                { "name", meta.ContainsKey("Name") ? meta["Name"] : "" },
-                                { "kind", meta.ContainsKey("Kind") ? meta["Kind"] : "" },
-                                { "group", meta.ContainsKey("GroupPath") ? meta["GroupPath"] : "" },
-                                { "plc", meta.ContainsKey("Plc") ? meta["Plc"] : "" },
-                                { "created_at", meta.ContainsKey("CreatedAtUtc") ? meta["CreatedAtUtc"] : fi.LastWriteTime.ToString("o") },
-                                { "sha256", meta.ContainsKey("Sha256") ? meta["Sha256"] : "" }
-                            });
-                        }
-                        catch { }
-                    }
-                }
-
-                SendJson(response, 200, list);
-                return;
-            }
-
-            if (path.Equals("/api/diff", StringComparison.OrdinalIgnoreCase))
-            {
-                // UTF-8 unescape query parameters
-                string backupXml = GetQueryParam(request, "backup");
-                string sourceFile = GetQueryParam(request, "file");
-                string blockName = GetQueryParam(request, "name");
-
-                string backupDir = Path.Combine(rootDir, "block-backups");
-                string activeProject = !string.IsNullOrWhiteSpace(recent.LastProjectPath) ? recent.LastProjectPath : _config.ProjectPath;
-                string sourceDir = _config.SourceDirectory;
-
-                // Read exact Name from metadata file if backup is given to eliminate any URL decoding issues
-                if (!string.IsNullOrWhiteSpace(backupXml))
-                {
-                    string metaPath = Path.Combine(backupDir, Path.GetFileName(backupXml) + ".meta.json");
-                    if (File.Exists(metaPath))
-                    {
-                        try
-                        {
-                            var metaMap = _json.Deserialize<Dictionary<string, object>>(File.ReadAllText(metaPath, Encoding.UTF8));
-                            if (metaMap != null && metaMap.ContainsKey("Name"))
-                            {
-                                string exactName = Convert.ToString(metaMap["Name"]);
-                                if (!string.IsNullOrWhiteSpace(exactName))
-                                {
-                                    blockName = exactName;
-                                }
-                            }
-                        }
-                        catch { }
-                    }
-                }
-
-                string oldPath = "";
-                string newPath = "";
-
-                if (!string.IsNullOrWhiteSpace(backupXml))
-                {
-                    oldPath = Path.Combine(backupDir, Path.GetFileName(backupXml));
-                }
-
-                if (!string.IsNullOrWhiteSpace(sourceFile))
-                {
-                    newPath = Path.Combine(sourceDir, sourceFile);
-                }
-                else if (!string.IsNullOrWhiteSpace(blockName) && Directory.Exists(sourceDir))
-                {
-                    // Find matching block in source directory
-                    string[] candidates = Directory.GetFiles(sourceDir, blockName + ".*", SearchOption.AllDirectories);
-                    if (candidates.Length > 0)
-                    {
-                        newPath = candidates[0];
-                    }
-                }
-
-                string displayName = !string.IsNullOrWhiteSpace(blockName) ? blockName : Path.GetFileName(newPath ?? oldPath);
-                FileDiffResult diff = DiffHelper.CompareFiles(oldPath, newPath, displayName);
-                SendJson(response, 200, diff);
+                response.Headers.Remove("Access-Control-Allow-Origin");
+                response.Headers["Cache-Control"] = "no-store";
+                Uri origin; string originText = request.Headers["Origin"];
+                if (request.Headers["Sec-Fetch-Site"] == "cross-site" || (!string.IsNullOrEmpty(originText) &&
+                    (!Uri.TryCreate(originText, UriKind.Absolute, out origin) || origin.Scheme != request.Url.Scheme || origin.Host != request.Url.Host || origin.Port != request.Url.Port)))
+                { SendJson(response, 403, new { error = "仅允许本地看板访问" }); return; }
+                if (request.HttpMethod != "GET") { SendJson(response, 405, new { error = "仅支持读取" }); return; }
+                string project = GetQueryParam(request, "project_path"), plc = GetQueryParam(request, "plc_name");
+                if (string.IsNullOrWhiteSpace(plc) || !File.Exists(project) || !actionTargets.Verify(project, plc, GetQueryParam(request, "target_token")))
+                { SendJson(response, 409, new { error = "请刷新看板并选择有效的工程与 PLC。" }); return; }
+                try {
+                    string backupDir = Path.Combine(rootDir, "block-backups");
+                    object result = path == "/api/backups" ? (object)SnapshotDiff.List(backupDir, project, plc) :
+                        SnapshotDiff.Compare(backupDir, GetQueryParam(request, "backup"), project, plc, AppConfig.DetectProjectVersion(project));
+                    // Validate before committing response headers; never send a truncated comparison.
+                    if (Encoding.UTF8.GetByteCount(_json.Serialize(result)) > 32 * 1024 * 1024) throw new InvalidOperationException("对比结果超过 32 MiB，请缩小对象。");
+                    SendJson(response, 200, result);
+                } catch (Exception ex) { SendJson(response, 409, new { error = "对比不可用：" + ex.Message }); }
                 return;
             }
 
