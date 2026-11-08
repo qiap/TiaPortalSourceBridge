@@ -16,6 +16,14 @@ const makeReport=()=>({schema:1,id:'report',...target,snapshot_started:'2026-11-
   const report=makeReport();if(mode==='zero')report.findings=[];
   if(mode==='live-report')report.coverage.source_mode='tia_readback';
   if(mode==='access')report.findings[0].locations=['declaration','writes','reads_writes','connection'].map(access=>({...report.findings[0].locations[0],access}));
+  if(mode==='scl'){
+   Object.assign(report.coverage,{scl_regions:5,scl_regions_analyzed:4,scl_write_sites:3,scl_partial_blocks:1});
+   report.findings[0].locations=[
+    {...report.findings[0].locations[0],language:'SCL',line:12457,column:9,line_basis:'exported_text',access:'writes',statement:'"Valve" := \'<img src=x onerror=alert(1)>\';\n"Value" := 42;'},
+    {...report.findings[0].locations[0],language:'SCL',line:3,column:1,line_basis:'reconstructed_scl',access:'reads_writes',statement:'"DB".Flag := "Value" > 0;'},
+    {...report.findings[0].locations[0],access:'writes'}
+   ];
+  }
   if(mode==='pages')report.findings=Array.from({length:53},(_,i)=>({...report.findings[0],id:String(i),subject:'Tag'+i}));
   await page.route('**/*',async route=>{
    const request=route.request(),url=new URL(request.url());
@@ -53,6 +61,7 @@ const makeReport=()=>({schema:1,id:'report',...target,snapshot_started:'2026-11-
   assert.equal(await f.page.locator('#auditRun').isDisabled(),true);assert.equal(await f.page.locator('#auditExport').isDisabled(),true);assert.equal(f.calls.length,0);checks++;
   await complete(f,'#auditCached');assert.deepEqual(await f.page.evaluate(()=>window.readModes),['source']);assert.deepEqual(f.calls.find(c=>c.method==='POST').body,{id:'snapshot-new',...target});assert.equal(f.calls.filter(c=>c.method==='POST').length,1);checks++;
   assert.match(await f.page.locator('#auditSummary').textContent(),/共 3 项发现/);assert.match(await f.page.locator('#auditCoverage').textContent(),/已读取程序块：9/);assert.match(await f.page.locator('#auditLimitList').textContent(),/SCL 控制流未覆盖/);assert.match(await f.page.locator('#auditLimitList').textContent(),/读取失败/);checks++;
+  assert.equal(await f.page.locator('#auditSclNote').isHidden(),true);assert.equal(await f.page.locator('.audit-finding').first().locator('th').count(),4);checks++;
   assert.equal(await f.page.locator('#auditLimits').evaluate(e=>e.open),false);assert.match(await f.page.locator('#auditLimitsSummary').textContent(),/2 条说明/);assert.equal(await f.page.locator('#auditLimitList').isVisible(),false);assert.match(await f.page.locator('#auditCoverage').textContent(),/部分或全部行为未覆盖的块：1/);await f.page.locator('#auditLimitsSummary').click();assert.equal(await f.page.locator('#auditLimitList').isVisible(),true);await f.page.locator('#auditLimitsSummary').click();
   assert.match(await f.page.locator('#auditCoverage').textContent(),/PLC 程序总数：2.*已读取 PLC 程序：1.*变量表总数：4.*已读取变量表：3/);assert.match(await f.page.locator('#auditSource').textContent(),/本地缓存源码（本次未重新读取博途）/);assert.match(await f.page.locator('#auditSourceNote').textContent(),/2026-11-06T01:00:00Z 至 2026-11-07T02:00:00Z/);assert.match(await f.page.locator('#auditSnapshot').textContent(),/^本次读取\/整理时间：/);checks++;
   assert.equal(await f.page.locator('#auditReport img,#auditReport svg,#auditReport script').count(),0);assert.match(await f.page.locator('#auditFindings').textContent(),/<img src=x/);checks++;
@@ -76,6 +85,13 @@ const makeReport=()=>({schema:1,id:'report',...target,snapshot_started:'2026-11-
   }
   f=await fixture('zero');await complete(f);assert.match(await f.page.locator('#auditFindings').textContent(),/不能据此认定程序安全/);checks++;await f.context.close();
   f=await fixture('access');await complete(f);await f.page.locator('.audit-finding summary').first().click();assert.deepEqual(await f.page.locator('.audit-finding').first().locator('td:nth-child(3)').allTextContents(),['变量声明','写入','读取与写入','参数连接']);checks++;await f.context.close();
+  f=await fixture('scl');await complete(f);await f.page.locator('.audit-finding summary').first().click();
+  assert.match(await f.page.locator('#auditCoverage').textContent(),/SCL 源码区域：5.*已分析 SCL 区域：4.*已识别 SCL 写入位置：3.*SCL 写入识别不完整的块：1/);checks++;
+  assert.equal(await f.page.locator('#auditSclNote').isVisible(),true);assert.match(await f.page.locator('#auditSclNote').textContent(),/不是博途编辑器的绝对行号.*不同分支.*Temp/);checks++;
+  assert.deepEqual(await f.page.locator('.audit-finding').first().locator('.audit-source-position').allTextContents(),['SCL · 导出文本行 12457，列 9','SCL · 重建 SCL 行 3，列 1']);assert.equal(await f.page.locator('.audit-finding').first().locator('th').count(),5);assert.equal(await f.page.locator('.audit-finding').nth(1).locator('th').count(),4);checks++;
+  assert.deepEqual(await f.page.locator('.audit-finding').first().locator('.audit-source-statement').allTextContents(),['"Valve" := \'<img src=x onerror=alert(1)>\';\n"Value" := 42;','"DB".Flag := "Value" > 0;']);assert.equal(await f.page.locator('.audit-source-statement img,.audit-source-statement script').count(),0);assert.equal(await f.page.locator('.audit-source-statement').first().evaluate(e=>getComputedStyle(e).whiteSpace),'pre-wrap');checks++;
+  if(process.env.AUDIT_SCL_SCREENSHOT)await f.page.locator('#tab-audit').screenshot({path:process.env.AUDIT_SCL_SCREENSHOT});
+  await f.page.locator('#auditSearch').fill('12457');assert.equal(await f.page.locator('.audit-finding').count(),1);await f.page.locator('#auditSearch').fill('"DB".Flag := "Value"');assert.equal(await f.page.locator('.audit-finding').count(),1);assert.deepEqual(f.errors,[]);checks++;await f.context.close();
   f=await fixture('running');await complete(f);assert.equal(f.calls.filter(c=>c.path.endsWith('audit-status')).length,2);assert.equal(f.calls.filter(c=>c.method==='POST').length,1);checks++;await f.context.close();
   f=await fixture('pages');await complete(f);assert.equal(await f.page.locator('.audit-finding').count(),50);await f.page.locator('#auditNext').click();assert.equal(await f.page.locator('.audit-finding').count(),3);assert.match(await f.page.locator('#auditPage').textContent(),/2 \/ 2/);checks++;await f.context.close();
   f=await fixture();await f.page.evaluate(()=>{window.cylinderApplying=true;window.auditSync();document.getElementById('auditRun').onclick();document.getElementById('auditLive').onclick();});assert.equal(f.calls.length,0);assert.equal(await f.page.locator('#auditRun').isDisabled(),true);checks++;await f.context.close();

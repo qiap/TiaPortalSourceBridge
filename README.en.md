@@ -68,7 +68,9 @@ Checks cover supported explicit I/Q/M declarations, LAD coils and call parameter
 
 The **调用关系** (Call relationships) view uses every identified OB in the snapshot as an entry point. Select a block to inspect one discovered OB path and its incoming or outgoing call sites and instances. Unresolved calls remain visible. Multiple calls to the same identified instance DB or host-local multi-instance produce a review note; software units and local instances in different hosts remain separate. A missing OB path means no path was found within the recognized snapshot, not that a block never executes or can be deleted. Missing sources, unresolved targets, and output limits are disclosed. Excel reports add call-relationship and OB-path worksheets.
 
-Complete SCL/GRAPH control flow, Temp initialization, dynamic addressing, hardware addresses, DB layouts, and HMI/external writes are not covered. Timer and edge-trigger instances without verifiable identities are excluded from reuse conclusions. No findings does not establish logical safety. Analysis does not modify, compile, save, or download the engineering project.
+SCL checks read the full cached source and recognize supported direct assignments plus output/in-out argument writes verified against the called block's interface. These locations are grouped with LAD/STL writes. Comments, strings, and input arguments are excluded. Evidence includes the statement, line, column, and location basis in both the dashboard and Excel. Locations refer to exported text or reconstructed text within a network, not absolute TIA editor line numbers.
+
+Complete SCL/GRAPH control flow, Temp initialization, dynamic addressing, hardware addresses, DB layouts, and HMI/external writes are not covered. Unverified calls, complex targets, and unresolved timer/edge-trigger instances have explicit coverage notes. Writes in separate branches do not necessarily conflict, and no findings does not establish logical safety. Analysis does not modify, compile, save, or download the engineering project.
 
 The service retains up to four reports in memory. Export Excel files to keep them after restarting the tool.
 

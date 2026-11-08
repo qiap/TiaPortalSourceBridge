@@ -4,7 +4,7 @@
   if(!el('auditRun'))return;
   const rules={address_overlap:'地址重叠',multiple_writes:'多处写入',template_pin:'模板参数接线',instance_reuse:'实例多处调用',no_ob_path:'未发现 OB 调用路径'};
   const severity={warning:'待核对',info:'提示'};
-  const coverageNames={programs_total:'PLC 程序总数',programs_read:'已读取 PLC 程序',tag_tables_total:'变量表总数',tag_tables_read:'已读取变量表',blocks_total:'程序块总数',blocks_read:'已读取程序块',blocks_parsed:'已解析程序块',native_tags:'原始变量声明',addresses_checked:'已检查地址',templates:'有效项目模板',template_calls_checked:'已检查模板调用',supported_write_sites:'已识别写入位置',unsupported_blocks:'部分或全部行为未覆盖的块'};
+  const coverageNames={programs_total:'PLC 程序总数',programs_read:'已读取 PLC 程序',tag_tables_total:'变量表总数',tag_tables_read:'已读取变量表',blocks_total:'程序块总数',blocks_read:'已读取程序块',blocks_parsed:'已解析程序块',native_tags:'原始变量声明',addresses_checked:'已检查地址',templates:'有效项目模板',template_calls_checked:'已检查模板调用',supported_write_sites:'已识别写入位置',scl_regions:'SCL 源码区域',scl_regions_analyzed:'已分析 SCL 区域',scl_write_sites:'已识别 SCL 写入位置',scl_partial_blocks:'SCL 写入识别不完整的块',unsupported_blocks:'部分或全部行为未覆盖的块'};
   const sources={local_cache:'本地缓存源码（本次未重新读取博途）',tia_readback:'从博途读取的源码快照'};
   const accessNames={declaration:'变量声明',writes:'写入',reads_writes:'读取与写入',connection:'参数连接',calls:'调用',call:'调用',call_path:'调用路径',instance_call:'实例调用'};
   const graphStatuses={root:'OB 入口',reachable:'已找到 OB 路径',no_ob_path:'未发现 OB 路径',unknown:'无法判定'};
@@ -23,6 +23,8 @@
   const blocking=s=>s.busy||!!window.cylinderApplying||!!window.cylinderRecoveryPending;
   const message=value=>el('auditStatus').textContent=value;
   const text=(tag,value,className)=>{const node=document.createElement(tag);node.textContent=value??'';if(className)node.className=className;return node;};
+  const lineBasis={exported_text:'导出文本行',reconstructed_scl:'重建 SCL 行'};
+  const sourcePosition=location=>[location.language,Number.isInteger(location.line)&&location.line>0?(lineBasis[location.line_basis]||'来源未注明的行')+' '+location.line+(Number.isInteger(location.column)&&location.column>0?'，列 '+location.column:''):''].filter(Boolean).join(' · ');
   const date=value=>{const d=new Date(value);return value&&!Number.isNaN(d.getTime())?d.toLocaleString():'未提供';};
   function sync() {
     const s=state();
@@ -93,6 +95,7 @@
     el('auditReport').hidden=false;
     el('auditReportTarget').textContent=[report.project_path,report.plc_name].filter(Boolean).join(' · ');
     const coverage=report.coverage||{};
+    el('auditSclNote').hidden=coverage.scl_regions==null&&!report.findings.some(f=>(f.locations||[]).some(l=>l.language==='SCL'));
     el('auditSource').textContent='数据来源：'+(sources[coverage.source_mode]||coverage.source_mode||'未提供，请核对源码来源。');
     el('auditSourceNote').textContent='源码读取范围：'+(coverage.source_note||'未提供原始源码读取时间或范围，请结合源码缓存核对。');
     el('auditSnapshot').textContent='本次读取/整理时间：'+date(report.snapshot_started)+' 至 '+date(report.snapshot_completed)+' · 报告生成：'+date(report.generated_at);
@@ -111,7 +114,7 @@
   function renderFindings() {
     if(!report)return;
     const query=el('auditSearch').value.trim().toLocaleLowerCase(),level=el('auditSeverity').value,rule=el('auditRule').value;
-    const filtered=report.findings.filter(f=>(level==='all'||f.severity===level)&&(rule==='all'||f.rule===rule)&&(!query||JSON.stringify(f).toLocaleLowerCase().includes(query)));
+    const filtered=report.findings.filter(f=>(level==='all'||f.severity===level)&&(rule==='all'||f.rule===rule)&&(!query||JSON.stringify(f).toLocaleLowerCase().includes(query)||(f.locations||[]).some(l=>String(l.statement||'').toLocaleLowerCase().includes(query))));
     const pages=Math.max(1,Math.ceil(filtered.length/pageSize));page=Math.max(1,Math.min(page,pages));
     el('auditFilterSummary').textContent='当前筛选 '+filtered.length+' / 全部 '+report.findings.length+' 项';
     el('auditPage').textContent='第 '+page+' / '+pages+' 页';el('auditPrev').disabled=page<=1;el('auditNext').disabled=page>=pages;
@@ -124,8 +127,14 @@
       const detail=document.createElement('details'),locations=Array.isArray(f.locations)?f.locations:[];
       detail.append(text('summary','查看 '+locations.length+' 条定位证据'+(f.confidence==='confirmed'?' · 现象已确认':f.confidence==='review'?' · 需结合上下文判断':'')));
       const wrapper=document.createElement('div');wrapper.className='audit-evidence';const table=document.createElement('table');table.className='execution-table';
-      const head=table.createTHead().insertRow();['程序块 / 位置','符号 / 地址','访问类型','证据'].forEach(value=>head.append(text('th',value)));
-      for(const l of locations){const row=table.insertRow();[[l.unit,l.group,l.block,l.network?'网络 '+l.network:'',l.location].filter(Boolean).join(' / '),[l.symbol,l.address].filter(Boolean).join(' · '),accessNames[l.access]||l.access,l.evidence].forEach(value=>row.append(text('td',value)));}
+      const hasStatements=locations.some(l=>l.statement),head=table.createTHead().insertRow();
+      [...['程序块 / 位置','符号 / 地址','访问类型','证据'],...(hasStatements?['语句']:[])].forEach(value=>head.append(text('th',value)));
+      for(const l of locations){
+        const row=table.insertRow(),position=text('td',[l.unit,l.group,l.block,l.network?'网络 '+l.network:'',l.location].filter(Boolean).join(' / '));
+        const source=sourcePosition(l);if(source)position.append(text('div',source,'audit-source-position'));row.append(position);
+        [[l.symbol,l.address].filter(Boolean).join(' · '),accessNames[l.access]||l.access,l.evidence].forEach(value=>row.append(text('td',value)));
+        if(hasStatements){const cell=text('td','');if(l.statement)cell.append(text('pre',l.statement,'audit-source-statement'));row.append(cell);}
+      }
       wrapper.append(table);detail.append(wrapper);card.append(detail);return card;
     });
     el('auditFindings').replaceChildren(...nodes);

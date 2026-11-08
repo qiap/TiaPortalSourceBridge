@@ -81,6 +81,35 @@ internal static class AuditWorkbookChecks
         report = Fixture(); report.findings[0].locations.Add(null);
         Reject(() => AuditWorkbook.Create(report), "missing evidence object rejected");
     }
+    private static void SclWorkbook()
+    {
+        var report = Fixture();
+        report.coverage["scl_regions"] = 5; report.coverage["scl_regions_analyzed"] = 4;
+        report.coverage["scl_write_sites"] = 3; report.coverage["scl_partial_blocks"] = 1;
+        var location = report.findings[0].locations[0];
+        location.language = "SCL"; location.line = 12457; location.column = 9; location.line_basis = "exported_text";
+        location.statement = "=HYPERLINK(\"x\")\n\"阀<&>\" := '文本';";
+        var second = report.findings[0].locations[1]; second.language = "SCL"; second.line = 3; second.column = 1;
+        second.line_basis = "reconstructed_scl"; second.statement = "\"DB\".Value := 42;";
+        using (var zip = new ZipArchive(new MemoryStream(AuditWorkbook.Create(report)), ZipArchiveMode.Read)) {
+            var overview = CellTexts(Read(zip, "xl/worksheets/sheet1.xml"));
+            Check(new[] { "覆盖 / SCL 源码区域数", "覆盖 / 已分析 SCL 区域数", "覆盖 / 已识别 SCL 写入位置数", "覆盖 / SCL 写入识别不完整的块数" }.All(overview.Contains), "SCL coverage has readable labels, including partial analysis");
+            Check(overview.Any(t => t.Contains("不是博途编辑器的绝对行号")) && overview.Any(t => t.Contains("不同分支的写入不代表同时执行") && t.Contains("Temp")), "SCL location and execution limitations accompany export");
+            var evidence = Read(zip, "xl/worksheets/sheet3.xml"); var rows = evidence.SelectNodes("//*[local-name()='row']").Cast<XmlNode>().ToArray();
+            Func<int, string[]> row = i => rows[i].SelectNodes("*[local-name()='c']/*[local-name()='is']/*[local-name()='t']").Cast<XmlNode>().Select(n => n.InnerText).ToArray();
+            Check(row(0).Skip(10).SequenceEqual(new[] { "语言", "区域内行号", "列号", "行号依据", "语句" }), "SCL evidence extends existing column order");
+            Check(row(1).Skip(10).SequenceEqual(new[] { "SCL", "12457", "9", "导出文本行", location.statement }), "exported text location and original multiline statement preserved");
+            Check(row(2).Skip(10).SequenceEqual(new[] { "SCL", "3", "1", "重建 SCL 行", second.statement }), "reconstructed SCL line basis is explicit");
+            Check(row(3).Skip(10).All(t => t == ""), "old non-SCL evidence remains empty instead of fabricated line zero");
+            Check(evidence.SelectNodes("//*[local-name()='f' or local-name()='hyperlink']").Count == 0 && evidence.SelectNodes("//*[local-name()='c']").Cast<XmlNode>().All(c => c.Attributes["t"].Value == "inlineStr"), "source statements remain text, never formulas or external links");
+            Check(evidence.SelectSingleNode("//*[local-name()='autoFilter']").Attributes["ref"].Value == "A1:O4", "filter includes all added evidence columns");
+        }
+        report = Fixture();
+        using (var zip = new ZipArchive(new MemoryStream(AuditWorkbook.Create(report)), ZipArchiveMode.Read))
+            Check(!CellTexts(Read(zip, "xl/worksheets/sheet1.xml")).Contains("SCL / 定位说明"), "legacy report does not imply new SCL analysis was performed");
+        report.findings[0].locations[0].statement = new string('x', AuditWorkbook.MaxCellLength + 1);
+        Reject(() => AuditWorkbook.Create(report), "overlong SCL statement fails export rather than silently truncating evidence");
+    }
     private static AuditReport GraphFixture()
     {
         var report = Fixture(); report.schema = 2;
@@ -157,7 +186,7 @@ internal static class AuditWorkbookChecks
     }
     private static int Main(string[] args)
     {
-        try { Workbook(args.Length == 0 ? null : args[0]); EmptyAndLimits(); CallGraphWorkbook(args.Length == 0 ? null : args[0]); Console.WriteLine("PASS: " + checks + " audit workbook checks; no TIA connection or project changes."); return 0; }
+        try { Workbook(args.Length == 0 ? null : args[0]); EmptyAndLimits(); SclWorkbook(); CallGraphWorkbook(args.Length == 0 ? null : args[0]); Console.WriteLine("PASS: " + checks + " audit workbook checks; no TIA connection or project changes."); return 0; }
         catch (Exception ex) { Console.Error.WriteLine(ex.GetType().Name + ": " + ex.Message); return 1; }
     }
 }

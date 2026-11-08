@@ -689,6 +689,8 @@
     .audit-finding summary {cursor:pointer;padding:8px 0}
     .audit-finding .execution-table td:first-child {white-space:normal}
     .audit-finding .audit-evidence {overflow:auto;margin-top:8px}
+    .audit-source-position {margin-top:6px;color:var(--text-muted);white-space:normal}
+    .audit-source-statement {margin:0;min-width:240px;max-width:640px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px}
     .audit-view-switch {display:flex;gap:8px;margin:18px 0}
     .audit-view-switch [aria-pressed="true"] {background:var(--primary,#06b6d4);color:#fff}
     .audit-graph-table {overflow:auto;max-height:560px;border:1px solid var(--card-border);border-radius:8px}
@@ -1051,7 +1053,7 @@
       <div class="card">
         <div class="card-header"><span class="card-title">PLC 程序体检</span></div>
         <p id="auditTarget" style="color:var(--text-muted)">请先选择工程与 PLC。</p>
-        <p>基于源码快照检查地址重叠、多处写入、模板参数接线及实例复用，并查看 OB 调用路径。体检不修改或编译工程，不下载到 PLC。</p>
+        <p>基于源码快照检查地址重叠、多处写入（含受支持的 SCL 显式写入）、模板参数接线及实例复用，并查看 OB 调用路径。体检不修改或编译工程，不下载到 PLC。</p>
         <div class="audit-actions">
           <button class="btn" id="auditCached">读取本地源码并体检</button>
           <button class="btn" id="auditLive">从博途重新读取并体检</button>
@@ -1067,6 +1069,7 @@
           <p id="auditSourceNote" style="white-space:pre-wrap;color:var(--text-muted)"></p>
           <p id="auditSnapshot" style="color:var(--text-muted)"></p>
           <div id="auditCoverage"></div>
+          <p id="auditSclNote" hidden style="color:var(--text-muted)">SCL 证据中的行号对应所在源码区域的导出文本或重建文本，不是博途编辑器的绝对行号。只识别受支持的显式写入；不同分支的写入不代表同时执行，完整控制流与 Temp 先写后读尚未检查。</p>
           <p id="auditSummary"></p>
           <details id="auditLimits"><summary id="auditLimitsSummary">检查范围与未覆盖项</summary><ul id="auditLimitList"></ul></details>
           <p>“待核对”表示发现了需要人工判断的现象，不代表已经确认逻辑错误。没有发现问题也不代表程序已通过安全验证。</p>

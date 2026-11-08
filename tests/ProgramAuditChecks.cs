@@ -119,6 +119,28 @@ internal static class ProgramAuditChecks
         report = Run(Snapshot(Block("OtherHost")), good, template);
         Check(report.warnings.Any(w => w.Contains("模板宿主不在")), "absent template host is explicit coverage gap");
     }
+    static void SclIntegration()
+    {
+        var lad = Block("Ladder"); var scl = Block("Structured", language: "SCL"); var stl = Block("Statement", language: "STL");
+        var snapshot = Snapshot(lad, scl, stl); snapshot.rows.Add(Tag("Valve", "%Q2.0"));
+        string ladder = Doc(Net(Access(1, "Valve") + Coil(2), Wire(1, 2)));
+        string structured = Doc("<SourceText>// Valve := FALSE;\nValve := TRUE;\n%Q2.0 := FALSE;</SourceText>");
+        string statement = Doc("<StlStatement><StlToken Text='='/>", Absolute(1, "Q", 16), "</StlStatement>");
+        var report = ProgramAudit.Run(snapshot, b => b == lad ? ladder : b == scl ? structured : statement, null);
+        var write = Rule(report, "multiple_writes").Single();
+        Check(write.subject == "Q2.0" && write.locations.Count == 4, "SCL, LAD and STL sites share declared physical alias identity");
+        var locations = write.locations.Where(l => l.language == "SCL").ToArray();
+        Check(locations.Length == 2 && locations.All(l => l.line > 0 && l.column > 0 && !string.IsNullOrEmpty(l.statement) && l.line_basis == "exported_text"), "SCL evidence retains statement and source location through grouping");
+        Check((int)report.coverage["scl_regions"] == 1 && (int)report.coverage["scl_regions_analyzed"] == 1 && (int)report.coverage["scl_write_sites"] == 2 && (int)report.coverage["scl_partial_blocks"] == 0, "SCL coverage measures explicit write analysis separately from full control flow");
+        Check(IndexJson.Serializer().Serialize(report).Contains("line_basis"), "source evidence is available in serialized reports");
+        structured = Doc("<SourceText>#Same := TRUE;\n#Same := FALSE;</SourceText>");
+        var localOther = Block("Other", language: "SCL");
+        report = ProgramAudit.Run(Snapshot(scl, localOther), b => structured, null);
+        Check(Rule(report, "multiple_writes").Count == 2 && Rule(report, "multiple_writes").All(f => f.locations.Count == 2), "SCL local write groups stay isolated by host");
+        var otherUnit = Block("OtherUnit", "Unit2", "SCL");
+        report = ProgramAudit.Run(Snapshot(scl, otherUnit), b => Doc("<SourceText>Valve := TRUE;</SourceText>"), null);
+        Check(Rule(report, "multiple_writes").Count == 0, "SCL global writes remain isolated by software unit");
+    }
     static void Coverage()
     {
         var snapshot = Snapshot(Block("Good"), Block("Bad"), Block("Text", language: "SCL")); snapshot.cylinderProgramsTotal = 5; snapshot.tables_total = 2;
@@ -132,7 +154,7 @@ internal static class ProgramAuditChecks
     }
     static int Main()
     {
-        try { Addresses(); Writes(); Pins(); Coverage(); Console.WriteLine("PASS: " + checks + " program audit checks; offline evidence only, no TIA connection or project writes."); return 0; }
+        try { Addresses(); Writes(); Pins(); SclIntegration(); Coverage(); Console.WriteLine("PASS: " + checks + " program audit checks; offline evidence only, no TIA connection or project writes."); return 0; }
         catch (Exception ex) { Console.Error.WriteLine(ex.GetType().Name + ": " + ex.Message); return 1; }
     }
 }

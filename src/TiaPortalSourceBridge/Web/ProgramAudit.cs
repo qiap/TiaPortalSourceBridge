@@ -48,6 +48,11 @@ namespace TiaPortalSourceBridge.Web
         public string address { get; set; }
         public string access { get; set; }
         public string evidence { get; set; }
+        public string language { get; set; }
+        public int line { get; set; }
+        public int column { get; set; }
+        public string statement { get; set; }
+        public string line_basis { get; set; }
     }
     internal sealed class AuditTemplate
     {
@@ -83,6 +88,7 @@ namespace TiaPortalSourceBridge.Web
         {
             internal AuditReport Report;
             internal int Parsed, Read, Unsupported, Calls, Sites;
+            internal int SclRegions, SclRegionsAnalyzed, SclSites, SclPartialBlocks;
             internal bool Truncated;
             internal readonly Dictionary<string, List<WriteSite>> Writes = new Dictionary<string, List<WriteSite>>(StringComparer.OrdinalIgnoreCase);
             internal readonly HashSet<string> SiteIds = new HashSet<string>(StringComparer.Ordinal);
@@ -186,7 +192,7 @@ namespace TiaPortalSourceBridge.Web
             return unit + "\nsymbol:" + symbol;
         }
         private static void AddWrite(Scan scan, IndexEntry block, ILookup<string, Declared> aliases, string target,
-            string network, string site, string access, string evidence, bool setReset)
+            string network, string site, string access, string evidence, bool setReset, AuditLocation sourceLocation = null)
         {
             if (string.IsNullOrWhiteSpace(target)) return;
             if (scan.Sites >= MaxWriteSites) { scan.Truncated = true; return; }
@@ -198,9 +204,14 @@ namespace TiaPortalSourceBridge.Web
             if (!scan.Writes.TryGetValue(key, out group)) scan.Writes[key] = group = new List<WriteSite>();
             group.Add(new WriteSite { Key = key, Identity = identity, SetReset = setReset, Location = new AuditLocation {
                 block = block.name, group = block.group, unit = block.unit_name, network = network, location = site,
-                symbol = target, address = address, access = access, evidence = evidence } });
+                symbol = target, address = address, access = access, evidence = evidence,
+                language = sourceLocation == null ? null : sourceLocation.language,
+                line = sourceLocation == null ? 0 : sourceLocation.line,
+                column = sourceLocation == null ? 0 : sourceLocation.column,
+                statement = sourceLocation == null ? null : sourceLocation.statement,
+                line_basis = sourceLocation == null ? null : sourceLocation.line_basis } });
         }
-        private static void ScanBlock(Scan scan, IndexEntry block, string xml, ILookup<string, Declared> aliases, IList<AuditTemplate> templates)
+        private static void ScanBlock(Scan scan, IndexEntry block, string xml, ILookup<string, Declared> aliases, IList<AuditTemplate> templates, SclWriteAudit scl)
         {
             // Parse maintains the shared structural coverage and mapping semantics.
             // Write-site identity uses actual endpoint positions: the generic index
@@ -273,10 +284,28 @@ namespace TiaPortalSourceBridge.Web
                     if (StaticOperand(operand)) AddWrite(scan, block, aliases, ContentIndexer.Operand(operand), network(stl), "STL 语句 " + statement, "writes", "STL 操作码 " + op, op == "S" || op == "R");
                     else scan.Warn(OperandWarning(operand) + block.name + " / STL 语句 " + statement);
             }
+            var sclResult = scl.Analyze(block, doc);
+            scan.SclRegions += sclResult.regions;
+            scan.SclRegionsAnalyzed += sclResult.regions_analyzed;
+            if (sclResult.partial) scan.SclPartialBlocks++;
+            scan.Truncated |= sclResult.truncated;
+            // Keep every SCL coverage reason with its host, without spending the
+            // report's warning budget on one item per source line. Bound each
+            // chunk below the Excel cell limit; chunking does not discard text.
+            string sclWarnings = string.Join("\n", sclResult.warnings);
+            for (int offset = 0, part = 1; offset < sclWarnings.Length; offset += 16000, part++)
+                scan.Warn("SCL 未覆盖项：" + N(block.unit_name) + "/" + N(block.group) + "/" + block.name + "（" + part + "）\n" +
+                    sclWarnings.Substring(offset, Math.Min(16000, sclWarnings.Length - offset)));
+            foreach (var location in sclResult.writes) {
+                int before = scan.Sites;
+                AddWrite(scan, block, aliases, location.symbol, location.network, location.location,
+                    location.access, location.evidence, false, location);
+                scan.SclSites += scan.Sites - before;
+            }
             if (!string.Equals(block.language, "DB", StringComparison.OrdinalIgnoreCase) &&
                 (netCount == 0 && statement == 0 || doc.SelectSingleNode("//*[local-name()='StructuredText' or local-name()='SourceText' or local-name()='Graph']") != null)) {
                 scan.Unsupported++;
-                scan.Warn("部分或全部程序行为未覆盖：" + N(block.unit_name) + "/" + N(block.group) + "/" + block.name + "（" + block.language + "）；未推断 SCL/GRAPH 完整写入和控制流。");
+                scan.Warn("部分或全部程序行为未覆盖：" + N(block.unit_name) + "/" + N(block.group) + "/" + block.name + "（" + block.language + "）；SCL 仅检查受支持的显式写入位置，未推断 SCL/GRAPH 完整控制流。");
             }
             if (templates.Any(t => t.host_id == block.id) && netCount == 0) scan.Warn("模板宿主不是可解析的 FlgNet 调用格式，未检查模板参数：" + block.name);
         }
@@ -288,7 +317,8 @@ namespace TiaPortalSourceBridge.Web
                 snapshot_started = snapshot.read_started_utc, snapshot_completed = snapshot.read_completed_utc, generated_at = DateTime.UtcNow.ToString("o") };
             var scan = new Scan { Report = report };
             var limitations = new[] { "只分析当前源码快照，不连接 PLC，不修改、编译或保存工程。", "重复写入和地址重叠是待核对现象，未证明执行冲突或逻辑安全。",
-                "写入证据覆盖受支持 LAD 线圈/调用参数及 STL 写指令；未完成 SCL/GRAPH 控制流、切片访问、动态寻址、HMI/外部写入分析。",
+                "写入证据覆盖受支持 LAD 线圈/调用参数、STL 写指令及 SCL 显式赋值和经接口核实的输出/双向参数；未完成 SCL/GRAPH 控制流、Temp 初始化、切片访问、动态寻址、HMI/外部写入分析。",
+                "SCL 读取完整缓存源码，不使用索引摘要。行列对应导出文本或网络内重建文本，不等于博途编辑器的绝对行号；不同分支的写入仍作为独立位置，未判断能否同时执行。",
                 "地址重叠仅检查 PLC 变量表显式 I/Q/M 声明，不包含硬件模块地址和 DB 布局重叠。",
                 "声明范围须与已知标量类型宽度一致：Bool 1 位；Byte/Char/SInt/USInt 8 位；Word/Int/UInt/WChar/Date/S5Time 16 位；DWord/DInt/UDInt/Real/Time/TOD/Time_Of_Day 32 位。其他类型、数组、字符串和结构不参与地址范围及地址别名判断。",
                 "模板检查仅使用当前工程已确认且仍匹配的模板；无发现不代表无问题。" };
@@ -314,12 +344,13 @@ namespace TiaPortalSourceBridge.Web
             Overlaps(scan, declarations);
             var aliases = declarations.Where(d => !unresolvedAliases.Contains(AliasKey(d.Row))).ToLookup(d => AliasKey(d.Row), StringComparer.OrdinalIgnoreCase);
             var blocks = snapshot.cylinderBlocks ?? new IndexEntry[0];
+            var scl = new SclWriteAudit(blocks, source);
             foreach (var template in templates.Where(t => !blocks.Any(b => b != null && b.id == t.host_id)))
                 scan.Warn("模板宿主不在当前源码快照中，未检查模板参数：" + template.host_id + " / " + template.fb);
             foreach (var block in blocks.Where(b => b != null)) {
                 try {
                     string xml = source(block); if (string.IsNullOrWhiteSpace(xml)) throw new InvalidOperationException("源码为空");
-                    scan.Read++; ScanBlock(scan, block, xml, aliases, templates); scan.Parsed++;
+                    scan.Read++; ScanBlock(scan, block, xml, aliases, templates, scl); scan.Parsed++;
                 } catch (Exception ex) { scan.Warn("程序块未完成分析：" + N(block.unit_name) + "/" + N(block.group) + "/" + block.name + "；" + ex.Message); }
             }
             foreach (var group in scan.Writes.Values.Where(g => g.Count > 1).OrderBy(g => g[0].Key, StringComparer.OrdinalIgnoreCase)) {
@@ -338,6 +369,7 @@ namespace TiaPortalSourceBridge.Web
                 { "programs_total", snapshot.cylinderProgramsTotal }, { "programs_read", snapshot.cylinderProgramsRead }, { "tag_tables_total", snapshot.tables_total }, { "tag_tables_read", snapshot.tables_read },
                 { "native_tags", native.Length }, { "addresses_checked", declarations.Count }, { "templates", templates.Count }, { "template_calls_checked", scan.Calls },
                 { "supported_write_sites", scan.Sites }, { "unsupported_blocks", scan.Unsupported }, { "truncated", scan.Truncated },
+                { "scl_regions", scan.SclRegions }, { "scl_regions_analyzed", scan.SclRegionsAnalyzed }, { "scl_write_sites", scan.SclSites }, { "scl_partial_blocks", scan.SclPartialBlocks },
                 { "limitations", limitations.Concat(report.call_graph.limitations).Distinct().ToArray() } };
             return report;
         }

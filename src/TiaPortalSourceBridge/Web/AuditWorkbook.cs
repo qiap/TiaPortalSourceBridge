@@ -22,8 +22,10 @@ namespace TiaPortalSourceBridge.Web
             { "programs_total", "PLC 程序总数" }, { "programs_read", "已读取 PLC 程序数" },
             { "tag_tables_total", "变量表总数" }, { "tag_tables_read", "已读取变量表数" },
             { "native_tags", "原生变量声明数" }, { "templates", "有效项目模板数" }, { "supported_write_sites", "已识别写入位置数" },
+            { "scl_regions", "SCL 源码区域数" }, { "scl_regions_analyzed", "已分析 SCL 区域数" },
+            { "scl_write_sites", "已识别 SCL 写入位置数" }, { "scl_partial_blocks", "SCL 写入识别不完整的块数" },
             { "addresses_checked", "已检查地址数" }, { "template_calls_checked", "已检查模板调用数" },
-            { "unsupported_blocks", "未支持的程序块数" }, { "source_mode", "快照来源" }, { "source_note", "源码读取范围" },
+            { "unsupported_blocks", "部分或全部行为未覆盖的块数" }, { "source_mode", "快照来源" }, { "source_note", "源码读取范围" },
             { "truncated", "报告是否达到结果上限" }, { "limitations", "检查限制" }
         };
         private static string Rule(string value)
@@ -103,6 +105,10 @@ namespace TiaPortalSourceBridge.Web
             yield return new[] { "导出范围", "本次报告的全部发现和定位证据，不受页面搜索、筛选或分页影响。" };
             yield return new[] { "检查性质", "基于源码快照的只读静态检查；未修改博途工程，未下载或操作 PLC。" };
             yield return new[] { "结论边界", "未发现问题不代表程序逻辑安全或已经完成全部检查。地址重叠、多处写入可能是设计允许的别名或优先级逻辑，请结合实际执行条件核对。" };
+            if ((report.coverage != null && report.coverage.ContainsKey("scl_regions")) || findings.Any(f => (f.locations ?? new List<AuditLocation>()).Any(l => l.language == "SCL"))) {
+                yield return new[] { "SCL / 定位说明", "行号对应所在源码区域的导出文本或重建 SCL 文本，不是博途编辑器的绝对行号；请结合程序块、网络及语句定位。" };
+                yield return new[] { "SCL / 检查边界", "仅识别受支持的显式写入位置，不同分支的写入不代表同时执行；完整 SCL/GRAPH 控制流与 Temp 先写后读尚未检查。" };
+            }
             foreach (var item in report.coverage ?? new Dictionary<string, object>()) {
                 string label; if (!CoverageLabels.TryGetValue(item.Key, out label)) label = item.Key;
                 if (item.Key == "source_mode" && (Text(item.Value) == "local_cache" || Text(item.Value) == "tia_readback")) {
@@ -138,10 +144,13 @@ namespace TiaPortalSourceBridge.Web
         }
         private static IEnumerable<string[]> Evidence(IList<AuditFinding> findings)
         {
-            yield return new[] { "发现编号", "程序块", "组路径", "软件单元", "网络", "位置", "符号", "地址", "读写或关系", "证据" };
+            yield return new[] { "发现编号", "程序块", "组路径", "软件单元", "网络", "位置", "符号", "地址", "读写或关系", "证据", "语言", "区域内行号", "列号", "行号依据", "语句" };
             foreach (var finding in findings) foreach (var location in finding.locations ?? new List<AuditLocation>())
-                yield return new[] { finding.id, location.block, location.group, location.unit, location.network, location.location, location.symbol, location.address, location.access, location.evidence };
+                yield return new[] { finding.id, location.block, location.group, location.unit, location.network, location.location, location.symbol, location.address, location.access, location.evidence,
+                    location.language, location.line > 0 ? Text(location.line) : "", location.column > 0 ? Text(location.column) : "", LineBasis(location.line_basis), location.statement };
         }
+        private static string LineBasis(string value)
+        { return value == "exported_text" ? "导出文本行" : value == "reconstructed_scl" ? "重建 SCL 行" : value; }
         private static string PathStatus(string value)
         {
             return value == "root" ? "OB 入口" : value == "reachable" ? "存在已识别的 OB 调用路径" :
@@ -229,7 +238,7 @@ namespace TiaPortalSourceBridge.Web
                     using (var writer = Writer(zip, "xl/styles.xml")) writer.WriteRaw("<styleSheet xmlns=\"" + Ns + "\"><fonts count=\"2\"><font><sz val=\"11\"/><name val=\"Calibri\"/></font><font><b/><sz val=\"11\"/><color rgb=\"FFFFFFFF\"/><name val=\"Calibri\"/></font></fonts><fills count=\"3\"><fill><patternFill patternType=\"none\"/></fill><fill><patternFill patternType=\"gray125\"/></fill><fill><patternFill patternType=\"solid\"><fgColor rgb=\"FF1E293B\"/><bgColor indexed=\"64\"/></patternFill></fill></fills><borders count=\"1\"><border/></borders><cellStyleXfs count=\"1\"><xf numFmtId=\"0\" fontId=\"0\" fillId=\"0\" borderId=\"0\"/></cellStyleXfs><cellXfs count=\"2\"><xf numFmtId=\"49\" fontId=\"0\" fillId=\"0\" borderId=\"0\" xfId=\"0\" applyAlignment=\"1\"><alignment vertical=\"top\" wrapText=\"1\"/></xf><xf numFmtId=\"49\" fontId=\"1\" fillId=\"2\" borderId=\"0\" xfId=\"0\" applyFont=\"1\" applyFill=\"1\" applyAlignment=\"1\"><alignment vertical=\"top\" wrapText=\"1\"/></xf></cellXfs><cellStyles count=\"1\"><cellStyle name=\"Normal\" xfId=\"0\" builtinId=\"0\"/></cellStyles></styleSheet>");
                     Sheet(zip, 1, Overview(report, findings), new double[] { 30, 100 });
                     Sheet(zip, 2, Findings(findings), new double[] { 24, 24, 14, 20, 42, 32, 65, 65, 14 });
-                    Sheet(zip, 3, Evidence(findings), new double[] { 24, 28, 35, 25, 12, 45, 42, 20, 22, 75 });
+                    Sheet(zip, 3, Evidence(findings), new double[] { 24, 28, 35, 25, 12, 45, 42, 20, 22, 75, 12, 16, 12, 22, 85 });
                     if (graph != null) {
                         Sheet(zip, 4, Calls(graph, nodes), new double[] { 24, 24, 28, 30, 24, 24, 28, 28, 12, 30, 24, 20, 35, 24, 22, 12, 40, 35, 20, 20, 70 });
                         Sheet(zip, 5, Paths(graph, nodes), new double[] { 24, 28, 30, 24, 12, 18, 35, 24, 28, 12, 24, 28, 30, 24, 12, 70 });
