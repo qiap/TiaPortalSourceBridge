@@ -33,6 +33,7 @@ config.json
 mcp-config.json
 recent.json
 profiles/
+project-templates/
 tests/*results*.json
 
 # Local engineering metadata

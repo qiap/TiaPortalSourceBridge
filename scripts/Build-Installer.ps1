@@ -1,9 +1,12 @@
 ﻿param(
     [string]$CompilerPath,
-    [ValidatePattern('^\d+\.\d+\.\d+(\.\d+)?$')][string]$Version = '4.3.3'
+    [ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
+$releaseVersion = & (Join-Path $PSScriptRoot 'Get-ReleaseVersion.ps1')
+if (-not $Version) { $Version = $releaseVersion }
+if ($Version -ne $releaseVersion) { throw "Package version must match the source release version ($releaseVersion)." }
 if (-not $CompilerPath) {
     $candidates = @(
         (Join-Path $root '.work\installer-tools\inno\ISCC.exe'),
@@ -51,6 +54,8 @@ Copy-Item -LiteralPath (Join-Path $root 'installer\PORTABLE.txt') -Destination $
 Copy-Item -LiteralPath (Join-Path $root 'WebDashboard.cmd') -Destination $payload
 $main = Join-Path $payload "$binRelative\TiaPortalSourceBridge.exe"
 $v21 = Join-Path $payload "engines\v21\$binRelative\TiaPortalSourceBridge.exe"
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root 'tests\Test-ReleaseVersion.ps1') -MainExecutable $main -V21Executable $v21
+if ($LASTEXITCODE -ne 0) { throw 'Release version alignment checks failed' }
 # Generate the catalog from the exact packaged engine without connecting to TIA.
 $psi = [Diagnostics.ProcessStartInfo]::new()
 $psi.FileName = $v21

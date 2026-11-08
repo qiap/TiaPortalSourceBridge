@@ -11,6 +11,10 @@ using TiaPortalSourceBridge.Mcp;
 
 namespace TiaPortalSourceBridge.Web
 {
+    internal sealed class EngineeringOutcomeUnknownException : Exception
+    {
+        internal EngineeringOutcomeUnknownException(string message, Exception inner = null) : base(message, inner) { }
+    }
     internal sealed class ActionProgress
     {
         public string task_id { get; set; }
@@ -69,24 +73,37 @@ namespace TiaPortalSourceBridge.Web
             return records;
         }
         internal static bool StartIoRead(string config, string project, string plc, Func<Action<string>, string> work)
+        { return StartEngineeringTask(config, project, plc, "io-read", "正在读取 I/O 表与引用", work); }
+
+        internal static bool StartEngineeringTask(string config, string project, string plc, string action, string message, Func<Action<string>, string> work, string operationId = null, string recoveryOf = null)
         {
             ActionProgress progress;
             lock (_sync) {
                 ActionProgress existing;
-                if (_lanes.TryGetValue("tia", out existing) && IsPending(existing.status)) return false;
-                progress = new ActionProgress { task_id = Guid.NewGuid().ToString("N"), project_path = project, plc_name = plc,
-                    actionName = "io-read", status = "running", stage = "reading", startTime = DateTime.Now, message = "正在读取 I/O 表与引用" };
+                if (_lanes.TryGetValue("tia", out existing) && IsPending(existing.status) &&
+                    !(existing.status == "outcome_unknown" && !string.IsNullOrEmpty(recoveryOf) && existing.task_id == recoveryOf)) return false;
+                progress = new ActionProgress { task_id = operationId ?? Guid.NewGuid().ToString("N"), project_path = project, plc_name = plc,
+                    actionName = action, status = "running", stage = "reading", startTime = DateTime.Now, message = message };
                 _lanes["tia"] = progress; _last = progress; history.Add(progress);
                 if (history.Count > 100) history.Remove(history.First(a => !IsPending(a.status)));
             }
             new Thread(() => {
                 try {
-                    progress.execution = ExecutionLog.Begin(config, "看板", "io-read", project + " · " + plc);
-                    progress.warning = work(message => progress.execution.Update("running", message, false));
+                    progress.execution = ExecutionLog.Begin(config, "看板", action, project + " · " + plc, operationId);
+                    progress.warning = work(detail => {
+                        lock (_sync) { progress.message = detail; }
+                        AppendLog(action, detail);
+                        progress.execution.Update("running", detail, false);
+                    });
                     Finish(progress, 0, null);
                 }
+                catch (EngineeringOutcomeUnknownException ex) {
+                    lock (_sync) { progress.status = "outcome_unknown"; progress.stage = "needs_review"; progress.message = ex.Message; }
+                    progress.execution.Update("unknown", ex.Message, true);
+                    AppendLog(action, ex.Message);
+                }
                 catch (Exception ex) { Finish(progress, -1, ex.Message); }
-            }) { IsBackground = true, Name = "DashboardIoRead" }.Start();
+            }) { IsBackground = true, Name = "DashboardEngineeringTask" }.Start();
             return true;
         }
         private const int ActionTimeoutMinutes = 30;

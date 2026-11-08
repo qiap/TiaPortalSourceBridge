@@ -690,6 +690,27 @@ namespace TiaPortalSourceBridge.Mcp
             return doc;
         }
 
+        internal static void ValidateCompileUnitOrder(XmlDocument doc)
+        {
+            // SimaticML streams each ordered composition as a single group. If a
+            // block title/comment splits CompileUnits, the importer starts that
+            // composition a second time and fails after earlier objects changed.
+            foreach (XmlElement list in doc.SelectNodes("/Document/*[starts-with(local-name(),'SW.Blocks.')]/ObjectList"))
+            {
+                bool seen = false, closed = false;
+                foreach (XmlElement child in list.ChildNodes.OfType<XmlElement>())
+                {
+                    bool unit = child.LocalName == "SW.Blocks.CompileUnit" || child.GetAttribute("CompositionName") == "CompileUnits";
+                    if (unit)
+                    {
+                        if (closed) throw new InvalidOperationException("程序网络（CompileUnits）被标题或其他对象分隔，必须连续排列；请重新生成 XML，尚未写入。");
+                        seen = true;
+                    }
+                    else if (seen) closed = true;
+                }
+            }
+        }
+
         public string Import(string xml, string groupPath, string backupRoot, bool createGroupIfMissing = true)
         {
             object importedBlock;
@@ -700,6 +721,7 @@ namespace TiaPortalSourceBridge.Mcp
         {
             importedBlock = null;
             XmlDocument doc = ParseBlock(xml);
+            ValidateCompileUnitOrder(doc);
             XmlNode blockNode = doc.SelectSingleNode("/Document/*[starts-with(local-name(),'SW.Blocks.')]");
             XmlNode nameNode = blockNode.SelectSingleNode("AttributeList/Name");
             string name = nameNode == null ? "" : nameNode.InnerText.Trim();
@@ -911,23 +933,44 @@ namespace TiaPortalSourceBridge.Mcp
             }
         }
 
-        public XmlBatchResult ImportXmlBatch(string itemsJson, string backupRoot, Func<CompileSummary> compile)
+        public XmlBatchResult ImportXmlBatch(string itemsJson, string backupRoot, Func<CompileSummary> compile, string relatedBlocksJson = null, string operationId = null)
         {
             var items = XmlBatch.Parse(itemsJson);
+            var related = XmlBatch.ParseRelated(relatedBlocksJson, items);
             var catalog = GetCachedBlocks(true);
-            string directory = Path.Combine(backupRoot, "batch-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss") + "-" + Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(directory);
+            string directory = XmlBatch.CreateJournalDirectory(backupRoot, operationId);
             string journal = Path.Combine(directory, "result.json");
             var serializer = new JavaScriptSerializer { MaxJsonLength = 32 * 1024 * 1024 };
+            bool relatedFinished = related.Length == 0;
             Action<XmlBatchResult> persist = result =>
             {
+                if (!relatedFinished && result.phase == "complete") result.phase = "verify";
                 result.journal = journal;
-                File.WriteAllText(journal, serializer.Serialize(result), Encoding.UTF8);
+                result.related_items = related;
+                string temp = journal + ".tmp";
+                File.WriteAllText(temp, serializer.Serialize(result), Encoding.UTF8);
+                if (File.Exists(journal)) File.Replace(temp, journal, null); else File.Move(temp, journal);
             };
+            bool relatedValidated = false, relatedBackedUp = false;
             try
             {
-                return XmlBatch.Run(items, item =>
+                var result = XmlBatch.Run(items, item =>
                 {
+                    if (!relatedValidated) {
+                        foreach (var relation in related) {
+                            try {
+                                var matchesRelated = catalog.Where(e => string.Equals(e.Name, relation.block_name, StringComparison.OrdinalIgnoreCase)).ToArray();
+                                if (matchesRelated.Length != 1) throw new InvalidOperationException("关联对象必须为唯一现有程序块：" + relation.block_name);
+                                relation.Entry = matchesRelated[0];
+                                string relatedGroup = PathTools.NormalizeGroupPath(relation.group_path);
+                                if (!string.IsNullOrWhiteSpace(relation.group_path) && !string.Equals(relatedGroup, relation.Entry.GroupPath, StringComparison.OrdinalIgnoreCase))
+                                    throw new InvalidOperationException("关联对象组与当前工程不一致：" + relation.block_name);
+                                relation.group_path = relation.Entry.GroupPath;
+                                XmlBatch.ValidateRelatedBefore(relation, Export(relation.Entry.Item));
+                            } catch (Exception ex) { relation.status = "failed"; relation.error = ex.Message; throw; }
+                        }
+                        relatedValidated = true;
+                    }
                     var matches = catalog.Where(e => string.Equals(e.Name, item.block_name, StringComparison.OrdinalIgnoreCase)).ToArray();
                     if (matches.Length != 1) throw new InvalidOperationException("批量 XML 仅覆盖唯一的现有块：" + item.block_name);
                     item.Entry = matches[0];
@@ -944,6 +987,10 @@ namespace TiaPortalSourceBridge.Mcp
                     item.before_hash = XmlBatch.Hash(item.Before);
                     if (!string.IsNullOrEmpty(item.expected_hash) && !string.Equals(item.expected_hash, item.before_hash, StringComparison.OrdinalIgnoreCase))
                         throw new InvalidOperationException("原块指纹已变化，请重新读取：" + item.block_name);
+                    if (!string.IsNullOrEmpty(item.expected_content_signature) && !string.Equals(item.expected_content_signature, XmlBatch.ContentSignature(item.Before), StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidOperationException("原块内容已变化，请重新读取；尚未写入：" + item.block_name);
+                    if (!string.IsNullOrEmpty(item.expected_recovery_signature) && !string.Equals(item.expected_recovery_signature, XmlBatch.RecoverySignature(item.Before), StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidOperationException("原块内容、标题或注释已变化，请重新核对恢复方案；尚未写入：" + item.block_name);
                     var before = ParseBlock(item.Before);
                     string path = "/Document/*[starts-with(local-name(),'SW.Blocks.')]";
                     var a = doc.SelectSingleNode(path); var b = before.SelectSingleNode(path);
@@ -951,6 +998,16 @@ namespace TiaPortalSourceBridge.Mcp
                         throw new InvalidOperationException("批量覆盖不允许更改块类型或块号。");
                 }, item =>
                 {
+                    if (!relatedBackedUp) {
+                        foreach (var relation in related) {
+                            try {
+                                relation.backup = BackupRecord.Write(directory, "related-" + relation.block_name, relation.Before,
+                                    _session.GetProjectPath(), _plc.DisplayName, relation.group_path, "Block", relation.block_name);
+                                relation.status = "backed_up";
+                            } catch (Exception ex) { relation.status = "failed"; relation.error = ex.Message; throw; }
+                        }
+                        relatedBackedUp = true;
+                    }
                     File.WriteAllText(Path.Combine(directory, Array.IndexOf(items, item).ToString("D2") + ".requested.xml"), item.Xml, Encoding.UTF8);
                     item.backup = BackupRecord.Write(directory, item.block_name, item.Before, _session.GetProjectPath(), _plc.DisplayName,
                         item.group_path, "Block", item.block_name);
@@ -967,9 +1024,38 @@ namespace TiaPortalSourceBridge.Mcp
                     File.WriteAllText(Path.Combine(directory, prefix + ".after.xml"), after, Encoding.UTF8);
                     File.WriteAllText(Path.Combine(directory, prefix + ".requested.xml"), item.Xml, Encoding.UTF8);
                     item.after_hash = XmlBatch.Hash(after);
+                    item.after_recovery_signature = XmlBatch.RecoverySignature(after);
                     item.differences = XmlBatch.Differences(item.Xml, after);
                     item.verification = item.differences.Length == 0 ? "matched" : "different";
                 }, persist);
+                // Still inside the same worker call/project lock: compilation can
+                // change related instance DBs even after an import failed halfway.
+                // Capture these exports here, before returning control to another task.
+                if (items.Any(item => item.status == "imported" || item.status == "outcome_unknown")) {
+                    result.phase = "verify"; persist(result);
+                    foreach (var relation in related) {
+                        result.current_block = relation.block_name; persist(result);
+                        try {
+                            string after = Read(relation.block_name, relation.group_path);
+                            string path = Path.Combine(directory, "related-" + Array.IndexOf(related, relation).ToString("D3") + ".after.xml");
+                            File.WriteAllText(path, after, Encoding.UTF8);
+                            relation.after_path = path;
+                            relation.after_hash = XmlBatch.Hash(after);
+                            relation.after_signature = XmlBatch.RecoverySignature(after);
+                            relation.status = "read_back";
+                        } catch (Exception ex) {
+                            relation.status = "readback_failed"; relation.error = ex.Message;
+                            result.ok = false; result.phase = "needs_review";
+                            result.error = (result.error ?? "") + " related readback " + relation.block_name + ": " + ex.Message;
+                        }
+                        persist(result);
+                    }
+                }
+                relatedFinished = true;
+                result.phase = result.ok ? "complete" : "needs_review";
+                result.current_block = "";
+                persist(result);
+                return result;
             }
             finally { _plc.InvalidateBlockCache(); }
         }

@@ -11,6 +11,7 @@ namespace TiaPortalSourceBridge.Mcp
     internal sealed class ExecutionRecord
     {
         public string id { get; set; }
+        public string operation_id { get; set; }
         public string source { get; set; }
         public string action { get; set; }
         public string target { get; set; }
@@ -39,11 +40,11 @@ namespace TiaPortalSourceBridge.Mcp
             return Path.Combine(root.FullName, "logs", "execution");
         }
 
-        private ExecutionLog(string config, string source, string action, string target)
+        private ExecutionLog(string config, string source, string action, string target, string operationId)
         {
             directory = DirectoryFor(config);
             using (var process = Process.GetCurrentProcess())
-                record = new ExecutionRecord { id = Guid.NewGuid().ToString("N"), source = source, action = Limit(action, 160),
+                record = new ExecutionRecord { id = Guid.NewGuid().ToString("N"), operation_id = operationId, source = source, action = Limit(action, 160),
                     target = Limit(target, 600), started = DateTime.UtcNow.ToString("o"), pid = process.Id,
                     processStart = process.StartTime.ToUniversalTime().Ticks };
         }
@@ -51,9 +52,9 @@ namespace TiaPortalSourceBridge.Mcp
         private static string Limit(string value, int max)
         { return string.IsNullOrEmpty(value) || value.Length <= max ? value : value.Substring(0, max) + "…"; }
 
-        internal static ExecutionLog Begin(string config, string source, string action, string target)
+        internal static ExecutionLog Begin(string config, string source, string action, string target, string operationId = null)
         {
-            var log = new ExecutionLog(config, source, action, target);
+            var log = new ExecutionLog(config, source, action, target, operationId);
             log.Update("running", "已开始", false);
             return log;
         }

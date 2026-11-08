@@ -5,7 +5,7 @@
   #error OutputDir is required
 #endif
 #ifndef AppVersion
-  #define AppVersion "4.3.3"
+  #error AppVersion is required; use scripts/Build-Installer.ps1 to read the source release version
 #endif
 
 [Setup]

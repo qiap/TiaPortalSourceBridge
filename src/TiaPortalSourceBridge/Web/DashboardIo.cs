@@ -96,6 +96,8 @@ namespace TiaPortalSourceBridge.Web
                         if (!native) IoTable.AttachIndex(result, IndexJson.Map(store.IoReferenceSnapshot(job.plc)));
                     } catch (Exception ex) { result.warnings.Add("引用读取失败：" + ex.Message); }
                 }
+                var programCoverage = store.IoProgramCoverage(job.plc);
+                result.cylinderProgramsTotal = programCoverage[0]; result.cylinderProgramsRead = programCoverage[1];
                 result.rows = result.rows.OrderBy(r => r.area).ThenBy(IoTable.SortAddress).ThenBy(r => r.name).ToList();
                 result.read_completed_utc = DateTime.UtcNow.ToString("o");
                 lock (ioGate) { job.result = result; job.state = "completed"; job.message = result.warnings.Count == 0 ? "读取完成" : "读取完成，存在不完整项，请查看说明"; }
@@ -124,6 +126,7 @@ namespace TiaPortalSourceBridge.Web
             if (!string.IsNullOrEmpty(originText) && (!Uri.TryCreate(originText, UriKind.Absolute, out origin) || origin.Scheme != request.Url.Scheme || origin.Host != request.Url.Host || origin.Port != request.Url.Port)) {
                 SendJson(response, 403, new { error = "仅允许本地看板访问" }); return true;
             }
+            if (HandleAudit(context, path) || HandleCylinderHistory(context, path) || HandleCylinderRecovery(context, path) || HandleCylinderTemplates(context, path) || HandleCylinderBatchPreview(context, path) || HandleCylinderApply(context, path)) return true;
             if (path == "/api/io/read" && request.HttpMethod == "POST") {
                 if (shutdownRequested) { SendJson(response, 503, new { error = "服务正在退出" }); return true; }
                 if (request.ContentLength64 < 0 || request.ContentLength64 > 16384) { SendJson(response, 413, new { error = "请求过大" }); return true; }

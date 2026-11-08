@@ -20,6 +20,13 @@ namespace TiaPortalSourceBridge.Indexing
             return Load().objects.Where(e => e.kind == "plc.block" && string.Equals(owner,e.owner,StringComparison.OrdinalIgnoreCase)
                 && State(e,snapshot) == "ready").ToArray();
         }
+        internal int[] IoProgramCoverage(string owner)
+        {
+            var snapshot = Snapshot();
+            var entries = Load().objects.Where(e => e.kind == "plc.block" && e.language != "DB" &&
+                string.Equals(owner,e.owner,StringComparison.OrdinalIgnoreCase)).ToArray();
+            return new[] { entries.Length, entries.Count(e => State(e,snapshot) == "ready") };
+        }
         internal string IoSource(IndexEntry entry)
         {
             if (string.IsNullOrEmpty(entry.content_hash) || !HashHexRegex.IsMatch(entry.content_hash)) throw new System.IO.IOException("未找到源码：" + entry.name);

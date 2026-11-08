@@ -119,7 +119,15 @@ namespace TiaPortalSourceBridge.Mcp
                 catch (Exception ex) { data["status_error"] = ex.Message; }
             }
             foreach (var pair in transport) data[pair.Key] = pair.Value;
+            data["project_activity"] = ProjectOperationGuard.Inspect(path);
             return data;
+        }
+        private static Dictionary<string, object> UnmanagedStatus(string path)
+        {
+            var activity = ProjectOperationGuard.Inspect(path);
+            return new Dictionary<string, object> { { "connected", false }, { "project_path", path },
+                { "worker_state", activity.Busy ? "busy_outcome_unknown" : activity.Unavailable || activity.Unresolved ? "outcome_unknown" : "unmanaged" },
+                { "project_activity", activity }, { "recovery", activity.Reason } };
         }
         internal Dictionary<string, object> Call(string tool, Dictionary<string, object> arguments)
         {
@@ -130,7 +138,7 @@ namespace TiaPortalSourceBridge.Mcp
                 if (!string.IsNullOrWhiteSpace(requested))
                 {
                     string path = Normalize(requested); IProjectWorker worker;
-                    return Result("指定项目的连接状态。", workers.TryGetValue(path, out worker) ? Status(path, worker) : new Dictionary<string, object> { { "connected", false }, { "project_path", path } });
+                    return Result("指定项目的连接状态。", workers.TryGetValue(path, out worker) ? Status(path, worker) : UnmanagedStatus(path));
                 }
                 var states = workers.Select(w => Status(w.Key, w.Value)).ToArray();
                 var data = states.Length == 1 ? new Dictionary<string, object>(states[0]) : new Dictionary<string, object> { { "connected", states.Any(s => Convert.ToBoolean(s["connected"])) }, { "project_path", "" }, { "portal_version", "" } };

@@ -1139,7 +1139,7 @@ namespace TiaPortalSourceBridge.Web
                 var status = new Dictionary<string, object>
                 {
                     { "tool_name", "TIA Portal Source Bridge" },
-                    { "tool_version", "v4.3.3" },
+                    { "tool_version", "v" + ProductVersion.Release },
                     { "server_process_id", Process.GetCurrentProcess().Id },
                     { "browser_clients", BrowserClientCount() },
                     { "tool_count", DashboardTools(_configPath).Length },

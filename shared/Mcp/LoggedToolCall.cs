@@ -12,16 +12,21 @@ namespace TiaPortalSourceBridge.Mcp
             // Only the client-facing server records the call. Project workers execute
             // the same RPC internally and would otherwise report it a second time.
             ExecutionLog log = null;
+            ProjectOperationGuard operation = null;
             if (_projects != null) {
                 var target = new[] { StringArg(args, "project_path"), StringArg(args, "plc_name"),
                     StringArg(args, "block_name"), StringArg(args, "table_name") };
                 log = ExecutionLog.Begin(_configPath, "MCP", name, string.Join(" · ", target.Where(s => !string.IsNullOrWhiteSpace(s))));
             }
             try {
+                string project = StringArg(args, "project_path");
+                if (_projects == null && !string.IsNullOrWhiteSpace(project))
+                    operation = ProjectOperationGuard.Enter(project, name, StringArg(args, "bridge_operation_id"), ProjectOperationGuard.IsMutation(name, args));
                 preparedIndexContext = null;
                 InvalidateIndexBeforeMutation(name, args);
                 var result = CallTool(name, args);
                 AttachIndexHint(name, args, result);
+                if (operation != null) operation.Complete(Equals(Value(result, "isError"), true));
                 if (log != null) {
                     bool failed = Equals(Value(result, "isError"), true);
                     var data = Value(result, "structuredContent") as Dictionary<string, object>;
@@ -42,6 +47,8 @@ namespace TiaPortalSourceBridge.Mcp
                 string message = RootMessage(ex);
                 if (log != null) log.Update(ex is TimeoutException ? "unknown" : "failed", message, true);
                 return ToolResult("操作失败：" + message, true, null);
+            } finally {
+                if (operation != null) operation.Dispose();
             }
         }
     }

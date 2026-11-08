@@ -42,6 +42,7 @@ namespace TiaPortalSourceBridge.Web
     {
         // Keep the content hashes from this read alongside its I/O points.
         internal IndexEntry[] cylinderBlocks = new IndexEntry[0];
+        internal int cylinderProgramsTotal, cylinderProgramsRead;
         public string project_path { get; set; }
         public string plc_name { get; set; }
         public string read_started_utc { get; set; }

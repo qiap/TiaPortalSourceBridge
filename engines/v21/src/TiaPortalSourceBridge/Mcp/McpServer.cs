@@ -94,7 +94,7 @@ namespace TiaPortalSourceBridge.Mcp
                 WriteResult(id, Dict(
                     "protocolVersion", ProtocolVersion,
                     "capabilities", Dict("tools", new Dictionary<string, object>()),
-                    "serverInfo", Dict("name", "tia-portal-openness-v21", "version", "4.0.0"),
+                    "serverInfo", Dict("name", "tia-portal-openness-v21", "version", ProductVersion.Release),
                     "instructions", "TIA Portal V21 专用 Openness / PLCSIM V8 MCP 服务。支持多个本机 .ap21/.als21 项目并行保持独立 STA 后台连接。先用 tia_connect(project_path) 连接，用 tia_list_connections 查看。常用查找和读取入口由服务端先查索引，返回 index_context 和 _meta.project_index.index_used。AI 分析时先查看这些证据；索引缺失/失败不能当作已检索。工程分析优先：先查看 tia_connect 返回的 index_status；新工程调用 tia_build_project_index 建立目录，再用 tia_get_task_context 获取相关对象，或直接调用 V21 原生 tia_query_cross_references 查询精确读写交叉引用与未使用符号。V21 代码读写推荐优先使用 SimaticSD 文档工具（tia_read_document / tia_import_document / tia_import_documents_batch，原生支持 SCL/LAD/FBD/STL/DB/UDT 的 .s7dcl 与多语言 .s7res），复杂多块 XML 使用 tia_import_blocks_batch（自动启用 SWImportOptions 并在单事务内原子提交，失败自动回滚）。支持 Software Units（通过 tia_list_software_units 查看并在各工具传 unit_name）与无头 WinCC Unified 读取/编译（tia_read_unified_hmi / tia_compile_unified_hmi）。支持 response_mode=compact 减少重复体积。所有写入操作均包裹在 Openness V21 ExclusiveAccess + Transaction 中，默认备份原对象，不自动保存、绝不连接物理 PLC 下载；导入与保存必须 confirm=true。"));
                 return;
             }

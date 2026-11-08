@@ -652,12 +652,43 @@
     }
     #tab-cylinder h3 {margin:18px 0 8px} #tab-cylinder p,#tab-cylinder details {margin:10px 0}
     #tab-cylinder label {display:inline-flex;align-items:center;gap:8px;margin:4px 12px 8px 0}
-    #cyPoints {display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));margin:12px 0}
-    #cyPoints label {display:grid} #tab-cylinder label[hidden] {display:none}
+    #cyPoints {display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin:12px 0}
+    #cyPoints label {display:grid;margin:0;min-width:0} #tab-cylinder label[hidden] {display:none}
     .execution-table {border-collapse:collapse;width:100%;text-align:left;font-size:13px}
-    .execution-table th,.execution-table td {padding:8px;vertical-align:top;border-bottom:1px solid var(--border);overflow-wrap:anywhere}
+    .execution-table th,.execution-table td {padding:8px;vertical-align:top;border-bottom:1px solid var(--card-border);overflow-wrap:anywhere}
     .execution-table th {position:sticky;top:0;background:var(--bg-card,#1e293b)}
     .execution-table th:nth-child(1),.execution-table th:nth-child(2),.execution-table td:first-child {white-space:nowrap}
+    #executionRows .badge,#executionRows td:nth-child(5) {white-space:nowrap}
+    #executionRows td:nth-child(3) {min-width:130px}
+    #engineeringHistory {min-width:0}
+    #engineeringHistory th {position:static}
+    #engineeringHistory td {max-width:340px}
+    #engineeringHistory .engineering-detail-table {table-layout:fixed;margin:12px 0}
+    #engineeringHistory .engineering-detail-table th,#engineeringHistory .engineering-detail-table td {white-space:normal;overflow-wrap:anywhere}
+    #engineeringTaskBody > p {margin:10px 0;overflow-wrap:anywhere}
+    #engineeringTaskBody details {margin:16px 0}
+    #engineeringTaskBody summary {cursor:pointer;padding:6px 0}
+    .engineering-target,.engineering-meta {color:var(--text-muted);font-size:13px}
+    .engineering-result {font-weight:600;font-size:17px}
+    .engineering-message {white-space:pre-wrap;overflow-wrap:anywhere;margin:12px 0}
+    .engineering-report {white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;max-height:360px;overflow:auto;margin-top:10px}
+    .engineering-actions {display:flex;flex-wrap:wrap;gap:10px;margin:16px 0}
+    .engineering-plan {border:1px solid var(--card-border);border-radius:8px;padding:16px;margin-top:18px;background:var(--bg)}
+    .engineering-plan ol {padding-left:24px;margin:12px 0}
+    .engineering-plan li {margin:7px 0}
+    #tab-audit p {margin:12px 0;overflow-wrap:anywhere}
+    .audit-actions,.audit-filters {display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
+    .audit-filters .search-input {width:auto;min-width:180px;flex:1}
+    #auditCoverage {display:flex;flex-wrap:wrap;gap:8px 22px;color:var(--text-muted)}
+    #auditLimitList {padding-left:22px;margin:8px 0}
+    #auditLimits summary {cursor:pointer;padding:10px 12px;border:1px solid var(--card-border);border-radius:6px;color:var(--warning,#fbbf24);font-weight:600}
+    #auditStale {padding:12px;border:1px solid var(--warning,#fbbf24);border-radius:8px;color:var(--warning,#fbbf24)}
+    .audit-finding {padding:16px 0;border-bottom:1px solid var(--card-border)}
+    .audit-finding h4 {margin:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .audit-finding .badge {white-space:nowrap}
+    .audit-finding summary {cursor:pointer;padding:8px 0}
+    .audit-finding .execution-table td:first-child {white-space:normal}
+    .audit-finding .audit-evidence {overflow:auto;margin-top:8px}
   </style>
 </head>
 <body>
@@ -668,7 +699,7 @@
       <div class="logo-badge">TIA BRIDGE</div>
       <div class="brand-title">
         <span>控制看板</span>
-        <span class="version-tag" id="toolVersion">v4.3.3</span>
+        <span class="version-tag" id="toolVersion">读取版本…</span>
       </div>
     </div>
 
@@ -751,6 +782,7 @@
       🔌 I/O 表与引用
     </button>
     <button class="tab-btn" onclick="switchTab('cylinder')">气缸生成</button>
+    <button class="tab-btn" onclick="switchTab('audit')">程序体检</button>
     <button class="tab-btn" onclick="switchTab('simulation')">
       🎮 仿真驾驶舱
     </button>
@@ -821,6 +853,26 @@
         <div style="max-height:420px;overflow:auto">
           <table class="execution-table"><thead><tr><th>开始时间</th><th>结果</th><th>来源 / 操作</th><th>工程或对象</th><th>耗时</th><th>进度或原因</th></tr></thead><tbody id="executionRows"></tbody></table>
         </div>
+        <section id="engineeringHistory" aria-labelledby="engineeringHistoryTitle" style="margin-top:28px;border-top:1px solid var(--card-border);padding-top:20px">
+          <div class="card-header" style="flex-wrap:wrap;gap:8px">
+            <span class="card-title" id="engineeringHistoryTitle">工程变更记录 · 气缸</span>
+            <button type="button" class="btn btn-sm" id="engineeringHistoryRefresh">刷新记录</button>
+          </div>
+          <p id="engineeringHistorySummary" style="color:var(--text-muted);margin:8px 0" aria-live="polite">正在读取保存的操作记录…</p>
+          <div style="overflow:auto">
+            <table class="execution-table"><thead><tr><th>开始时间</th><th>操作 / 气缸</th><th>工程与 PLC</th><th>执行结果</th><th>详情</th></tr></thead><tbody id="engineeringHistoryRows"></tbody></table>
+          </div>
+          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-top:12px">
+            <button type="button" class="btn btn-sm" id="engineeringHistoryPrev" disabled>上一页</button>
+            <span id="engineeringHistoryPage" style="color:var(--text-muted)"></span>
+            <button type="button" class="btn btn-sm" id="engineeringHistoryNext" disabled>下一页</button>
+          </div>
+          <section id="engineeringTaskDetail" hidden aria-labelledby="engineeringTaskTitle" style="margin-top:24px;padding-top:20px;border-top:1px solid var(--card-border)">
+            <div class="card-header" style="flex-wrap:wrap;gap:8px"><span class="card-title" id="engineeringTaskTitle">操作详情</span><button type="button" class="btn btn-sm" id="engineeringTaskClose">收起详情</button></div>
+            <p id="engineeringTaskNotice" role="status" style="white-space:pre-wrap;overflow-wrap:anywhere"></p>
+            <div id="engineeringTaskBody"></div>
+          </section>
+        </section>
       </section></div>
       <!-- Quick Operations -->
       <div class="card" style="margin-bottom: 24px;">
@@ -982,6 +1034,41 @@
     </div>
 
     <!-- TAB 4: Simulation Cockpit -->
+    <div id="tab-audit" class="tab-content">
+      <div class="card">
+        <div class="card-header"><span class="card-title">PLC 程序体检</span></div>
+        <p id="auditTarget" style="color:var(--text-muted)">请先选择工程与 PLC。</p>
+        <p>基于源码快照检查地址重叠、多处写入，以及已保存气缸模板要求连接的参数。体检不修改或编译工程，不下载到 PLC。</p>
+        <div class="audit-actions">
+          <button class="btn" id="auditCached">读取本地源码并体检</button>
+          <button class="btn" id="auditLive">从博途重新读取并体检</button>
+          <button class="btn btn-primary" id="auditRun" disabled>检查当前快照</button>
+          <button class="btn" id="auditExport" disabled>导出 Excel 报告</button>
+        </div>
+        <p id="auditStatus" role="status" aria-live="polite">请选择读取方式，或检查已经读取的快照。</p>
+        <section id="auditReport" hidden>
+          <p id="auditStale" hidden></p>
+          <h3>体检结果</h3>
+          <p id="auditReportTarget"></p>
+          <p id="auditSource"></p>
+          <p id="auditSourceNote" style="white-space:pre-wrap;color:var(--text-muted)"></p>
+          <p id="auditSnapshot" style="color:var(--text-muted)"></p>
+          <div id="auditCoverage"></div>
+          <p id="auditSummary"></p>
+          <details id="auditLimits"><summary id="auditLimitsSummary">检查范围与未覆盖项</summary><ul id="auditLimitList"></ul></details>
+          <p>“待核对”表示发现了需要人工判断的现象，不代表已经确认逻辑错误。没有发现问题也不代表程序已通过安全验证。</p>
+          <div class="audit-filters">
+            <select id="auditSeverity" class="search-input" aria-label="结果级别"><option value="all">全部级别</option><option value="warning">待核对</option><option value="info">提示</option></select>
+            <select id="auditRule" class="search-input" aria-label="检查规则"><option value="all">全部规则</option><option value="address_overlap">地址重叠</option><option value="multiple_writes">多处写入</option><option value="template_pin">模板参数接线</option></select>
+            <input id="auditSearch" class="search-input" placeholder="搜索地址、符号、程序块或证据" aria-label="搜索体检结果">
+          </div>
+          <p id="auditFilterSummary" style="color:var(--text-muted)"></p>
+          <div id="auditFindings"></div>
+          <div class="audit-actions"><button class="btn btn-sm" id="auditPrev" disabled>上一页</button><span id="auditPage"></span><button class="btn btn-sm" id="auditNext" disabled>下一页</button></div>
+          <p style="color:var(--text-muted)">Excel 报告包含本次体检的全部结果、定位证据和覆盖说明，不受页面筛选影响。</p>
+        </section>
+      </div>
+    </div>
     <div id="tab-cylinder" class="tab-content">
       <div class="card">
         <div class="card-header"><span class="card-title">从已有气缸新建</span></div>
@@ -991,28 +1078,58 @@
         <div id="cyEditor" hidden>
           <h3>1. 选择样板</h3>
           <label>宿主程序块 <select id="cyHost" class="btn"></select></label>
-          <label>样板实例 <select id="cySample" class="btn"></select></label>
+          <label>气缸实例 <select id="cySample" class="btn"></select></label>
+          <p id="cySummary" style="color:var(--text-muted)"></p>
+          <div id="cyCandidates" style="overflow:auto;max-height:320px"></div>
           <p id="cySkipped" style="color:var(--text-muted);white-space:pre-wrap"></p>
-          <details id="cyRulePanel"><summary>核对模板规则与原调用</summary>
+          <details id="cyRulePanel" hidden><summary>核对模板规则与原调用</summary>
             <p>公共输入可以沿用。请核对工作位、原位、模式、互锁和报警下标的含义。</p>
+            <p id="cyOpenNotice" hidden style="color:var(--warning,#fbbf24)"></p>
             <div id="cyRules" style="overflow:auto"></div>
           </details>
-          <button class="btn" id="cySave">确认并保存项目模板</button>
+          <p id="cyTemplateStatus" role="status" style="color:var(--text-muted);white-space:pre-wrap;margin:12px 0"></p>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            <button class="btn" id="cySave" disabled>确认并保存项目模板</button>
+            <button class="btn" id="cyTemplateExport" disabled>导出模板规则</button>
+            <button class="btn" id="cyTemplateImport" disabled>导入模板规则</button>
+            <input id="cyTemplateFile" type="file" accept=".json,application/json" hidden aria-label="导入气缸模板规则">
+          </div>
           <div id="cyBinding" hidden>
             <h3>2. 新气缸与点位</h3>
-            <label>新实例名称 <input class="search-input" id="cyName" placeholder="例如 Z14" maxlength="64"></label>
+            <label>气缸名称 <input class="search-input" id="cyDisplayName" placeholder="例如 OP275侧面夹紧气缸" maxlength="64" autocomplete="off"></label>
+            <label>程序实例名 <input class="search-input" id="cyName" placeholder="例如 Z04，可自行指定" maxlength="64" autocomplete="off"></label>
             <label id="cyAlarmLabel">新数组索引 <input class="search-input" id="cyAlarm" type="number" min="0" step="1"></label>
+            <p id="cyAvailability" style="color:var(--text-muted)"></p>
             <div id="cyPoints"></div>
-            <button class="btn" id="cyGenerate">生成草稿和差异</button>
+            <p id="cyNamingStatus" role="status" style="color:var(--text-muted)">填写气缸名称并选择点位后，自动预览输入和输出名称。</p>
+            <div id="cyNamingPreview" style="overflow:auto"></div>
+            <section id="cyBatchPanel" style="margin:16px 0;padding:12px;border:1px solid var(--card-border);border-radius:8px">
+              <button class="btn" id="cyBatchAdd">加入批量清单</button>
+              <button class="btn" id="cyBatchClear">清空清单</button>
+              <p id="cyBatchStatus" role="status" style="color:var(--text-muted)"></p>
+              <div id="cyBatchRows" style="overflow:auto"></div>
+            </section>
+            <button class="btn btn-primary" id="cyApply">生成并写入博途</button>
+            <button class="btn" id="cyGenerate">预览生成结果</button>
+            <p style="color:var(--text-muted)">写入前重新检查点位占用，自动备份，再添加气缸调用、更新点位名称并编译。全部检查通过后保存当前工程；不会下载到 PLC。目前支持 V16–V20 普通 PLC 程序中的 DB 映射点位。</p>
           </div>
           <div id="cyResult" hidden>
             <h3>3. 核对生成结果</h3>
             <p id="cyWarnings" style="white-space:pre-wrap;color:var(--warning,#fbbf24)"></p>
             <div id="cyDiff" style="max-height:300px;overflow:auto"></div>
             <pre id="cyCode" style="max-height:340px;overflow:auto;white-space:pre-wrap"></pre>
+            <button class="btn btn-primary" id="cyApplyPreview">生成并写入博途</button>
             <button class="btn" id="cyDownload">下载 SCL 调用草稿</button>
+            <button class="btn" id="cyDownloadPlan">下载点位命名与调用方案</button>
           </div>
         </div>
+        <section id="cyApplyPanel" hidden style="margin-top:20px;border-top:1px solid var(--card-border);padding-top:16px">
+          <h3>写入进度与结果</h3>
+          <p id="cyApplyTarget" style="overflow-wrap:anywhere;color:var(--text-muted)"></p>
+          <p id="cyApplyStatus" role="status" aria-live="polite" style="white-space:pre-wrap"></p>
+          <div id="cyApplySummary" style="overflow:auto"></div>
+          <details id="cyApplyDetails" hidden><summary>查看备份、编译与回读详情</summary><pre id="cyApplyReport" style="max-height:360px;overflow:auto;white-space:pre-wrap"></pre></details>
+        </section>
       </div>
     </div>
     <div id="tab-simulation" class="tab-content">
@@ -1110,6 +1227,7 @@
       if (tabId === 'index') loadIndexSummary();
       if (tabId === 'io') ioTargetChanged();
       if (tabId === 'cylinder' && window.cylinderSync) window.cylinderSync();
+      if (tabId === 'audit' && window.auditSync) window.auditSync();
       if (tabId === 'simulation') loadSimulation();
       if (tabId === 'tools') loadTools();
       if (tabId === 'logs') fetchLogs();
@@ -1121,6 +1239,7 @@
         const data = await res.json();
         currentStatus = data;
         if (window.ioTargetChanged) window.ioTargetChanged();
+        if (window.auditSync) window.auditSync();
         document.getElementById('toolCountNav').textContent = data.tool_count || 82;
         document.getElementById('toolCountTitle').textContent = data.tool_count || 82;
 
@@ -1739,6 +1858,10 @@
   <script src="/io.js"></script>
   <script src="/execution.js"></script>
   <script src="/cylinder-model.js"></script>
+  <script src="/cylinder-naming.js"></script>
   <script src="/cylinder.js"></script>
+  <script src="/cylinder-batch.js"></script>
+  <script src="/cylinder-apply.js"></script>
+  <script src="/audit.js"></script>
 </body>
 </html>

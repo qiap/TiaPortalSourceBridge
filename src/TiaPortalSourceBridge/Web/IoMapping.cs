@@ -67,6 +67,11 @@ namespace TiaPortalSourceBridge.Web
             if (section != null) Layout(section, "", ref bit, fields);
             return fields;
         }
+        internal static Dictionary<string,string> AbsoluteBits(IndexEntry db,string source)
+        {
+            return Fields(db,source).ToDictionary(p => ContentIndexer.ComponentName(db.name)+"."+p.Value.Path,
+                p => "DB"+db.number+".DBX"+p.Key/8+"."+p.Key%8,StringComparer.OrdinalIgnoreCase);
+        }
         private static XmlElement SingleOperand(XmlElement statement, string op)
         {
             var tokens = Children(statement,"StlToken").ToArray();

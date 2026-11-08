@@ -66,8 +66,49 @@ internal static class IoChecks
         Check(snapshot.rows.Count(r => r.origin.Contains("Byte")) == 16 && snapshot.rows.Any(r=>r.name=="Flags.Packed[21].%X7"),"each packed byte contributes eight labelled bits");
         Check(snapshot.rows.Any(r=>r.name=="Flags.Sub.Ok") && snapshot.rows.Select(r=>r.id).Distinct().Count()==21,"struct Bool and distinct element identities");
     }
+    static void VerifyCylinderAvailability()
+    {
+        var mapper=IndexEntry.Create("plc.block","PLC","Station/Mapping","Map","LAD","1");
+        Func<string,string> access=name=>"<Access Scope='GlobalVariable'><Symbol><Component Name='"+name+"'/></Symbol></Access>";
+        string db="<Access Scope='GlobalVariable'><Symbol><Component Name='Signals'/><Component Name='Spare'/></Symbol></Access>";
+        string net="<FlgNet><Parts>"+db.Replace("<Access ","<Access UId='1' ")+access("OutputTag").Replace("<Access ","<Access UId='2' ")+"<Part Name='Contact' UId='3'/><Part Name='Coil' UId='4'/></Parts><Wires><Wire><Powerrail/><NameCon UId='3' Name='in'/></Wire><Wire><NameCon UId='3' Name='out'/><NameCon UId='4' Name='in'/></Wire><Wire><IdentCon UId='1'/><NameCon UId='3' Name='operand'/></Wire><Wire><IdentCon UId='2'/><NameCon UId='4' Name='operand'/></Wire></Wires></FlgNet>";
+        string xml="<Document><SW.Blocks.FC><AttributeList><Name>Map</Name></AttributeList><ObjectList><SW.Blocks.CompileUnit><AttributeList><NetworkSource>"+net+"</NetworkSource></AttributeList></SW.Blocks.CompileUnit></ObjectList></SW.Blocks.FC></Document>";
+        var snap=new IoSnapshot { cylinderBlocks=new[]{mapper},cylinderProgramsTotal=1,cylinderProgramsRead=1,tables_total=1,tables_read=1 };
+        var point=new IoRow { id="q",unit="",name="OutputTag",address="%Q52.6",area="Q",data_type="Bool",group="Tags" };
+        var alias=new IoRow { id="alias",unit="",name="OtherTag",address="%Q52.6",area="Q",data_type="Bool",group="Tags" };
+        snap.rows.AddRange(new[]{point,alias,new IoRow {id="db",unit="",name="Signals.Spare",area="DB",data_type="Bool"}});
+        var usage=new CylinderIoUsage(snap,e=>xml);
+        Check(usage.Complete && usage.For(point).Availability=="unused","pure output mapping is not business usage");
+        Check(usage.PreferredSymbol(point)=="Signals.Spare" && usage.Aliases(point).Contains("Signals.Spare"),"mapped DB symbol retained for generation and host boundary");
+        Check(usage.For(point).Bank=="Station/Mapping" && usage.For(alias).Bank=="Station/Mapping","raw aliases inherit one stable mapping bank");
+        string otherUse=xml.Replace("</ObjectList>",db+"</ObjectList>");
+        var occupied=new CylinderIoUsage(snap,e=>otherUse);
+        Check(occupied.For(point).Availability=="used" && occupied.For(alias).Availability=="used","DB member used elsewhere reserves all aliases of physical point");
+        Check(occupied.For(point).Blocks.Contains("Map"),"logic in same mapping block remains business usage");
+        var physicalUse=new CylinderIoUsage(snap,e=>xml.Replace("</ObjectList>",access("OtherTag")+"</ObjectList>"));
+        Check(physicalUse.For(point).Availability=="used","physical alias reference reserves primary name");
+        snap.rows.Add(new IoRow {id="byte",unit="",name="OutputByte",address="%QB52",area="Q",data_type="Byte"});
+        var byteUse=new CylinderIoUsage(snap,e=>xml.Replace("</ObjectList>",access("OutputByte")+"</ObjectList>"));
+        Check(byteUse.For(point).Availability=="used","byte reference reserves overlapping physical Bool");
+        snap.cylinderProgramsTotal=2;
+        Check(new CylinderIoUsage(snap,e=>xml).For(point).Availability=="unknown","incomplete executable program coverage cannot prove unused");
+        Check(new CylinderIoUsage(snap,e=>otherUse).For(point).Availability=="used","known use is retained despite incomplete coverage");
+        snap.cylinderProgramsTotal=1;
+        string stl="<StatementList><StlStatement><StlToken Text='A'/>"+db+"</StlStatement><StlStatement><StlToken Text='='/ >"+access("OutputTag")+"</StlStatement></StatementList>";
+        stl=stl.Replace("'/ >","'/>");
+        Check(new CylinderIoUsage(snap,e=>xml.Replace(net,stl)).For(point).Availability=="unused","exact STL A/assignment output mapping is not business use");
+        var conditioned=stl.Replace("<StatementList>","<StatementList><StlStatement><StlToken Text='A'/>"+access("Enable")+"</StlStatement>");
+        Check(new CylinderIoUsage(snap,e=>xml.Replace(net,conditioned)).For(point).Availability=="used","conditioned STL assignment is not discarded as mapping");
+        var storage=IndexEntry.Create("plc.block","PLC","Data","Signals","DB","12");
+        snap.cylinderBlocks=new[]{mapper,storage};
+        string storageXml="<Document><SW.Blocks.GlobalDB><AttributeList><Name>Signals</Name><Number>12</Number><MemoryLayout>Standard</MemoryLayout><Interface><Sections><Section Name='Static'><Member Name='Spare' Datatype='Bool'/></Section></Sections></Interface></AttributeList></SW.Blocks.GlobalDB></Document>";
+        string absolute="<Access Scope='Address'><Address Area='DB' Type='Byte' BlockNumber='12' BitOffset='0'/></Access>";
+        var absoluteUse=new CylinderIoUsage(snap,e=>e==storage?storageXml:xml.Replace("</ObjectList>",absolute+"</ObjectList>"));
+        Check(absoluteUse.For(point).Availability=="used","absolute DB byte use overlaps direct mapped Bool output");
+    }
     static int Main(string[] args)
     {
+        VerifyCylinderAvailability();
         string root = Path.Combine(Path.GetTempPath(), "tia-io-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(root);
         try {
             VerifyByteMapping();

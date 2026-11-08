@@ -1,9 +1,13 @@
-param([string]$OutputDirectory = "$PSScriptRoot\..\portable-releases")
+param([string]$OutputDirectory = "$PSScriptRoot\..\portable-releases", [switch]$LegacyV17)
 $ErrorActionPreference = 'Stop'
+if (-not $LegacyV17) {
+    throw 'This is the legacy V17-only package script. Use scripts/Build-Installer.ps1 for the full matching Portable ZIP and installer, or explicitly pass -LegacyV17 for this limited archive.'
+}
+Write-Warning 'Legacy V17-only archive: copies existing binaries; this is not the full dual-engine dashboard release.'
 $toolRoot = (Resolve-Path -LiteralPath "$PSScriptRoot\..").Path
 $releaseRoot = [IO.Path]::GetFullPath($OutputDirectory)
 New-Item -ItemType Directory -Path $releaseRoot -Force | Out-Null
-$packageName = 'TiaPortalSourceBridge-V17-Portable-' + (Get-Date -Format 'yyyyMMdd-HHmmss')
+$packageName = 'TiaPortalSourceBridge-Legacy-V17-Portable-' + (Get-Date -Format 'yyyyMMdd-HHmmss')
 $packageRoot = Join-Path $releaseRoot $packageName
 $binRoot = Join-Path $packageRoot 'bin'
 New-Item -ItemType Directory -Path $binRoot | Out-Null

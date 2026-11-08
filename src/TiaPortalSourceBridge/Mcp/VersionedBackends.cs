@@ -19,6 +19,14 @@ namespace TiaPortalSourceBridge.Mcp
                 throw new ArgumentException("看板状态接口只允许读取工程与设备信息。");
             return CallTool(name, arguments);
         }
+        // Only the validated cylinder workflow calls this entry point. It is never
+        // exposed as an arbitrary tool-name/arguments endpoint in the HTTP API.
+        internal Dictionary<string, object> DashboardCylinderCall(string name, Dictionary<string, object> arguments)
+        {
+            if (!new[] { "tia_connection_status", "tia_import_blocks_batch", "tia_save_project", "tia_compile_plc", "tia_read_block" }.Contains(name))
+                throw new ArgumentException("气缸写入流程不支持此操作。");
+            return CallTool(name, arguments);
+        }
         private string BackendRoot()
         {
             foreach (string start in new[] { Path.GetDirectoryName(_configPath), AppDomain.CurrentDomain.BaseDirectory })

@@ -15,7 +15,9 @@ The application runs on Windows and provides a unified entry point for separate 
 | Module | Capabilities |
 | --- | --- |
 | Web dashboard | View project and connection status, run engineering tasks, review backup diffs, search indexes, and inspect logs |
+| Program audit | Read-only checks for explicit I/Q/M declaration overlap, multiple write sites, and missing connections required by saved templates; includes evidence, coverage notes, and Excel reports |
 | PLC source | Read and import SCL, DB, UDT, and SimaticML XML, individually or in batches |
+| Cylinder execution history | Persistent generation, inspection, and recovery records with per-block results, compiler warnings, backups, and save status; inspect a failed operation before continuing or restoring it |
 | Project index | Browse the project tree, search content, find explicit references, and retrieve task context |
 | LAD / GRAPH | Generate LAD, read and edit GRAPH models, and apply batch changes and imports |
 | HMI and hardware | Work with classic HMI screens, tags, and alarms; read and modify hardware and network configurations |
@@ -29,18 +31,42 @@ For the current tool list and parameters, use the dashboard's **MCP tool diction
 
 You do not need to download the source or compile the application. Choose either package:
 
+The current source includes changes awaiting release. Choose assets from a published version on the Releases page; its release notes describe the features included in that package.
+
 | Package | Download | How to run |
 | --- | --- | --- |
-| Portable ZIP | [Download Portable.zip](https://github.com/qiap/TiaPortalSourceBridge/releases/latest/download/TiaPortalSourceBridge-4.3.3-Portable.zip) | Extract the entire archive, then double-click `WebDashboard.cmd` or `LaunchWeb.vbs` |
-| Windows installer | [Download Setup.exe](https://github.com/qiap/TiaPortalSourceBridge/releases/latest/download/TiaPortalSourceBridge-4.3.3-Setup.exe) | Run the installer, then open the application from the desktop or Start menu |
+| Portable ZIP | [Choose Portable.zip in Releases](https://github.com/qiap/TiaPortalSourceBridge/releases) | Extract the entire archive, then double-click `WebDashboard.cmd` or `LaunchWeb.vbs` |
+| Windows installer | [Choose Setup.exe in Releases](https://github.com/qiap/TiaPortalSourceBridge/releases) | Run the installer, then open the application from the desktop or Start menu |
 
 Both packages include the V17/V21 engines, default configuration, and runtime templates. Open your project in TIA Portal first, then select the project and PLC in the dashboard. The target computer must meet the requirements below.
 
-[All releases and release notes](https://github.com/qiap/TiaPortalSourceBridge/releases) · [SHA-256 checksums](https://github.com/qiap/TiaPortalSourceBridge/releases/latest/download/SHA256SUMS.txt)
+[All releases and release notes](https://github.com/qiap/TiaPortalSourceBridge/releases) · Download `SHA256SUMS.txt` from the same version's assets to verify both packages.
 
 GitHub's **Code → Download ZIP** and the automatically generated **Source code** release archives contain source code, not a ready-to-run application. For portable use, download **Portable.zip** above. The EXE installer is currently unsigned.
 
 Refreshing, switching, or closing browser tabs does not stop the background service. To stop it, use **退出服务** (Exit service) in the dashboard. Active engineering tasks finish before shutdown.
+
+### Execution history and failure recovery
+
+Open **工程变更记录 · 气缸** (Cylinder operation history) in the control center or execution log to revisit a task after refreshing the page or restarting the tool. These local engineering records are retained independently of the general log's latest 100 calls.
+
+A failed cylinder operation preserves the current state. **核对当前工程** performs a read-only inspection of background activity, program blocks, I/O declarations, and backups. When the evidence is complete and unchanged, review the continue or restore plan and explicitly confirm execution. Continuing applies only the remaining steps; restoring first backs up the current state and includes affected instance DBs. Saving applies to the entire open project, including other unsaved edits.
+
+Lost responses and timeouts trigger status lookup, never automatic write replay. Unconfirmed background activity, subsequent edits, or incomplete evidence disable automatic continuation and restoration. Older records remain viewable but may require manual handling because they lack recovery evidence. These operations modify the offline TIA project and do not download to a PLC.
+
+### Cylinder templates and batch generation
+
+Read the project, select an existing cylinder, and review its parameter roles before saving the template for that project. Rules are stored under `project-templates/` in the tool directory. Adding other cylinders does not invalidate the selected sample; changes to its wiring or FB interface require another review. Rules can be exported and imported, with wiring and I/O selections reviewed again in the target project.
+
+Enter a cylinder name, instance name, array index, and unused I/O points, then add it to the batch list. Each batch supports up to 20 cylinders using the same template. The tool checks duplicate names, instances, indices, and physical I/O addresses, combines changes into one write per block, and compiles, reads back, and saves the result together. Failed batches retain their execution records. Project templates and operation history are local data excluded from source control.
+
+### Program audit
+
+Select a project and PLC, then open **程序体检** (Program audit). Read the local source cache or read fresh sources from TIA Portal before scanning; an existing completed snapshot can also be checked directly. Reports identify the source, timestamps, coverage, and relevant blocks, networks, and variables. Filter by rule or text, or export the full report and its coverage notes to Excel, independently of the current filter.
+
+The first version checks supported explicit I/Q/M declarations, LAD coils and call parameters, and selected STL write instructions. Template connection checks use only reviewed cylinder templates that still match the current project. Aliases and multiple writes may be intentional and require review of execution order and device requirements. Complete SCL/GRAPH control flow, Temp initialization, dynamic addressing, hardware addresses, DB layouts, and HMI/external writes are not covered. No findings does not establish logical safety. Analysis does not modify, compile, save, or download the engineering project.
+
+The service retains up to four reports in memory. Export Excel files to keep them after restarting the tool.
 
 ## Requirements
 
