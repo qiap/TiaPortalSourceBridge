@@ -25,6 +25,7 @@ portable-releases/
 **/online-bin/
 **/build-support/
 **/logs/
+**/node_modules/
 **/__pycache__/
 *.log
 *.lnk

@@ -33,12 +33,12 @@
 
 普通用户无需下载源码或自行编译，选择一种方式即可：
 
-当前发布版本：**v4.10.0**。源码、V17/V21 程序、安装包和免安装包使用同一版本；详细变化和验证范围见 [v4.10.0 发布说明](https://github.com/qiap/TiaPortalSourceBridge/releases/tag/v4.10.0)。
+当前发布版本：**v4.10.1**。源码、V17/V21 程序、安装包和免安装包使用同一版本；详细变化和验证范围见 [v4.10.1 发布说明](https://github.com/qiap/TiaPortalSourceBridge/releases/tag/v4.10.1)。
 
 | 方式 | 下载 | 使用方法 |
 | --- | --- | --- |
-| ZIP 免安装版 | [下载 v4.10.0 Portable.zip](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.10.0/TiaPortalSourceBridge-4.10.0-Portable.zip) | 完整解压后双击 `WebDashboard.cmd` 或 `LaunchWeb.vbs` |
-| EXE 安装版 | [下载 v4.10.0 Setup.exe](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.10.0/TiaPortalSourceBridge-4.10.0-Setup.exe) | 运行安装程序，通过桌面或开始菜单打开 |
+| ZIP 免安装版 | [下载 v4.10.1 Portable.zip](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.10.1/TiaPortalSourceBridge-4.10.1-Portable.zip) | 完整解压后双击 `WebDashboard.cmd` 或 `LaunchWeb.vbs` |
+| EXE 安装版 | [下载 v4.10.1 Setup.exe](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.10.1/TiaPortalSourceBridge-4.10.1-Setup.exe) | 运行安装程序，通过桌面或开始菜单打开 |
 
 两种方式均包含 V17/V21 引擎、默认配置和运行模板。先在 TIA Portal 中打开工程，再在看板选择工程和 PLC；目标电脑需满足下面的运行环境要求。
 
@@ -48,7 +48,7 @@ GitHub 的 **Code → Download ZIP** 和 Release 中自动生成的 **Source cod
 
 刷新、切换或关闭浏览器标签页不会停止后台服务。需要退出时，点击看板右上角的“退出服务”；正在执行的工程任务会先完成。
 
-### v4.10.0 更新与升级
+### v4.10.1 更新与升级
 
 - 工程审查增加独立源码快照、调用影响路径、结构化差异、多语言文本回填和交付资料导出。
 - 电气 Excel 点表支持对账及 V17 审查写回；气缸流程增加持久执行记录、核对恢复、模板复用及批量生成，并扩展机构类型。
@@ -317,9 +317,12 @@ scripts/                  构建与辅助脚本
 installer/                Windows 安装包定义
 ```
 
-运行离线回归检查：
+运行离线回归检查（需 Node.js/npm 及 Microsoft Edge；浏览器测试依赖按锁文件安装）：
 
 ```powershell
+Push-Location tests
+npm ci --ignore-scripts
+Pop-Location
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-Checks.ps1
 ```
 

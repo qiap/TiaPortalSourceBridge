@@ -31,12 +31,12 @@ For the current tool list and parameters, use the dashboard's **MCP tool diction
 
 You do not need to download the source or compile the application. Choose either package:
 
-Current release: **v4.10.0**. The source, V17/V21 binaries, installer and portable package share this version. See the [v4.10.0 release notes](https://github.com/qiap/TiaPortalSourceBridge/releases/tag/v4.10.0) for changes and validation scope.
+Current release: **v4.10.1**. The source, V17/V21 binaries, installer and portable package share this version. See the [v4.10.1 release notes](https://github.com/qiap/TiaPortalSourceBridge/releases/tag/v4.10.1) for changes and validation scope.
 
 | Package | Download | How to run |
 | --- | --- | --- |
-| Portable ZIP | [Download v4.10.0 Portable.zip](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.10.0/TiaPortalSourceBridge-4.10.0-Portable.zip) | Extract the entire archive, then double-click `WebDashboard.cmd` or `LaunchWeb.vbs` |
-| Windows installer | [Download v4.10.0 Setup.exe](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.10.0/TiaPortalSourceBridge-4.10.0-Setup.exe) | Run the installer, then open the application from the desktop or Start menu |
+| Portable ZIP | [Download v4.10.1 Portable.zip](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.10.1/TiaPortalSourceBridge-4.10.1-Portable.zip) | Extract the entire archive, then double-click `WebDashboard.cmd` or `LaunchWeb.vbs` |
+| Windows installer | [Download v4.10.1 Setup.exe](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.10.1/TiaPortalSourceBridge-4.10.1-Setup.exe) | Run the installer, then open the application from the desktop or Start menu |
 
 Both packages include the V17/V21 engines, default configuration, and runtime templates. Open your project in TIA Portal first, then select the project and PLC in the dashboard. The target computer must meet the requirements below.
 
@@ -46,7 +46,7 @@ GitHub's **Code → Download ZIP** and the automatically generated **Source code
 
 Refreshing, switching, or closing browser tabs does not stop the background service. To stop it, use **退出服务** (Exit service) in the dashboard. Active engineering tasks finish before shutdown.
 
-### v4.10.0 changes and upgrading
+### v4.10.1 changes and upgrading
 
 - Project review adds independent source snapshots, caller impact paths, structural differences, multilingual text updates and delivery exports.
 - Electrical Excel reconciliation supports reviewed V17 writes. Cylinder workflows add persistent history, inspected recovery, reusable templates, batches and additional actuator types.
@@ -317,9 +317,12 @@ scripts/                   Build and utility scripts
 installer/                 Windows package definitions
 ```
 
-Run the offline regression suite:
+Run the offline regression suite with Node.js/npm and Microsoft Edge installed. Install browser test dependencies from the lockfile first:
 
 ```powershell
+Push-Location tests
+npm ci --ignore-scripts
+Pop-Location
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-Checks.ps1
 ```
 
