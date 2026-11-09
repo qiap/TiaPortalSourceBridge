@@ -45,6 +45,7 @@ namespace TiaPortalSourceBridge.Web
     }
     internal sealed class IoReconcileReport
     {
+        internal Dictionary<string, string> nativeTableSignatures;
         public string id { get; set; }
         public string snapshot_id { get; set; }
         public string project_path { get; set; }

@@ -38,3 +38,11 @@ tests/*results*.json
 
 # Local engineering metadata
 scripts/blocks_meta.json
+
+source-reviews/
+parameter-snapshots/
+
+online-records/
+simulation-runs/
+
+hmi-companion-backups/

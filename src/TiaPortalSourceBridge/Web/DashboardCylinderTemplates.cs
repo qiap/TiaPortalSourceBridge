@@ -84,7 +84,7 @@ namespace TiaPortalSourceBridge.Web
             if (new FileInfo(path).Length > 65536) throw new InvalidOperationException("保存的模板过大，请重新核对并保存。");
             var template = CylinderWritePipeline.Json().Deserialize<Dictionary<string, object>>(File.ReadAllText(path, Encoding.UTF8));
             if (template == null || CylinderWritePipeline.Text(template, "kind") != "cylinder-template-rules" ||
-                CylinderWritePipeline.Text(template, "schema") != "1" ||
+                !new[]{"1","2"}.Contains(CylinderWritePipeline.Text(template, "schema")) ||
                 !string.Equals(CylinderWritePipeline.Text(template, "project_path"), context.project_path, StringComparison.OrdinalIgnoreCase) ||
                 CylinderWritePipeline.Text(template, "plc_name") != context.plc_name || CylinderWritePipeline.Text(template, "host_name") != context.host_name ||
                 CylinderWritePipeline.Text(template, "group_path") != context.group_path || CylinderWritePipeline.Text(template, "unit_name") != context.unit_name ||
@@ -92,13 +92,14 @@ namespace TiaPortalSourceBridge.Web
                 throw new InvalidOperationException("保存的模板身份不一致，请重新核对。");
             return template;
         }
-        internal static Dictionary<string, object> Save(string root, CylinderTemplateContext context, string fingerprint, Dictionary<string, object> rules, bool reviewed)
+        internal static Dictionary<string, object> Save(string root, CylinderTemplateContext context, string fingerprint, Dictionary<string, object> rules, bool reviewed,string deviceKind="cylinder",Dictionary<string,object> suffixes=null)
         {
             if (!reviewed || fingerprint != context.sample_fingerprint) throw new InvalidOperationException("样板已变化或尚未确认，请重新核对当前规则。");
             if (rules == null || rules.Count != context.parameters.Length || context.parameters.Any(p => !rules.ContainsKey(p)) ||
                 rules.Any(p => !(p.Value is string) || !Roles.Contains((string)p.Value)) || !rules.Values.Contains("output"))
                 throw new InvalidOperationException("模板必须为当前全部参数指定有效规则，并包含阀输出。");
-            var template = new Dictionary<string, object> { { "schema", 1 }, { "kind", "cylinder-template-rules" },
+            if(string.IsNullOrEmpty(deviceKind))deviceKind="cylinder";ActuatorNaming.Validate(deviceKind,suffixes,rules);
+            var template = new Dictionary<string, object> { { "schema", deviceKind=="cylinder"?1:2 }, { "kind", "cylinder-template-rules" }, {"device_kind",deviceKind},{"io_suffixes",suffixes??new Dictionary<string,object>()},
                 { "project_path", context.project_path }, { "plc_name", context.plc_name }, { "host_name", context.host_name },
                 { "group_path", context.group_path }, { "unit_name", context.unit_name }, { "sample_id", context.sample_id },
                 { "sample_network", context.sample_network }, { "fb", context.fb }, { "sample_fingerprint", context.sample_fingerprint },
@@ -141,7 +142,8 @@ namespace TiaPortalSourceBridge.Web
                     Dictionary<string, object> template;
                     if (save) {
                         object value; map.TryGetValue("rules", out value);
-                        template = CylinderTemplateStore.Save(root, identity, Text(map, "sample_fingerprint"), value as Dictionary<string, object>, CylinderWritePipeline.True(map, "reviewed"));
+                        object suffixes;map.TryGetValue("io_suffixes",out suffixes);
+                        template = CylinderTemplateStore.Save(root, identity, Text(map, "sample_fingerprint"), value as Dictionary<string, object>, CylinderWritePipeline.True(map, "reviewed"),Text(map,"device_kind"),suffixes as Dictionary<string,object>);
                     } else template = CylinderTemplateStore.Read(root, identity);
                     SendJson(response, 200, new { context = identity, template, matches = template != null && Text(template, "sample_fingerprint") == identity.sample_fingerprint });
                 } catch (Exception ex) { SendJson(response, 409, new { error = ex.Message }); }

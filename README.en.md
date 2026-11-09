@@ -31,12 +31,12 @@ For the current tool list and parameters, use the dashboard's **MCP tool diction
 
 You do not need to download the source or compile the application. Choose either package:
 
-The current source includes changes awaiting release. Choose assets from a published version on the Releases page; its release notes describe the features included in that package.
+Current release: **v4.10.0**. The source, V17/V21 binaries, installer and portable package share this version. See the [v4.10.0 release notes](https://github.com/qiap/TiaPortalSourceBridge/releases/tag/v4.10.0) for changes and validation scope.
 
 | Package | Download | How to run |
 | --- | --- | --- |
-| Portable ZIP | [Choose Portable.zip in Releases](https://github.com/qiap/TiaPortalSourceBridge/releases) | Extract the entire archive, then double-click `WebDashboard.cmd` or `LaunchWeb.vbs` |
-| Windows installer | [Choose Setup.exe in Releases](https://github.com/qiap/TiaPortalSourceBridge/releases) | Run the installer, then open the application from the desktop or Start menu |
+| Portable ZIP | [Download v4.10.0 Portable.zip](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.10.0/TiaPortalSourceBridge-4.10.0-Portable.zip) | Extract the entire archive, then double-click `WebDashboard.cmd` or `LaunchWeb.vbs` |
+| Windows installer | [Download v4.10.0 Setup.exe](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.10.0/TiaPortalSourceBridge-4.10.0-Setup.exe) | Run the installer, then open the application from the desktop or Start menu |
 
 Both packages include the V17/V21 engines, default configuration, and runtime templates. Open your project in TIA Portal first, then select the project and PLC in the dashboard. The target computer must meet the requirements below.
 
@@ -45,6 +45,19 @@ Both packages include the V17/V21 engines, default configuration, and runtime te
 GitHub's **Code → Download ZIP** and the automatically generated **Source code** release archives contain source code, not a ready-to-run application. For portable use, download **Portable.zip** above. The EXE installer is currently unsigned.
 
 Refreshing, switching, or closing browser tabs does not stop the background service. To stop it, use **退出服务** (Exit service) in the dashboard. Active engineering tasks finish before shutdown.
+
+### v4.10.0 changes and upgrading
+
+- Project review adds independent source snapshots, caller impact paths, structural differences, multilingual text updates and delivery exports.
+- Electrical Excel reconciliation supports reviewed V17 writes. Cylinder workflows add persistent history, inspected recovery, reusable templates, batches and additional actuator types.
+- New panels provide read-only online monitoring, parameter archives, GRAPH Boolean condition checks, classic HMI companion changes and managed local PLCSIM peripheral simulation. Supported scope and limitations are documented below.
+- Shortcuts use a dedicated Windows launcher. Packaging checks cover Unicode paths with spaces, icons, actual shortcut launch and dashboard responses.
+
+Exit the old dashboard service before upgrading. For portable use, **extract the complete ZIP into a new directory**; do not replace only a BAT, VBS or individual EXE. Run `创建快捷方式.bat` or `CreateShortcuts.vbs` from the new directory to recreate the desktop shortcut. Repeat after moving the directory. Retain old project configuration, backups, templates and operation records and migrate them as needed. Installer upgrades retain existing configuration.
+
+If the shortcut creation window closes immediately, enter `cmd /k call 创建快捷方式.bat` in Explorer's address bar in the extracted directory to retain the error output. Run `WebDashboard.cmd` for startup diagnostics. Source checkouts require compilation; portable packages include the binaries.
+
+Release checks cover both engine builds, offline regressions and packaged startup. Offline tests of new engineering writes, classic HMI changes and simulation do not establish compatibility with every TIA version or real project; use the preview and verification results documented for each workflow.
 
 ### Execution history and failure recovery
 
@@ -66,7 +79,9 @@ In **I/O 表与引用** (I/O tables and references), open **电气 Excel 点表�
 
 The read-only report identifies changed fields, entries listed on only one side, duplicate names/addresses, overlapping address ranges, ambiguous matches, and invalid Excel data. It retains original Excel row numbers and PLC candidate values. I/Q/M bit, byte, word, and double-word addresses are normalized, including `%`, German E/A notation, and leading zeros. Mapped points use complete symbolic names. Overlaps can be intentional aliases, and zero reference evidence does not establish that an address is unused. Target, snapshot, or column changes invalidate the displayed comparison.
 
-This first version does not write to the engineering project. It accepts `.xlsx` files up to 8 MB, 20 sheets, 20000 nonempty rows in total, and 128 columns; save legacy `.xls` files as `.xlsx` first. Hidden rows are included and Excel filters are not applied. Formulas, error cells, and merged data cells are explicitly marked for correction; paste them as individual values first. Comparisons use the selected snapshot, not live values, unassigned hardware channels, or external device usage. The process keeps the latest three uploads and reports in memory. Export to retain the overview, all comparison rows, and PLC candidate evidence independently of the page filter.
+Reconciliation itself is read-only. V17 can turn selected changed or Excel-only rows from one ordinary native tag table into a reviewed write plan. Execution checks every native table fingerprint again, backs up the selected table, imports, compiles, verifies the result, and saves the entire offline project. Conflicts, software units, mapped DBs and incomplete/unsupported declarations are excluded. Renaming does not automatically refactor PLC/HMI external references. Failed writes retain their records and state; restoration requires unchanged post-operation evidence. V21 retains read-only reconciliation.
+
+The importer accepts `.xlsx` files up to 8 MB, 20 sheets, 20000 nonempty rows in total, and 128 columns; save legacy `.xls` files as `.xlsx` first. Hidden rows are included and Excel filters are not applied. Formulas, error cells, and merged data cells are explicitly marked for correction; paste them as individual values first. Comparisons use the selected snapshot, not live values, unassigned hardware channels, or external device usage. The process keeps the latest three uploads and reports in memory. Export to retain the overview, all comparison rows, and PLC candidate evidence independently of the page filter.
 
 ### Structural change review
 
@@ -75,6 +90,41 @@ Open **变更审查与 Diff** and select a backup to compare against the indexed
 Comparison does not connect to or write to TIA Portal. For fresh evidence, reread from TIA on the I/O page first. Missing, stale, altered or ambiguous snapshots produce an error rather than an apparent deletion. The list shows the latest 100 matching backups, including batch subdirectories. Legacy backup metadata lacks software-unit identity, so unit-scoped objects are not automatically matched.
 
 This first version compares XML structure, ignoring export-envelope timestamps and known object IDs. Supported LAD/SCL network UIds are normalized together with their references; unknown structures retain identifiers conservatively. Networks are matched by order, so insertion or movement can produce multiple changes. Member renames appear as removal and addition. GRAPH/STL and unknown structures may retain ID noise; plain text and SimaticSD retain the original text comparison. The tool does not establish logical equivalence or predict DB offsets, download reinitialization or HMI impacts. Each source is limited to 8 MiB and the complete response to 32 MiB; exceeding a limit produces an explicit error.
+
+### Saved snapshots, impact paths and delivery documents
+
+The change-review tab can preserve the indexed PLC sources as independent, hash-verified snapshots and compare any two belonging to the same project and PLC. Impact paths show explicit callers resolved from either snapshot. They do not predict DB layouts, HMI absolute-address changes or download reinitialization.
+
+The documentation ZIP contains the source catalog and XML, call-graph JSON/Mermaid, I/O and reference workbooks, translations, supported GRAPH structure diagrams, and coverage notes. Unread HMI resources are not included.
+
+### Reviewed text and parameter migration — V17
+
+- **Translations:** export a selected snapshot's workbook, edit `Translation`, mark selected rows `update`, then upload for review. Snapshot, source hash, original text, resource and language identities must still match. A language-coverage worksheet lists empty, missing and duplicate entries relative to languages observed in that snapshot. It does not add project languages automatically.
+- **Parameters:** configure read-only monitoring using `symbol name | absolute DB address | type`, read and archive values, then select a source snapshot and the parameter archive ID in change review. Migration matches standard global DB scalars by name, type and DB number. Arrays, optimized DBs, instance DBs and unmatched fields are excluded. User-supplied symbolic names and physical offsets are not proof of the online program's identity; samples may span scan cycles.
+- **Writeback:** review 1–50 ordinary PLC blocks, explicitly confirm, then back up, import, compile and verify the complete objects, including comments and start values, before saving the entire offline project. This entry point does not write tag tables or UDTs.
+- **Recovery:** query the durable execution ID and request a continue/restore preview. Current blocks must still match recorded post-operation fingerprints. A new reviewed plan is created; incomplete evidence, unresolved tasks or later changes block automatic recovery. There is no automatic rollback or write replay.
+
+### Actuator reuse and Classic WinCC companion changes — V17
+
+Template roles support motors, valves, vacuum devices and servo peripheral enable logic alongside cylinders. They reuse existing direct FB multi-instance calls and the same verified Bool mapped-I/O and 20-device batch workflow. Specify each I/O naming suffix explicitly. This does not create drives, motion axes or safety programs, or infer interlocks.
+
+After checking the PLC generation result, use the companion HMI panel to carry over device names and instances. Specify the full Classic HMI identity, alarm IDs, donor alarm IDs, existing 16-bit HMI trigger tags and bit numbers. Alarm text accepts `{name}`, `{instance}` and `{index}`. Optional text-list updates reuse existing single-value `Value` entries and an existing plain-text language; ranges, dynamic fields and unknown export shapes are refused. Preview, confirm, import, verify and compile before saving the entire project. PLC and HMI changes are separate operations, not an atomic transaction. HMI failure preserves its records and backups for manual review and does not undo a completed PLC operation.
+
+Native alarm export/import requires a signed-in, unlocked TIA desktop. Explicitly verify the HMI-to-PLC trigger mapping. Real-project HMI integration has not been validated by the offline suite.
+
+### Read-only waveforms and GRAPH conditions
+
+The monitoring tab reads standard DB absolute addresses over S7ONLINE or S7 TCP: up to 128 variables, 50–10000 ms intervals and 30-minute runs. The UI shows the latest 500 change events; export the complete JSONL after stopping. Bad-quality values are unknown. Polling can miss short pulses and is not a scan-by-scan PLC trace.
+
+Select an archived GRAPH block and step to view interlocks, supervisions and traceable following transitions. Global scalar normally-open/closed Boolean contact networks are evaluated using explicitly bound monitor names. Edges, comparisons, timers, local/array/indirect operands and unsupported networks remain unknown. Click the monitor's read-once action; samples expire after 10 seconds. The selected step is not automatically detected as active, and a true condition is not proof that movement is safe.
+
+### Configurable peripheral simulation — V17
+
+The simulation tab supports delayed Bool command-to-feedback rules, stuck feedback, timed stimuli and assertions. It accepts only tool-owned, project-bound, running local PLCSIM Advanced Softbus instances. It cannot target physical hardware. Confirm execution explicitly; duplicate feedback writers and feedback loops are rejected. Stopping ends future writes and preserves current simulation values without resetting or stopping the CPU.
+
+Runs persist configurations, assertion results and write-intent logs. Missed deadlines fail rather than passing with late values. The UI shows the latest 500 events; completed runs support full event-log export. Fake-adapter tests verify orchestration and guards, not the actual SDK, downloaded program or machine behavior.
+
+Snapshots, parameter archives, trace files, simulation results, HMI backups and templates are local engineering data excluded from Git. New write workflows target **V17 and Classic WinCC**; V21 retains its existing capabilities.
 
 ### Program audit
 

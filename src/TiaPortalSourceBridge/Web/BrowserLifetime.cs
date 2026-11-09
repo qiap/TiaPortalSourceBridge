@@ -54,6 +54,7 @@ namespace TiaPortalSourceBridge.Web
             ThreadPool.QueueUserWorkItem(_ => {
                 // Explicit shutdown still waits for active engineering work to finish.
                 while (ActionRunner.AnyBlockingRunning) Thread.Sleep(500);
+                try { CloseOnlineMonitor(); } catch (Exception ex) { Console.Error.WriteLine("Online monitor shutdown: " + ex.Message); }
                 lock (DashboardGate)
                 {
                     if (DashboardServer != null) { DashboardServer.Dispose(); DashboardServer = null; }

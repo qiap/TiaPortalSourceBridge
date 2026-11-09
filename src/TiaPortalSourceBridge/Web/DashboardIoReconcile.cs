@@ -89,6 +89,7 @@ namespace TiaPortalSourceBridge.Web
                 var log = ExecutionLog.Begin(_configPath, "看板", "电气 Excel 点表对账", project + " · " + plc + " · " + selected.File.FileName);
                 try {
                     var report = IoReconcile.Compare(selected.File, snapshot.result, options); report.snapshot_id = snapshot.id; report.source_mode = snapshot.cached ? "local_cache" : "tia_readback";
+                    report.nativeTableSignatures = new Dictionary<string, string>(snapshot.result.nativeTableSignatures);
                     // Refuse oversized results rather than publishing an unreadable report.
                     var validator = CylinderWritePipeline.Json(); validator.MaxJsonLength = 32 * 1024 * 1024;
                     validator.Serialize(report);

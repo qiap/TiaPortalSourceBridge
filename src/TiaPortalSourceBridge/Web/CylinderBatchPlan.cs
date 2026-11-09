@@ -32,7 +32,7 @@ namespace TiaPortalSourceBridge.Web
         private static string Template(Dictionary<string, object> request)
         {
             var values = new Dictionary<string, object>();
-            foreach (string key in new[] { "project_path", "plc_name", "host", "source_hash", "id", "sample_id", "sample_network", "rules" }) {
+            foreach (string key in new[] { "project_path", "plc_name", "host", "source_hash", "id", "sample_id", "sample_network", "rules", "device_kind", "io_suffixes" }) {
                 object value; values[key] = request.TryGetValue(key, out value) ? Canonical(value) : null;
             }
             return CylinderWritePipeline.Json().Serialize(Canonical(values));

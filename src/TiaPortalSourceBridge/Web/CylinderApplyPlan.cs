@@ -163,6 +163,8 @@ namespace TiaPortalSourceBridge.Web
             Require(Regex.IsMatch(name,@"^[\p{L}_][\p{L}\p{N}_]{0,63}$"), "实例名应为 1–64 位字母、汉字、数字或下划线，首位不能是数字");
             Require(display.Length > 0 && display.Length <= 64 && !Regex.IsMatch(display,"[\x00-\x1f\x7f\"\\\\]"), "请填写有效的气缸名称");
             var rules = M(request,"rules"); var bindings = M(request,"bindings");
+            string deviceKind=S(request,"device_kind");var suffixes=request.ContainsKey("io_suffixes")?M(request,"io_suffixes"):new Dictionary<string,object>();ActuatorNaming.Validate(deviceKind,suffixes,rules);
+            Require(string.IsNullOrEmpty(deviceKind)||deviceKind=="cylinder"||TiaPortalSourceBridge.Configuration.AppConfig.DetectProjectVersion(snapshot.project_path)=="V17","新增机构类型仅支持 V17。");
             var original = snapshot.cylinderBlocks.Where(b => b.unit_name == host.unit_name).ToDictionary(b => b.id,b => source(b));
             var docs = original.ToDictionary(p => p.Key,p => Parse(p.Value));
             var changed = new HashSet<string>();
@@ -216,7 +218,7 @@ namespace TiaPortalSourceBridge.Web
                     string preferred=usage.PreferredSymbol(row);
                     Require(preferred.Length>0,"当前直接写入仅支持已核对的映射 DB 点位："+address);
                     string[] before=SplitSymbol(preferred), after=(string[])before.Clone();
-                    string newName=display+Suffix(pin,role)+address; Require(newName.Length<=128,"生成点位名称过长"); after[after.Length-1]=newName;
+                    string newName=display+(string.IsNullOrEmpty(deviceKind)||deviceKind=="cylinder"?Suffix(pin,role):S(suffixes,pin.Name))+address; Require(newName.Length<=128,"生成点位名称过长"); after[after.Length-1]=newName;
                     var entry=dbEntry(before[0]); var field=FindField(Block(docs[entry.id]),before);
                     Require(Eq(A(field,"Datatype"),"Bool") && !C(field,"Member").Any(),"点位不是直接 Bool 成员");
                     Require(!C(field.ParentNode,"Member").Any(m=>m!=field && Eq(A(m,"Name"),newName)),"已存在生成的点位名："+newName);

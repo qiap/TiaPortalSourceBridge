@@ -12,7 +12,7 @@ using TiaPortalSourceBridge.Mcp;
 
 namespace TiaPortalSourceBridge.Simulation
 {
-    internal sealed class SimulationTools
+    internal sealed partial class SimulationTools
     {
         internal const string Fixture = "DB_BridgeSim_AutoReset";
         internal const uint Signature = 0x42525332;
@@ -63,6 +63,7 @@ namespace TiaPortalSourceBridge.Simulation
         }
         internal object Start(Dictionary<string, object> args)
         {
+            using(AcquireSimulationMutation()) {
             if (!Flag(args, "confirm")) throw new ArgumentException("启动本机仿真实例必须 confirm=true。");
             string project = ProjectRouter.Normalize(Text(args, "project_path"));
             if (!File.Exists(project)) throw new FileNotFoundException("目标项目不存在。", project);
@@ -89,6 +90,7 @@ namespace TiaPortalSourceBridge.Simulation
                 throw new InvalidOperationException("仿真启动未确认完成，请查询实例状态；不自动重复 PowerOn。");
             if (Flag(args, "show_ui")) ShowPanel();
             return Map("project_path", project, "instance", Detail(instance), "power_on_result", code == null ? null : EnumText(code));
+            }
         }
         private static void ShowPanel()
         {
@@ -107,12 +109,14 @@ namespace TiaPortalSourceBridge.Simulation
         }
         internal object Control(Dictionary<string, object> args)
         {
+            using(AcquireSimulationMutation()) {
             if (!Flag(args, "confirm")) throw new ArgumentException("仿真运行状态控制必须 confirm=true。");
             object instance = Owned(args); string action = Text(args, "action");
             string method = action == "run" ? "Run" : action == "stop" ? "Stop" : action == "power_off" ? "PowerOff" : null;
             if (method == null) throw new ArgumentException("action 仅支持 run、stop、power_off。");
             Api.Call(instance, method, (uint)30000);
             return Map("project_path", Text(args, "project_path"), "instance", Detail(instance));
+            }
         }
         internal object Read(Dictionary<string, object> args)
         {
@@ -143,6 +147,7 @@ namespace TiaPortalSourceBridge.Simulation
         }
         internal object WriteTest(Dictionary<string, object> args)
         {
+            using(AcquireSimulationMutation()) {
             if (!Flag(args, "confirm")) throw new ArgumentException("测试写入必须 confirm=true。");
             string field = Text(args, "field");
             if (!new[] { "Enable", "Trigger", "ManualReset", "ClearCount" }.Contains(field)) throw new ArgumentException("只允许写自动复位测试 DB 的 Enable、Trigger、ManualReset、ClearCount。");
@@ -150,9 +155,11 @@ namespace TiaPortalSourceBridge.Simulation
             object instance = Owned(args); CheckFixture(instance);
             Api.Call(instance, "WriteBool", Fixture + "." + field, (bool)raw);
             return Map("instance_name", Text(args, "instance_name"), "field", field, "value", Api.Call(instance, "ReadBool", Fixture + "." + field));
+            }
         }
         internal object TestAutoReset(Dictionary<string, object> args)
         {
+            using(AcquireSimulationMutation()) {
             if (!Flag(args, "confirm")) throw new ArgumentException("运行自动复位测试必须 confirm=true。");
             object instance = Owned(args); CheckFixture(instance);
             if (EnumText(Api.Get(instance, "OperatingState")) != "Run") throw new InvalidOperationException("仿真 CPU 必须处于 RUN。");
@@ -191,6 +198,7 @@ namespace TiaPortalSourceBridge.Simulation
                 "project_path", Text(args, "project_path"), "instance_name", Text(args, "instance_name"), "reset_delay_ms", delay, "physical_plc_accessed", false, "tested_at_utc", DateTime.UtcNow.ToString("o"));
             string path = Path.Combine(root, "simulation-results", DateTime.Now.ToString("yyyyMMdd-HHmmss") + "-" + Guid.NewGuid().ToString("N").Substring(0, 8) + ".json");
             Save(path, report); report["report_path"] = path; return report;
+            }
         }
         private static void Wait(Func<bool> condition, int timeout)
         { var sw = Stopwatch.StartNew(); while (!condition() && sw.ElapsedMilliseconds < timeout) Thread.Sleep(25); }

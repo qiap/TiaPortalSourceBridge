@@ -57,7 +57,8 @@ window.CylinderNaming = (() => {
     requireValue(suffix || expected,'无法从参数 '+pin.name+' 的样板名称识别伸出/缩回方向，请先选择具有明确方向命名的样板');
     return suffix || expected.fallback;
   };
-  function plan(data, sample, rules, bindings, cylinderName) {
+  function plan(data, sample, rules, bindings, cylinderName, deviceKind="cylinder", suffixes={}) {
+    requireValue(["cylinder","motor","valve","vacuum","servo"].includes(deviceKind),"机构类型无效");
     const name=String(cylinderName || '').trim();
     requireValue(name.length>0,'请填写气缸名称，例如“侧面夹紧气缸”');
     requireValue([...name].length<=64 && !/[\u0000-\u001f\u007f"\\]/.test(name),'气缸名称请使用不超过 64 个字的单行文字，不包含双引号或反斜杠');
@@ -74,7 +75,9 @@ window.CylinderNaming = (() => {
       requireValue(physical[0]===(role==='input'?'I':'Q'),'参数 '+pin.name+' 的点位方向不匹配');
       requireValue(!seenAddresses.has(physical),'多个参数选择了同一地址 '+physical);seenAddresses.add(physical);
       const path=splitSymbol(point.symbol), oldName=unquote(path.at(-1));
-      const newName=name+suffixFor(pin,role)+physical;
+      let suffix=suffixFor;
+      if(deviceKind!=='cylinder') {const text=suffixes[pin.name];requireValue(typeof text==='string' && text===text.trim() && text.length>0 && text.length<=24 && !/[\u0000-\u001f\u007f"\\]/.test(text) && !/%?[IQEA]\s*\d+\.[0-7]$/i.test(text),'请填写 '+pin.name+' 的有效用途后缀');suffix=()=>text;}
+      const newName=name+suffix(pin,role)+physical;
       requireValue([...newName].length<=128,'生成的点位名称过长，请缩短气缸名称');
       const newSymbol=[...path.slice(0,-1),quote(newName)].join('.'), key=symbolKey(newSymbol);
       requireValue(!names.has(key),'生成的点位名称重复：'+newName);

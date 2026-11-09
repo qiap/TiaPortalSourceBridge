@@ -9,7 +9,7 @@ namespace TiaPortalSourceBridge
     // reads this constant; installed applications never need the source file.
     internal static class ProductVersion
     {
-        public const string Release = "4.9.0";
+        public const string Release = "4.10.0";
         public const string File = Release + ".0";
     }
 }

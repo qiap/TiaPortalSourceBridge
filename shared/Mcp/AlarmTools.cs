@@ -121,7 +121,7 @@ namespace TiaPortalSourceBridge.Mcp
                     var planMap = AlarmJson().DeserializeObject(serialized) as Dictionary<string, object>;
                     int changed = Convert.ToInt32(planMap["changed_count"]);
                     var result = Dict("project_path", project, "hmi_name", hmi, "source", live ? "tia_ui" : "native_file", "dry_run", dry,
-                        "imported", false, "verified", false, "saved", false, "compiled", false, "downloaded", false, "plan", plan, "before_hash", snapshot.Book.Hash);
+                        "imported", false, "verified", false, "saved", false, "compiled", false, "downloaded", false, "plan", plan, "before_hash", snapshot.Book.Hash, "snapshot_file", snapshot.Path);
                     if (dry || changed == 0) { result["elapsed_ms"] = watch.ElapsedMilliseconds; result["unchanged"] = changed == 0; return ToolResult(dry ? "报警批次预览完成，尚未导入工程。" : "报警内容未变化，跳过写入。", false, result); }
                     RequireConfirmation(args, live ? "批量写入 HMI 离散报警会修改离线工程" : "生成修改后的原生报警文件");
                     string output = StringArg(args, "output_file");

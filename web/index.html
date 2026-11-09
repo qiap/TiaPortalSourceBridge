@@ -809,6 +809,7 @@
     </button>
     <button class="tab-btn" onclick="switchTab('cylinder')">气缸生成</button>
     <button class="tab-btn" onclick="switchTab('audit')">程序体检</button>
+    <button class="tab-btn" onclick="switchTab('monitor')">在线监测与参数</button>
     <button class="tab-btn" onclick="switchTab('simulation')">
       🎮 仿真驾驶舱
     </button>
@@ -1014,6 +1015,14 @@
           <div style="overflow:auto;max-height:650px"><table class="execution-table" style="min-width:1100px"><thead><tr><th>Excel 行</th><th>结果 / 说明</th><th>Excel 地址</th><th>PLC 地址</th><th>Excel 名称 / 类型 / 注释</th><th>PLC 名称 / 类型 / 注释</th><th>PLC 来源 / 引用</th></tr></thead><tbody id="recRows"></tbody></table></div>
           <div class="audit-actions" style="margin-top:12px"><button class="btn btn-sm" id="recPrev">上一页</button><span id="recPage"></span><button class="btn btn-sm" id="recNext">下一页</button></div>
         </div>
+        <div style="margin-top:24px">
+          <h3>点表写回与执行记录 · V17</h3>
+          <p style="color:var(--text-muted)">选择一个原始变量表进行对账，再勾选需要新增或更新的行。先预览，再确认写入；不会自动删除仅 PLC 存在的变量。</p>
+          <div class="audit-actions"><label>注释语言 <select id="tagReviewCulture"><option value="zh-CN">简体中文</option><option value="en-US">英语</option><option value="de-DE">德语</option></select></label><button class="btn" id="tagReviewPreview">预览所选修改</button><button class="btn" id="tagReviewHistory">刷新执行记录</button></div>
+          <p id="tagReviewStatus" role="status"></p><div id="tagReviewPlan"></div>
+          <label><input type="checkbox" id="tagReviewConfirm"> 我已核对预览，确认写入并保存整个离线工程（含当前其他未保存修改）</label>
+          <p><button class="btn btn-primary" id="tagReviewApply" disabled>确认写入博途</button></p><div id="tagReviewRecords"></div>
+        </div>
       </div>
       <div class="card" id="ioReferencesPanel" hidden>
         <div class="card-header"><span class="card-title" id="ioReferencesTitle">交叉引用</span><button class="btn btn-sm" onclick="document.getElementById('ioReferencesPanel').hidden=true">关闭</button></div>
@@ -1024,6 +1033,34 @@
 
     <!-- TAB 2: Diff Reviewer -->
     <div id="tab-diff" class="tab-content">
+      <section class="card" style="margin-bottom:20px;">
+        <h3>工程源码快照与改动影响</h3>
+        <p style="color:var(--text-muted);margin:10px 0;">保存已读取的源码版本，比较任意两份同工程快照，并查看已解析的上游调用方。这里不会连接或修改博途。</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin:12px 0;">
+          <input id="reviewLabel" maxlength="120" placeholder="快照名称，例如：改气缸前" aria-label="快照名称">
+          <button id="reviewCapture" class="btn btn-primary">保存源码快照</button>
+          <button id="reviewRefresh" class="btn">刷新列表</button>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin:12px 0;">
+          <label>之前 <select id="reviewBefore" aria-label="之前的快照"></select></label>
+          <label>之后 <select id="reviewAfter" aria-label="之后的快照"></select></label>
+          <button id="reviewCompare" class="btn">比较与影响分析</button>
+          <button id="reviewDocument" class="btn">导出之后版本的交付资料</button>
+        </div>
+        <p id="reviewStatus" role="status"></p>
+        <input id="reviewSearch" placeholder="筛选对象名称、组路径或变化类型" aria-label="筛选快照变化" style="margin:12px 0;width:100%;">
+        <div id="reviewResults" style="max-height:600px;overflow:auto;"></div>
+        <details style="margin-top:22px"><summary>多语言文本与参数初始值回填 · V17</summary>
+          <p>使用上方“之后”快照作为修改基线。先预览，确认后写入离线工程。支持已有语言的 PLC 文本，不含未读取的 HMI 文本。</p>
+          <div class="audit-actions"><button id="sourceTextExport" class="btn">导出翻译表</button><input id="sourceTextFile" type="file" accept=".xlsx" aria-label="已校对翻译表"><button id="sourceTextPreview" class="btn">预览翻译回填</button></div>
+          <p>参数快照来自“在线监测与参数”页。需人工核对符号名与标准 DB 地址对应关系；不会猜测改名或类型转换。</p>
+          <div class="audit-actions"><input id="sourceParameterId" placeholder="参数快照编号" aria-label="参数快照编号"><button id="sourceParameterPreview" class="btn">预览参数初始值</button></div>
+          <p id="sourceWriteStatus" role="status"></p><div id="sourceWritePreview" style="max-height:550px;overflow:auto"></div>
+          <label><input id="sourceWriteConfirm" type="checkbox">已核对全部变化和参数对应关系，确认写入并保存整个离线工程（含其他未保存修改）</label>
+          <p><button id="sourceWriteApply" class="btn btn-primary" disabled>确认写入博途</button></p>
+          <div class="audit-actions"><input id="sourceWriteJobId" placeholder="执行编号，可刷新后继续查询" aria-label="源码执行编号"><button id="sourceWriteCheck" class="btn">查询执行结果</button><button id="sourceWriteRestore" class="btn">核对并预览恢复</button><button id="sourceWriteContinue" class="btn">核对并预览继续</button></div><pre id="sourceWriteResult" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre>
+        </details>
+      </section>
       <div class="diff-container">
         <!-- Sidebar: Backups list -->
         <div class="diff-sidebar">
@@ -1108,6 +1145,25 @@
     </div>
 
     <!-- TAB 4: Simulation Cockpit -->
+    <div id="tab-monitor" class="tab-content">
+      <div class="card">
+        <h3>在线只读监测</h3><p id="monitorTarget"></p>
+        <p style="color:var(--text-muted)">需要明确填写 PLC 通信地址和标准 DB 地址，并核对它们与当前工程一致。此页仅读取，不强制信号、不下载程序。暂不支持优化 DB；多个变量组可能来自不同扫描周期，采样可能遗漏短脉冲。</p>
+        <div class="audit-actions"><label>IPv4 <input id="monitorIp" placeholder="192.168.0.1"></label><label>机架 <input id="monitorRack" type="number" min="0" max="7" value="0" style="width:65px"></label><label>插槽 <input id="monitorSlot" type="number" min="0" max="31" value="1" style="width:65px"></label><select id="monitorTransport" aria-label="通信方式"><option value="s7online">S7ONLINE</option><option value="s7tcp">S7 TCP</option></select><select id="monitorMode" aria-label="通信目标"><option value="hardware">实际 PLC</option><option value="simulation">仿真 PLC</option></select></div>
+        <p>每行一个变量：符号名称 | 标准 DB 地址 | 类型。例如：DB_Process.Timeout | DB10.DBD4 | Time</p>
+        <textarea id="monitorTags" rows="5" style="width:100%;font-family:monospace" aria-label="监控变量" placeholder="DB_Process.Ready | DB10.DBX0.0 | Bool"></textarea>
+        <div class="audit-actions"><button id="monitorConnect" class="btn">连接只读监测</button><button id="monitorDisconnect" class="btn" disabled>断开</button><button id="monitorRead" class="btn" disabled>读取一次</button><button id="monitorSnapshot" class="btn" disabled>归档当前参数</button></div>
+        <p id="monitorStatus" role="status"></p><div id="monitorValues" style="overflow:auto"></div>
+        <details><summary>GRAPH 条件与采样值核对</summary>
+          <p>先在“变更审查与 Diff”保存源码快照，再选择 GRAPH 块和需要检查的步。步号由你选择，不代表 CPU 当前活动步。仅解析常开/常闭串并联触点；不支持的网络显示未知。手动绑定的监控名称必须核对实际地址。</p>
+          <div class="audit-actions"><button class="btn" id="graphSnapshots">刷新快照列表</button><select id="graphSnapshot" aria-label="GRAPH 源码快照"></select><button class="btn" id="graphLoad">读取 GRAPH 列表</button><select id="graphBlock" aria-label="GRAPH 程序块"></select><button class="btn" id="graphInspect">查看条件</button></div>
+          <p id="graphStatus" role="status"></p><label>流程与步 <select id="graphStep" aria-label="GRAPH 流程与步"></select></label><div id="graphBindings"></div><button class="btn" id="graphEvaluate">按最近一次读取值核对</button><div id="graphConditions"></div>
+        </details>
+        <h3>多变量变化录波</h3><div class="audit-actions"><label>采样间隔（毫秒）<input id="monitorInterval" type="number" min="50" max="10000" value="200" style="width:90px"></label><label>时长（秒）<input id="monitorDuration" type="number" min="1" max="1800" value="60" style="width:90px"></label><button id="monitorStart" class="btn" disabled>开始录波</button><button id="monitorStop" class="btn" disabled>停止录波</button><button id="monitorExport" class="btn" disabled>导出完整记录</button></div>
+        <p id="monitorTraceStatus" style="color:var(--text-muted)">页面显示最近 500 条变化事件，完整变化记录可在停止后导出。每个通道独立纵轴，灰色区间表示质量未知。</p><div id="monitorWaveforms"></div>
+        <details><summary>参数归档结果</summary><pre id="monitorArchive" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre><button id="monitorDownloadSnapshot" class="btn" disabled>下载参数快照</button></details>
+      </div>
+    </div>
     <div id="tab-audit" class="tab-content">
       <div class="card">
         <div class="card-header"><span class="card-title">PLC 程序体检</span></div>
@@ -1195,6 +1251,8 @@
           <div id="cyCandidates" style="overflow:auto;max-height:320px"></div>
           <p id="cySkipped" style="color:var(--text-muted);white-space:pre-wrap"></p>
           <details id="cyRulePanel" hidden><summary>核对模板规则与原调用</summary>
+            <label>机构类型 <select id="cyDeviceKind"><option value="cylinder">气缸</option><option value="motor">电机</option><option value="valve">阀门</option><option value="vacuum">真空机构</option><option value="servo">伺服外围使能</option></select></label>
+            <p>复用项目内已有的单个直接 FB 调用。非气缸需逐项填写选点用途后缀；仅支持 Bool 映射 I/O，保留样板公共输入。不创建驱动硬件、运动轴或安全程序；请核对设备互锁与复位条件。</p>
             <p>公共输入可以沿用。请核对工作位、原位、模式、互锁和报警下标的含义。</p>
             <p id="cyOpenNotice" hidden style="color:var(--warning,#fbbf24)"></p>
             <div id="cyRules" style="overflow:auto"></div>
@@ -1208,7 +1266,7 @@
           </div>
           <div id="cyBinding" hidden>
             <h3>2. 新气缸与点位</h3>
-            <label>气缸名称 <input class="search-input" id="cyDisplayName" placeholder="例如 OP275侧面夹紧气缸" maxlength="64" autocomplete="off"></label>
+            <label>机构名称 <input class="search-input" id="cyDisplayName" placeholder="例如 OP275侧面夹紧气缸" maxlength="64" autocomplete="off"></label>
             <label>程序实例名 <input class="search-input" id="cyName" placeholder="例如 Z04，可自行指定" maxlength="64" autocomplete="off"></label>
             <label id="cyAlarmLabel">新数组索引 <input class="search-input" id="cyAlarm" type="number" min="0" step="1"></label>
             <p id="cyAvailability" style="color:var(--text-muted)"></p>
@@ -1235,6 +1293,17 @@
             <button class="btn" id="cyDownloadPlan">下载点位命名与调用方案</button>
           </div>
         </div>
+        <details style="margin-top:20px"><summary>经典 WinCC 报警与机构文本联动 · V17</summary>
+          <p>先完成并核对 PLC 生成结果，再配置对应 HMI。名称与实例可从当前生成方案带入；报警编号、原报警模板编号、已有 HMI 触发变量及位号必须明确填写。文本列表仅更新已存在的单值索引与语言。请保持博途桌面已解锁，报警读取会使用原生导出界面。</p>
+          <label>完整 HMI 名称 <input id="hmiCompanionName" style="width:70%" placeholder="在工具的设备列表中查看完整名称"></label>
+          <button class="btn" id="hmiCompanionFromDevice">带入当前机构名称</button>
+          <textarea id="hmiCompanionConfig" rows="12" style="width:100%;font-family:monospace" aria-label="HMI 联动配置">{"culture":"zh-CN","text_list":"","devices":[{"name":"","instance":"","index":0,"alarms":[{"id":0,"template_id":0,"trigger_tag":"","trigger_bit":0,"text":"{name}伸出超时","operation":"create"},{"id":0,"template_id":0,"trigger_tag":"","trigger_bit":1,"text":"{name}缩回超时","operation":"create"}]}]}</textarea>
+          <button class="btn" id="hmiCompanionPreview">读取 HMI 并生成联动预览</button><p id="hmiCompanionStatus" role="status"></p>
+          <pre id="hmiCompanionResult" style="white-space:pre-wrap;max-height:460px;overflow:auto"></pre>
+          <label><input type="checkbox" id="hmiCompanionConfirm">已核对 PLC 对应关系、HMI 触发位与文本索引，确认写入并保存整个离线工程</label>
+          <button class="btn" id="hmiCompanionApply" disabled>写入 HMI 联动内容</button>
+          <p><label>执行编号 <input id="hmiCompanionJob"></label><button class="btn" id="hmiCompanionCheck">查询执行记录</button></p>
+        </details>
         <section id="cyApplyPanel" hidden style="margin-top:20px;border-top:1px solid var(--card-border);padding-top:16px">
           <h3>写入进度与结果</h3>
           <p id="cyApplyTarget" style="overflow-wrap:anywhere;color:var(--text-muted)"></p>
@@ -1256,6 +1325,21 @@
         <div id="simInstancesList">
           <div style="color: var(--text-muted); font-size: 13px;">正在获取 PLCSIM Advanced 运行实例...</div>
         </div>
+        <h3 style="margin-top:24px">外设响应与回归检查 · V17</h3>
+        <p>让模拟气缸、传感器等按延时响应命令，并检查指定时刻的结果。仅限本工具创建、已绑定当前工程且处于 RUN 的本机 Softbus 实例。停止后保留仿真值，不会自动复位。</p>
+        <label>受管实例名称 <input id="peripheralInstance" placeholder="BridgeSim_..."></label>
+        <p>规则使用符号名：command 为命令，feedback 为反馈；延时单位毫秒。invert 反向反馈，stuck / stuck_value 模拟卡住。stimuli 为定时输入，assertions 为定时检查。</p>
+        <textarea id="peripheralConfig" rows="12" style="width:100%;font-family:monospace" aria-label="外设仿真规则">{
+  "duration_ms": 10000, "interval_ms": 50, "max_lateness_ms": 500,
+  "rules": [
+    {"command": "DB_Test.Valve", "feedback": "DB_Test.Extended", "on_delay_ms": 600, "off_delay_ms": 300, "invert": false}
+  ],
+  "stimuli": [],
+  "assertions": []
+}</textarea>
+        <label><input type="checkbox" id="peripheralConfirm">已核对变量，只在上述本机仿真实例执行激励与反馈写入</label>
+        <div class="audit-actions"><button class="btn" id="peripheralStart">开始规则运行</button><button class="btn" id="peripheralStop" disabled>停止后续写入</button><button class="btn" id="peripheralExport" disabled>导出当前报告</button></div>
+        <p id="peripheralStatus" role="status"></p><pre id="peripheralResult" style="white-space:pre-wrap;max-height:450px;overflow:auto"></pre>
       </div>
     </div>
 
@@ -1353,6 +1437,7 @@
         if (window.ioTargetChanged) window.ioTargetChanged();
         if (window.auditSync) window.auditSync();
         if (window.diffSync) window.diffSync();
+        if (window.reviewSync) window.reviewSync();
         document.getElementById('toolCountNav').textContent = data.tool_count || 82;
         document.getElementById('toolCountTitle').textContent = data.tool_count || 82;
 
@@ -1900,8 +1985,15 @@
     document.addEventListener('visibilitychange', () => { if (!document.hidden) browserHeartbeat(); });
   </script>
   <script src="/semantic-diff.js"></script>
+  <script src="/source-review.js"></script>
+  <script src="/source-write.js"></script>
   <script src="/io.js"></script>
   <script src="/io-reconcile.js"></script>
+  <script src="/io-tag-review.js"></script>
+  <script src="/online-monitor.js"></script>
+  <script src="/graph-monitor.js"></script>
+  <script src="/hmi-companion.js"></script>
+  <script src="/peripheral-simulation.js"></script>
   <script src="/execution.js"></script>
   <script src="/cylinder-model.js"></script>
   <script src="/cylinder-naming.js"></script>

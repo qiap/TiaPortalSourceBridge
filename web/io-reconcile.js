@@ -11,7 +11,7 @@
   let upload=null,preview=null,choices=[],report=null,reportKey='',uploadTarget='',lastTarget='',lastSnapshot='',sequence=0,revision=0,busy=false,exporting=false,page=1;
   async function json(url,options){const response=await fetch(url,{cache:'no-store',...options});const data=await response.json();if(!response.ok)throw Error(data.error||'请求失败');return data;}
   const post=(path,data)=>json('/api/io/reconcile-'+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
-  function clearReport(){report=null;reportKey='';el('recReport').hidden=true;el('recRows').replaceChildren();revision++;}
+  function clearReport(){report=null;reportKey='';el('recReport').hidden=true;el('recRows').replaceChildren();revision++;window.tagReviewReset?.();}
   function changed(){clearReport();message('列或比较范围已变化，请重新对账。');sync();}
   function sync(){
     const s=state(),t=targetKey(s.target);
@@ -118,7 +118,7 @@
       const tr=document.createElement('tr');const values=[r.excel_row||'—',(statuses[r.status]||r.status)+'\n'+r.issues.join('\n'),r.address||'—',r.plc.map(p=>p.address).join('\n')||'—',
         [r.name,r.type,r.comment].filter(Boolean).join('\n')||'—',r.plc.map(p=>[p.name,p.type,p.comment].filter(Boolean).join('\n')).join('\n────\n')||'—',
         r.plc.map(p=>[p.unit,p.group,p.table,p.mapping,'引用证据 '+p.references+' 条'].filter(Boolean).join(' / ')).join('\n')||'—'];
-      for(const value of values){const td=node('td',value);td.style.whiteSpace='pre-wrap';td.style.overflowWrap='anywhere';tr.append(td);}return tr;
+      for(const value of values){const td=node('td',value);td.style.whiteSpace='pre-wrap';td.style.overflowWrap='anywhere';tr.append(td);}window.tagReviewRow?.(r,tr.firstChild);return tr;
     }));
     if(!rows.length){const tr=document.createElement('tr'),td=node('td','当前筛选没有结果；请查看全部结果与覆盖说明。');td.colSpan=7;tr.append(td);el('recRows').append(tr);}
   }
@@ -136,5 +136,6 @@
   el('recScope').onchange=()=>{renderScopes();changed();};el('recUnit').onchange=()=>{renderTables();changed();};el('recTable').onchange=changed;
   el('recRun').onclick=run;el('recExport').onclick=exportReport;
   el('recFilter').onchange=el('recSearch').oninput=()=>{page=1;renderRows();};el('recPrev').onclick=()=>{page--;renderRows();};el('recNext').onclick=()=>{page++;renderRows();};
+  window.ioReconcileReview=()=>({report,valid:!!report&&reportKey===key(state()),busy:busy||exporting||state().busy,target:state().target});
   window.ioReconcileSync=sync;sync();setInterval(sync,750);
 })();

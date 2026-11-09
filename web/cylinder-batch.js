@@ -14,7 +14,7 @@
     if(!c || !c.template_confirmed || !c.id || !c.target?.target_token || (s && (s.id!==c.id || stable(s.target)!==stable(c.target))))return null;
     return c;
   }
-  const key=c=>stable({id:c.id,target:c.target,host:c.host,sample_id:c.sample_id,sample_network:c.sample_network,source_hash:c.source_hash,rules:c.rules});
+  const key=c=>stable({id:c.id,target:c.target,host:c.host,sample_id:c.sample_id,sample_network:c.sample_network,source_hash:c.source_hash,rules:c.rules,device_kind:c.device_kind,io_suffixes:c.io_suffixes});
   function current() {
     const c=context();
     if(rows.length && (!c || key(c)!==origin))invalid=true;

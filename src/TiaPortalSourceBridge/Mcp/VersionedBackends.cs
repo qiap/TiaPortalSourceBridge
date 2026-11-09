@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -27,6 +27,21 @@ namespace TiaPortalSourceBridge.Mcp
                 throw new ArgumentException("气缸写入流程不支持此操作。");
             return CallTool(name, arguments);
         }
+        internal Dictionary<string, object> DashboardTagReviewCall(Dictionary<string, object> arguments)
+        {
+            return CallTool("tia_write_tag_table_review", arguments);
+        }
+        internal Dictionary<string, object> DashboardReviewedBlocksCall(Dictionary<string, object> arguments)
+        {
+            return CallTool("tia_write_reviewed_blocks", arguments);
+        }
+        internal Dictionary<string, object> DashboardPeripheralCall(string action, Dictionary<string, object> arguments)
+        {
+            if (!new[] { "start", "status", "stop" }.Contains(action)) throw new ArgumentException("Unsupported peripheral action");
+            return CallTool("tia_simulation_peripheral_" + action, arguments);
+        }
+        internal Dictionary<string, object> DashboardHmiCompanionCall(bool apply, Dictionary<string, object> arguments)
+        {return CallTool(apply?"tia_write_hmi_companion":"tia_read_hmi_companion_plan",arguments);}
         private string BackendRoot()
         {
             foreach (string start in new[] { Path.GetDirectoryName(_configPath), AppDomain.CurrentDomain.BaseDirectory })

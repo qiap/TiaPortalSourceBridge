@@ -46,6 +46,10 @@ internal static class CylinderApplyChecks
         snap.rows.Add(new IoRow{id="dq",unit="",name="Signals.Output.SpareQ",area="DB",data_type="Bool"});
         Func<IndexEntry,string> source=b=>code[b.id];
         var plan=CylinderApplyPlan.Build(snap,host,source,Request());
+        snap.project_path="E:/Fixture.ap17";var motorRequest=Request();motorRequest["device_kind"]="motor";motorRequest["cylinder_name"]="输送电机";motorRequest["io_suffixes"]=new Dictionary<string,object>{{"i_Wpos","运行反馈"},{"oOutput_W","启动输出"}};
+        var motorPlan=CylinderApplyPlan.Build(snap,host,source,motorRequest);Check(motorPlan.Items.Any(i=>Convert.ToString(i["xml"]).Contains("输送电机运行反馈I3.0"))&&motorPlan.Items.Any(i=>Convert.ToString(i["xml"]).Contains("输送电机启动输出Q3.0")),"generic device uses explicitly reviewed per-pin suffixes");
+        Check(Convert.ToString(motorPlan.Items.Last()["xml"]).Contains("Name=\"Stop\""),"generic reuse preserves donor interlock binding");
+        snap.project_path="E:/Fixture.ap21";Reject(()=>CylinderApplyPlan.Build(snap,host,source,motorRequest),"new actuator write capability limited to V17");snap.project_path="E:/Fixture.ap17";
         Check(plan.Items.Count==3,"mapping DB + map + host only, existing data member reused");
         Check(Convert.ToString(plan.Items.Last()["xml"]).Contains("<Name>Host</Name>"),"host imported last");
         Check(plan.Items.All(i=>Convert.ToString(i["expected_content_signature"]).Length==64),"stable import preconditions included");

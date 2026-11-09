@@ -32,7 +32,9 @@ namespace TiaPortalSourceBridge.Web
                     result.tables_total = cachedTables.Length;
                     foreach (var table in cachedTables) {
                         try {
-                            result.rows.AddRange(IoTable.Parse(store.IoSource(table),table.name,table.group,table.unit_name));
+                            string tableXml = store.IoSource(table);
+                            result.rows.AddRange(IoTable.Parse(tableXml,table.name,table.group,table.unit_name));
+                            if (AppConfig.DetectProjectVersion(job.project) == "V17") result.nativeTableSignatures.Add((table.unit_name ?? "") + "\n" + (table.group ?? "") + "\n" + table.name, Mcp.TagTableXml.Signature(tableXml));
                             result.tables_read++;
                         } catch (Exception ex) { result.warnings.Add(table.name + "：" + ex.Message); }
                     }
@@ -52,7 +54,9 @@ namespace TiaPortalSourceBridge.Web
                         IoProgress(job, "变量表 " + (result.tables_read + 1) + "/" + tables.Length + "：" + name);
                         try {
                             var a = args(); a["table_name"] = name; a["group_path"] = group.Length == 0 ? "/" : group; a["unit_name"] = unit;
-                            result.rows.AddRange(IoTable.Parse(Text(ReadDashboard(_configPath, "tia_read_tag_table", a), "xml"), name, group, unit));
+                            string tableXml = Text(ReadDashboard(_configPath, "tia_read_tag_table", a), "xml");
+                            result.rows.AddRange(IoTable.Parse(tableXml, name, group, unit));
+                            if (AppConfig.DetectProjectVersion(job.project) == "V17") result.nativeTableSignatures.Add(unit + "\n" + group + "\n" + name, Mcp.TagTableXml.Signature(tableXml));
                             result.tables_read++;
                         } catch (Exception ex) { result.warnings.Add("变量表 " + unit + "/" + group + "/" + name + " 读取失败：" + ex.Message); }
                     }
@@ -123,10 +127,10 @@ namespace TiaPortalSourceBridge.Web
             // New endpoints are local same-origin only; no arbitrary file paths are accepted.
             response.Headers.Remove("Access-Control-Allow-Origin");
             Uri origin; string originText = request.Headers["Origin"];
-            if (!string.IsNullOrEmpty(originText) && (!Uri.TryCreate(originText, UriKind.Absolute, out origin) || origin.Scheme != request.Url.Scheme || origin.Host != request.Url.Host || origin.Port != request.Url.Port)) {
+            if (request.Headers["Sec-Fetch-Site"] == "cross-site" || (!string.IsNullOrEmpty(originText) && (!Uri.TryCreate(originText, UriKind.Absolute, out origin) || origin.Scheme != request.Url.Scheme || origin.Host != request.Url.Host || origin.Port != request.Url.Port))) {
                 SendJson(response, 403, new { error = "仅允许本地看板访问" }); return true;
             }
-            if (HandleIoReconcile(context, path) || HandleAudit(context, path) || HandleCylinderHistory(context, path) || HandleCylinderRecovery(context, path) || HandleCylinderTemplates(context, path) || HandleCylinderBatchPreview(context, path) || HandleCylinderApply(context, path)) return true;
+            if (HandleHmiCompanion(context, path) || HandlePeripheral(context, path) || HandleSourceWrite(context, path) || HandleOnlineMonitor(context, path) || HandleSourceReview(context, path) || HandleTagReview(context, path) || HandleIoReconcile(context, path) || HandleAudit(context, path) || HandleCylinderHistory(context, path) || HandleCylinderRecovery(context, path) || HandleCylinderTemplates(context, path) || HandleCylinderBatchPreview(context, path) || HandleCylinderApply(context, path)) return true;
             if (path == "/api/io/read" && request.HttpMethod == "POST") {
                 if (shutdownRequested) { SendJson(response, 503, new { error = "服务正在退出" }); return true; }
                 if (request.ContentLength64 < 0 || request.ContentLength64 > 16384) { SendJson(response, 413, new { error = "请求过大" }); return true; }

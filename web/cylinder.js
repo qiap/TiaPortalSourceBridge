@@ -3,6 +3,10 @@
   const modelApi = window.CylinderModel;
   const roleNames = {shared:'沿用公共输入', device:'按新名称替换 DB 成员', index:'替换数组第一维', input:'选择输入点', output:'选择输出点', open:'保持未连接', feedback:'跟随对应的新阀输出'};
   let snapshot = '', loaded = false, seq = 0, data, model, sample, rules, drafts, targetKey, inputs;
+  let ioSuffixes={};
+  const deviceKind=()=>el('cyDeviceKind')?.value||'cylinder';
+  const activeSuffixes=()=>deviceKind()==='cylinder'?{}:Object.fromEntries(Object.entries(ioSuffixes).filter(([pin])=>['input','output'].includes(rules?.[pin])));
+  function loadDeviceConfig(record){if(el('cyDeviceKind'))el('cyDeviceKind').value=['cylinder','motor','valve','vacuum','servo'].includes(record?.device_kind)?record.device_kind:'cylinder';ioSuffixes=record?.io_suffixes&&typeof record.io_suffixes==='object'&&!Array.isArray(record.io_suffixes)?{...record.io_suffixes}:{};}
   let templateContext=null, templateRecord=null, templateConfirmed=false, templateBusy=false, sampleTicket=0;
   const message = text => { el('cyStatus').textContent = text; };
   const clearDraft = () => { drafts = null; el('cyResult').hidden = true; el('cyCode').textContent = ''; };
@@ -128,6 +132,7 @@
       if(!result.context || !/^[0-9a-f]{64}$/i.test(result.context.sample_fingerprint || ''))throw new Error('样板核对信息不完整');
       templateContext=result.context;templateRecord=result.template || null;
       const legacy=!templateRecord?getSaved(templateKey()):null;
+      loadDeviceConfig(templateRecord);
       const saved=templateRecord?.rules || legacy;
       const valid=renderRules(saved);
       templateConfirmed=result.matches===true && valid;
@@ -140,7 +145,7 @@
     }catch(error){if(ticket===sampleTicket){renderRules(null);el('cySave').disabled=true;templateStatus('无法读取项目模板：'+error.message);}}
   }
   function renderRules(saved) {
-    rules=Object.create(null); const t=table(['FB 参数','原接线','生成规则']);
+    rules=Object.create(null); const t=table(['FB 参数','原接线','生成规则','选点用途后缀']);
     for(const p of sample.pins) {
       const choices=modelApi.roles(p,sample), tr=t.insertRow();
       addCell(tr,p.name+' · '+p.dir+' '+p.type); addCell(tr,p.binding.value);
@@ -153,6 +158,7 @@
       sel.dataset.templatePin=p.name;
       sel.onchange=()=>{rules[p.name]=sel.value;editedRules();message('规则已变更，请重新确认并保存模板。');};
       addCell(tr,'').appendChild(sel);
+      const suffix=document.createElement('input');suffix.value=typeof ioSuffixes[p.name]==='string'?ioSuffixes[p.name]:'';suffix.placeholder='如：运行反馈、启动输出';suffix.maxLength=24;suffix.setAttribute('aria-label',p.name+' 用途后缀');suffix.disabled=deviceKind()==='cylinder';suffix.oninput=()=>{ioSuffixes[p.name]=suffix.value;editedRules();};addCell(tr,'').append(suffix);
     }
     el('cyRules').replaceChildren(t);el('cyBinding').hidden=true;
     message('请核对样板规则，尤其是互锁输入与阀输出，然后保存模板。');
@@ -199,7 +205,7 @@
       field.note.textContent=point ? point.recommendation || '当前读取范围内未发现占用' : anchor ? '已有气缸最后点位 '+anchor+'，优先选择后续空闲点。' : '按地址顺序列出空闲点；已选点不会重复分配。';
     }
   }
-  function namingPlan() { return window.CylinderNaming.plan(data,sample,rules,selectedBindings(),el('cyDisplayName').value.trim()); }
+  function namingPlan() { return window.CylinderNaming.plan(data,sample,rules,selectedBindings(),el('cyDisplayName').value.trim(),deviceKind(),activeSuffixes()); }
   function previewNaming() {
     el('cyNamingPreview').replaceChildren();
     if(!el('cyDisplayName').value.trim()) {el('cyNamingStatus').textContent='请填写气缸名称，选择点位后自动生成输入和输出名称。';return;}
@@ -209,20 +215,21 @@
       el('cyNamingPreview').replaceChildren(t);el('cyNamingStatus').textContent='按样板的伸出、缩回命名规则生成。这里预览点位改名和调用草稿，尚未改动博途工程。';
     }catch(e){el('cyNamingStatus').textContent=e.message;}
   }
+  if(el('cyDeviceKind'))el('cyDeviceKind').onchange=()=>{if(sample){const previous={...rules};renderRules(previous);editedRules();}};
   el('cyHost').onchange=loadHost; el('cySample').onchange=chooseSample;
   el('cySave').onclick=async()=>{
     if(!sample?.supported || !rules || !templateContext || templateBusy || window.cylinderApplying) return;
     if (!Object.values(rules).includes('output') || Object.values(rules).includes('')) {
       message('请至少指定一个阀输出点，并为全部参数选择规则。未连接的输入可保持原样。'); return;
     }
-    const ticket=sampleTicket,legacyKey=templateKey(),payload={...templateRequest(),sample_fingerprint:templateContext.sample_fingerprint,rules:{...rules},reviewed:true};
+    const ticket=sampleTicket,legacyKey=templateKey(),payload={...templateRequest(),sample_fingerprint:templateContext.sample_fingerprint,rules:{...rules},device_kind:deviceKind(),io_suffixes:activeSuffixes(),reviewed:true};
     templateBusy=true;el('cySave').disabled=true;templateStatus('正在保存项目模板规则…');
     try {
       const response=await fetch('/api/io/cylinder-templates',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store'});
       const result=await response.json();
       if(!response.ok || result.matches!==true || !result.template)throw new Error(result.error || '项目模板未保存');
       if(ticket!==sampleTicket)return;
-      if(JSON.stringify(payload.rules)!==JSON.stringify(rules)){templateRecord=result.template;editedRules();templateStatus('上次确认的规则已保存，但页面规则随后又发生变化。请核对并重新保存当前规则。');return;}
+      if(JSON.stringify(payload.rules)!==JSON.stringify(rules)||payload.device_kind!==deviceKind()||JSON.stringify(payload.io_suffixes)!==JSON.stringify(activeSuffixes())){templateRecord=result.template;editedRules();templateStatus('上次确认的规则已保存，但页面规则随后又发生变化。请核对并重新保存当前规则。');return;}
       templateContext=result.context;templateRecord=result.template;templateConfirmed=true;el('cyTemplateExport').disabled=false;
       try{localStorage.setItem(targetKey,JSON.stringify({host:el('cyHost').value,id:sample.id,network:sample.network}));localStorage.removeItem(legacyKey);}catch(_){}
       el('cyRulePanel').open=false;showBindings();templateStatus('项目模板已保存到本机，可导出模板规则迁移到其他电脑。');
@@ -242,10 +249,10 @@
       if(file.size>65536)throw new Error('模板文件超过 64 KB');
       const imported=JSON.parse((await file.text()).replace(/^\uFEFF/,''));
       if(ticket!==sampleTicket)return;
-      if(imported.schema!==1 || imported.kind!=='cylinder-template-rules' || !imported.rules || Array.isArray(imported.rules) || typeof imported.rules!=='object' ||
+      if(![1,2].includes(imported.schema) || imported.kind!=='cylinder-template-rules' || !imported.rules || Array.isArray(imported.rules) || typeof imported.rules!=='object' ||
         Object.keys(imported.rules).length>512 || Object.values(imported.rules).some(value=>typeof value!=='string' || !Object.hasOwn(roleNames,value)))
         throw new Error('请选择导出的“模板规则”文件，生成方案和 SCL 草稿不能作为模板导入');
-      const exact=renderRules(imported.rules);editedRules();el('cyRulePanel').open=true;
+      loadDeviceConfig(imported);const exact=renderRules(imported.rules);editedRules();el('cyRulePanel').open=true;
       templateStatus('已载入模板规则，尚未保存。来源：'+[imported.host_name,imported.sample_id,imported.fb].filter(Boolean).join(' / ')+
         '。所有 I/O、DB 和公共输入接线均以当前样板为准，请重新核对后保存。'+(exact?'':' 部分参数不匹配，已保留当前样板的默认建议，请重点检查。'));
     }catch(error){if(ticket===sampleTicket)templateStatus('未导入：'+error.message);}
@@ -282,9 +289,9 @@
     if(!state.target.target_token || state.id!==snapshot) { message('目标已变更，请重新读取工程。'); return null; }
     return {id:snapshot,host:el('cyHost').value,sample_id:sample.id,sample_network:sample.network,
       source_hash:data.hash,cylinder_name:el('cyDisplayName').value.trim(),instance_name:el('cyName').value.trim(),
-      alarm_index:el('cyAlarm').value.trim(),rules:{...rules},bindings:selectedBindings(),...state.target};
+      alarm_index:el('cyAlarm').value.trim(),device_kind:deviceKind(),io_suffixes:activeSuffixes(),rules:{...rules},bindings:selectedBindings(),...state.target};
   };
-  window.cylinderBatchContext=()=>({snapshot,id:snapshot,target:{...window.cylinderIoState().target},host:el('cyHost').value,sample_id:sample?.id,sample_network:sample?.network,source_hash:data?.hash,rules:rules?{...rules}:null,points:(data?.points||[]).map(p=>({...p})),template_confirmed:templateConfirmed});
+  window.cylinderBatchContext=()=>({snapshot,id:snapshot,target:{...window.cylinderIoState().target},host:el('cyHost').value,sample_id:sample?.id,sample_network:sample?.network,source_hash:data?.hash,rules:rules?{...rules}:null,device_kind:deviceKind(),io_suffixes:activeSuffixes(),points:(data?.points||[]).map(p=>({...p})),template_confirmed:templateConfirmed});
   el('cyDownload').onclick=()=>{
     if(!drafts || snapshot!==window.cylinderIoState().id) return;
     const url=URL.createObjectURL(new Blob(['\uFEFF',drafts.text],{type:'text/plain;charset=utf-8'}));

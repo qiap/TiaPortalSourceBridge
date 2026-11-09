@@ -28,7 +28,7 @@
     return data;
   }
   window.loadBackups = async function () {
-    window.diffSync(); const ticket = ++listSequence, scope = key();
+    window.diffSync(); if (typeof window.reviewRefresh === 'function') window.reviewRefresh(); const ticket = ++listSequence, scope = key();
     clear('请选择备份，与已读取的源码快照对比。');
     $('backupsList').replaceChildren(node('p', '正在加载备份…'));
     try {
