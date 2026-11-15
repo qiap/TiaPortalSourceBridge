@@ -1,4 +1,4 @@
-# TIA Portal Source Bridge
+﻿# TIA Portal Source Bridge
 
 **简体中文** | [English](README.en.md)
 
@@ -33,35 +33,28 @@
 
 普通用户无需下载源码或自行编译，选择一种方式即可：
 
-当前发布版本：**v4.10.1**。源码、V17/V21 程序、安装包和免安装包使用同一版本；详细变化和验证范围见 [v4.10.1 发布说明](https://github.com/qiap/TiaPortalSourceBridge/releases/tag/v4.10.1)。
+v4.15.0 提供 Windows 便携包。安装版可在历史版本中选择，功能以对应版本的发布说明为准。
 
 | 方式 | 下载 | 使用方法 |
 | --- | --- | --- |
-| ZIP 免安装版 | [下载 v4.10.1 Portable.zip](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.10.1/TiaPortalSourceBridge-4.10.1-Portable.zip) | 完整解压后双击 `WebDashboard.cmd` 或 `LaunchWeb.vbs` |
-| EXE 安装版 | [下载 v4.10.1 Setup.exe](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.10.1/TiaPortalSourceBridge-4.10.1-Setup.exe) | 运行安装程序，通过桌面或开始菜单打开 |
+| ZIP 免安装版 | [下载 v4.15.0 Portable.zip](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.15.0/TiaPortalSourceBridge-4.15.0-Portable.zip) | 完整解压后双击 `WebDashboard.cmd` 或 `LaunchWeb.vbs` |
+| EXE 安装版 | [在 Releases 中选择 Setup.exe](https://github.com/qiap/TiaPortalSourceBridge/releases) | 运行安装程序，通过桌面或开始菜单打开 |
 
 两种方式均包含 V17/V21 引擎、默认配置和运行模板。先在 TIA Portal 中打开工程，再在看板选择工程和 PLC；目标电脑需满足下面的运行环境要求。
 
-[全部版本与发布说明](https://github.com/qiap/TiaPortalSourceBridge/releases) · 同一版本资产中的 `SHA256SUMS.txt` 提供 ZIP 和 EXE 校验值。
+[全部版本与发布说明](https://github.com/qiap/TiaPortalSourceBridge/releases) · v4.15.0 便携包的 SHA-256 在发布说明中。
 
 GitHub 的 **Code → Download ZIP** 和 Release 中自动生成的 **Source code** 是源码压缩包；需要解压即用，请选择上面的 **Portable.zip**。EXE 安装包目前未做代码签名。
 
 刷新、切换或关闭浏览器标签页不会停止后台服务。需要退出时，点击看板右上角的“退出服务”；正在执行的工程任务会先完成。
 
-### v4.10.1 更新与升级
-
-- 工程审查增加独立源码快照、调用影响路径、结构化差异、多语言文本回填和交付资料导出。
-- 电气 Excel 点表支持对账及 V17 审查写回；气缸流程增加持久执行记录、核对恢复、模板复用及批量生成，并扩展机构类型。
-- 增加只读在线监测、参数归档、GRAPH 布尔条件核对、经典 HMI 联动和受管本机 PLCSIM 外设仿真。各入口的支持范围和限制见下文。
-- 快捷方式使用独立的 Windows 启动程序。打包检查覆盖中文及空格路径、图标、实际快捷方式启动和看板响应。
-
-升级前从旧看板退出服务。免安装版请**完整解压到新目录**，不要只替换 BAT、VBS 或单个 EXE；在新目录双击 `创建快捷方式.bat`，或运行 `CreateShortcuts.vbs`，重新创建桌面快捷方式。移动工具目录后也需重新创建。旧目录中的工程配置、备份、模板与操作记录请保留，按需迁移；安装版升级会保留现有配置。
-
-若双击后窗口立即关闭，在解压目录的资源管理器地址栏输入 `cmd /k call 创建快捷方式.bat`，可保留错误信息；直接运行 `WebDashboard.cmd` 可查看启动诊断。源码目录需要先编译，免安装包已包含所需程序。
-
-发布检查覆盖双引擎编译、离线回归及运行包启动。新增工程写入、经典 HMI 联动和仿真功能的离线测试不等于在所有博途版本及实际项目中验证通过，请按各功能的预览和核对结果操作。
-
 ### 执行记录与失败恢复
+
+看板提供可收起的侧栏，窄屏使用横向导航。“任务中心”按当前工程与 PLC 汇总机构生成、点表写回、源码回填、HMI 联动、带完整目标身份的仿真记录和参数归档，并保留实时执行日志入口。可以筛选状态、搜索对象、直接打开原任务，不必手动记下编号。历史扫描有数量和大小上限，跳过项会提示；旧仿真记录缺少 PLC 身份时不会猜测归属。读取列表不会重新执行操作。
+
+HMI 联动、外设仿真和在线监测变量默认使用表单，原始配置保留在“高级设置”中。监测变量仍需明确填写标准 DB 绝对地址，符号名不能证明地址正确。变量清单可按工程保存到当前浏览器。写入结果展示状态、保存情况、逐块结果和下一步提示，原始诊断证据可展开查看。
+
+“文本与参数”独立于 Diff 页面，参数归档可从列表选择。I/O 页明确区分本地源码快照和从博途重新读取，连接状态刷新不会更新源码。录波支持时间刻度、指针或键盘查看数值、缩放及暂停画面；暂停画面不会停止后台采样，缺失或异常数据不会显示为正常值。
 
 控制中心和运行日志中的“工程变更记录 · 气缸”可以重新打开历史任务。任务结束后刷新页面、重新打开浏览器或重启工具，记录仍保存在本机；普通调用日志最近 100 条的限制不影响这些工程变更记录。
 
@@ -317,12 +310,9 @@ scripts/                  构建与辅助脚本
 installer/                Windows 安装包定义
 ```
 
-运行离线回归检查（需 Node.js/npm 及 Microsoft Edge；浏览器测试依赖按锁文件安装）：
+运行离线回归检查：
 
 ```powershell
-Push-Location tests
-npm ci --ignore-scripts
-Pop-Location
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-Checks.ps1
 ```
 
@@ -340,3 +330,94 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-Checks.ps1
 ## 许可
 
 仓库目前尚未指定项目级开源许可证。第三方组件的许可声明保留在各自目录中；公开源码不代表已经授予统一的开源许可。
+
+## PLCSIM Advanced V8
+
+PLCSIM Advanced：V17 主引擎新增 V8.0 API 适配，按已安装 Runtime 版本加载接口，并处理 V8 的 CPU 注册重载与全局通信模式。接口与离线测试已通过；本机 Runtime 启动遇到 `0xC0000005`，实际运行验收仍待完成。详见 [仿真说明](SIMULATION.md)。
+
+## HMI 页面编辑
+
+本机看板新增 **HMI 页面编辑**：支持 V17 普通画面的文字、位置、尺寸和已有绑定编辑，提供差异校验、备份、编译与回读。报警及不支持的复合控件页面只读。详见 [使用说明与范围](docs/HMI-Page-Editor.md)。
+
+页面预览使用读取快照，正式写入前统一核对最新工程；同一 HMI 最多 20 个页面可加入批量待办，共用一次编译与保存。单次调用复用依赖读取，无变化时跳过导入、编译与保存。写入界面显示执行阶段、等待时间及阶段耗时。线条修改同步起终点，导入前检查坐标和控件重名，保留备份与编译后回读核验。
+
+## 虚拟机博图接入（SSH 隧道模式）
+
+当 TIA Portal 安装在 Windows 虚拟机内、AI 与浏览器运行在宿主机时，建议工具在虚拟机内运行并通过 SSH 桥接：
+
+1. **虚拟机端（只需一次开启 OpenSSH）**：右键“以管理员身份运行” `虚拟机启用SSH.bat` 安装并启用 Windows OpenSSH Server（放行 TCP 22）；日常双击运行 `虚拟机启动看板.bat` 即可在虚拟机内以 `--no-browser` 启动看板与后台 `mcp-host`。
+2. **宿主机端（一键打开虚拟机看板）**：在宿主机双击或运行 `连接虚拟机看板.bat`（首次按提示输入 `用户名@虚拟机IP` 并自动保存至 `vm-connection.json`，之后可直接双击连接），会自动建立 `localhost:18980 -> 虚拟机 127.0.0.1:18980` SSH 隧道并在宿主机打开浏览器。
+3. **宿主机 AI 连接虚拟机 MCP**：运行 `连接虚拟机看板.bat -PrintMcpConfig` 可生成通过 `ssh -T <user>@<vm-ip> "<vm-exe> mcp-client"` 接入的 MCP 配置片段（推荐配合 SSH 密钥免密登录）。即使虚拟机暂未安装 TIA Portal，也可先通过上述步骤验证看板界面、SSH 隧道与离线浏览功能。
+
+
+### MCP 文本结果摘要（源码更新）
+
+MCP 的文本 `content` 现在附带目标、执行状态和结构化结果摘要，方便只读取文本的 Agent 使用。连接列表、仿真实例状态/IP、引用位置、逐项导入结果及备份路径会显示在摘要中；小段源码也可直接阅读。`structuredContent` 保持原样。
+
+摘要最多约 16,000 字符，每个列表展示前 30 项，同项的简短属性合并为一行。`full` 中已经完整展示的源码/XML 不再重复；`compact` 的纯文本源码最多展示 12,000 字符，XML 片段上限为 2,400 字符，并受总预算限制。任何省略都会标记 `text_summary.truncated` 并在文本中提示，总预算不会直接截断半行列表结果。服务端原有 `offset`、`limit`、`next_offset` 与摘要截断是不同层次：摘要未显示的内容不代表不存在。完整 XML 仍通过 `full` 读取。
+
+错误结果附带 `diagnostic`（类别、工具、目标、原始消息和建议）。超时不会自动重放操作，底层错误不能单凭文字推断为网卡故障或在线占用。摘要格式化失败也不会覆盖原始执行结果。此项不包含新的离线缓存回退、逻辑可读模型或仿真剧本功能。
+
+### 4.11：混合语言读取、缓存证据与逻辑可读视图
+
+`tia_read_blocks_batch` 一次读取 1–30 个程序块。默认 `read_mode: "live"`、`format: "auto"`：SCL/STL/DB 优先返回外部文本，LAD/GRAPH 返回 XML；文本导出失败时明确标出回退到同次实时 XML。每个对象分别返回成功或失败，不把未读到的对象当成已删除。总量上限 16 MiB，单份 XML 上限 8 MiB；大批次请拆分名称列表。
+
+```json
+{"block_names":["OP275_MES","OP275_Cylinder","OP275_自动流程"],"project_path":"C:\\Projects\\Line.ap17","plc_name":"完整 PLC 路径","format":"auto"}
+```
+
+`tia_read_block` 与 `tia_read_blocks_batch` 均支持 `read_mode: "cache"`，完全不连接博途、不重建或刷新索引。缓存读取必须指定完整 `plc_name`，可再用 `group_path`、`unit_name` 限定同名对象。结果带 `source_kind: "index_cache"`、`catalog_utc`、`indexed_utc`、对象指纹、`cache_state`、`freshness` 和 `write_baseline: false`。未采集、歧义、缺文件、指纹不符分别明确返回；已知过期快照仍可用于分析，但标为 `known_stale`。成功只说明请求的对象可读，不代表整个工程索引完整或与博途一致。**默认不会在实时读取失败后偷偷改用缓存，所有写入链路仍要求实时基准。**
+
+两种工具均支持 `format: "readable"`。LAD 可读视图保留网络号、标题/注释、CompileUnit ID、UId、符号、触点常开/常闭、沿触点、S/R 线圈、调用实例/参数和端口连线。常规触点、线圈和显式 OR 节点可额外生成 AND/OR/NOT 条件树；调用、边沿、复杂地址和特殊拓扑只显示结构，不猜测等价布尔表达式。GRAPH 保留步骤、转换、属性与连接，条件中的 FlgNet 使用同一视图；未覆盖的动作、指令、开路或异常结构给出警告，未知节点附 `OPAQUE_NODE` 标记及局部原始 XML。
+
+默认每块展示前 5 个网络，通过 `network_offset` / `network_limit`（1–20）继续读取。`view_summary` 明确显示分页、覆盖边界与警告，`view` 保存节点树，`readable_text` 供文本 Agent 直接阅读。这个版本是保留证据的结构化读取，不是完整反编译器，也不新增语义修改、自动导入排序或仿真剧本。
+
+### 4.12：LAD / GRAPH 受限修改与双工程对比
+
+MCP 新增以下入口（本次不新增 Web 页面）：
+
+| 工具 | 用途 |
+| --- | --- |
+| `tia_read_logic_patch_plan` | 从实时源码生成触点修改预览；传 `plan_id` 可离线查询原方案及执行结果 |
+| `tia_write_logic_patch` | 按审查过的 `plan_id` 应用修改，要求 `confirm: true` |
+| `tia_compare_projects` | 指定两份工程、PLC 与程序组，分页比较块增删改、接口和网络结构 |
+
+**受限修改当前仅支持 V17**：LAD 指定 `compile_unit_id`，GRAPH 指定 `sequence_index`（从 0 开始）和 `transition` 编号，再用 `contact_uid` 定位普通触点。`edit_json` 只能更换直接符号路径（`scope` 与 `components`）或设置 `negated`（true 为常闭）。例如 LAD：`{"compile_unit_id":"12","contact_uid":"23","scope":"GlobalVariable","components":["DB_Permit","Ready"],"negated":false}`；GRAPH 将 `compile_unit_id` 换为 `"sequence_index":0,"transition":"114"`。编号应取自本次实时读取，不能照抄示例。
+
+方案绑定工程、PLC、完整块指纹与具体修改，保存在 `logs/logic-plans/`。应用时复核实时源码，全部备份后导入、编译并回读完整块。只有 `verified_unsaved` 表示这些检查通过，仍须用户检查逻辑；**不自动保存工程或下载 PLC**。失败保留现场与批次日志，不自动回滚或重试。同一方案有执行记录或未完成声明后不会再次写入；用 `tia_read_logic_patch_plan(plan_id)` 查询结果。过期方案须重新预览。共享操作数、沿触点、数组/切片/间接寻址、任意表达式替换、拓扑重排和动作改写均不在这一版范围内，V21 保持已有写入能力。
+
+双工程对比必须提供 `project_path_a/plc_name_a` 与 `project_path_b/plc_name_b`，可用 `group_path_a/group_path_b` 选择不同组根，按**相对组路径＋同名块**配对；V21 可选 `unit_name_a/unit_name_b`。`read_mode` 默认为 `live`，也支持显式 `cache`。只有完整成功的实时目录才能确认对侧块不存在；未缓存、缓存目录缺失、读取失败或身份歧义分别标为未知/待核对，不能解释为删除。
+
+默认每页 10 个块，`limit` 为 1–20，按 `next_offset` 继续并携带 `catalog_token`，目录变化则拒绝混页。每块最多展示 200 条结构化变化，`change_count/changes_truncated` 明示其余数量；需要完整证据时读取该块源码。返回源码指纹、采集时间、缓存新鲜度和解析警告。两侧是顺序读取，并非原子双工程快照；仅覆盖 PLC 程序块，不包含 HMI、硬件、调用影响面或下载重初始化判断。V21 现有目录接口缺少容器读取完整度证明，因此单侧缺失仍待核对；留空软件单元仅比较普通程序块，不混入其他单元。改名按增删处理；GRAPH 等未完整解析语义保留 XML 差异，不宣称逻辑等价。
+
+### 4.13：仿真下载诊断与条件剧本
+
+V17 的 `tia_simulation_download` 默认只读预检，检查受管本机实例身份、RUN/STOP 状态、Softbus 接口与目标唯一性、IP 唯一性、TIA `OnlineProvider.State` 和仿真编译设置。`blockers` 明确列出已确认的问题；查询失败会标为未知，不从 `InterfaceRemoved` 猜测为网卡故障。预检不编译、不改工程设置、不切换在线状态；`compile_status` 明示尚未编译。实际下载仍需 `dry_run:false`、`confirm:true`，编译成功后仅发起一次下载，不自动重试、不自动 RUN、不保存。阶段、编译诊断、下载决策、原始错误和是否已发起下载保存在 `simulation-downloads/`，未完成的 `download_intent` 记录须先核对实际状态。V21 保持原有能力。
+
+`tia_simulation_peripheral_start` 的 `configuration_json` 现在支持 `steps` 条件剧本和 `watch` 变量列表，与原有外设延时反馈规则共用执行器：每步等待 `wait_until` 全部条件满足，延时 `delay_ms`，执行 `checks`，再写入本步 `writes`。条件类型为 `bool/dint/udint/time/real`，采用等值判断；写入限定 Bool。**本步 checks 在本步 writes 之前执行，写后反馈检查放在下一步。** 条件第一次满足后延时开始，即使随后条件下降也不会重新等待。每步 `timeout_ms` 包含等待及延时；总运行不能超过 `duration_ms`。
+
+执行器逐次记录步号/监视值变化、条件满足、写入意图与成功结果。等待超时、检查失败、采样延迟超限或读写异常会停止后续动作，保留模拟变量现场，不自动复位或重放。`final_snapshot` / `failure_snapshot` 给出结束后逐变量读取的值、时间和错误，不能当作原子快照或恰好在故障发生瞬间的全部值。
+
+通过 `tia_simulation_peripheral_status` 查询 `steps_completed/steps_total`、`max_tick_ms` 与最近 500 条事件；使用 `event_offset`、`event_limit`（1–500）和 `next_event_offset` 分页读取完整时间轴。报告与 `.jsonl` 保存在 `simulation-runs/`，包含结束/失败快照，重启后可查询。Web 外设规则页的配置框也可提交相同剧本并导出完整记录。详见 [仿真指南](SIMULATION.md)。
+
+最小请求间隔为 20ms，Windows 调度及 SDK 调用不提供实时保证。单扫描脉冲应由 PLC 锁存或计数后再判断；不要以未采到推断脉冲没发生。最多 200 步、128 个合计变量、20,000 条事件；超限明确停止。已做模拟传输和离线回归，未据此宣称真实 OP275 工艺或硬件测试通过。另修复了双工程结果路径的多余换行，以及逻辑对比测试对启动目录的依赖。
+
+### 4.14：Web 工作区接入读取、对比、修改与仿真闭环
+
+- **工程索引与速查**：修复筛选变量错误与分类名不匹配；程序块可点击查看缓存/实时来源、可读网络/XML，按网络分页查看 Bool 条件树、未知节点原文和覆盖说明。缓存时间及过期状态始终可见。
+- **变更审查与 Diff**：新增“双工程对比”和“受限触点修改 · V17”。对比支持两侧工程/PLC/组/软件单元、分页指纹、状态过滤及双侧证据；触点修改先实时预览前后接线及指纹，再人工确认应用，并保留方案编号及执行回查。
+- **仿真驾驶舱**：新增受管下载预检、阻塞原因、仿真编译支持显式选项、确认装载和阶段凭证。外设表单支持监视变量、条件剧本步骤、写前检查及 Bool 激励，必须先预览当前配置再启动。显示步骤统计、事件分页及失败/结束快照。
+- **任务中心**：可回查工作区修改、原生逻辑方案及下载凭证；未知结果醒目提示，不自动重放。新写入不自动保存工程、不下载物理 PLC、不改变 TIA 在线状态。
+- **界面**：统一 13 个导航图标并分组，工具数量独立显示；退出收入“服务控制”菜单并保留确认。PID 移至悬停提示。I/O 增加来源徽章、空状态引导、主次按钮和无数据时隐藏分页；二级页签改为下划线样式，精简重复路径。
+
+新接口位于同源的 /api/io/workbench/ 下，按固定操作调用白名单工具，要求工程/PLC 目标令牌；前端不能指定任意工具名。实际装载与触点写入使用已持久保存、绑定目标和指纹的预览，异步执行，在 logs/workbench/ 保留记录和提交标记。浏览器断开不代表任务未执行，应先回查。/api/io/peripheral/preview 绑定当前配置，配置或实例变更后必须重新预览。
+
+### 4.15：I/O 阅读布局与白天 / 夜间主题
+
+顶栏可切换白天和夜间主题，默认保留暗色，偏好保存在本浏览器。主题只改变控制台外观，不改变工程数据或 HMI 设计中的颜色。
+
+I/O 页区分尚未读取、读取中、读取失败、读取为空和筛选无结果；没有数据时隐藏分页，首次进入只显示明确的读取引导。连接刷新与数据读取分开命名，工程快照来源和读取时间靠近标题，明确不含 PLC 在线实时值。本地缓存同时显示原有覆盖信息中的源码采集时间与本次加载时间；没有时间证据时显示“未提供”。
+
+筛选采用固定标签与紧凑 Flex 布局，搜索框优先获得剩余宽度。表格填充剩余视口空间并内部滚动，固定列标题；可调整列宽、隐藏类型/来源列，复制变量名和地址。完整设备层级收进目标详情，相邻重名仅在展示时去重，复制与所有 API 参数保留原始身份。引用详情在宽屏侧边展开，窄屏放在表格下方；零显式引用显示“未发现引用”，不推断未使用。所有业务 API、读取范围和工程写入流程保持原有逻辑。
+
+看板的博途工程检测改为后台执行，首次状态查询不再等待 Openness 检测完成。检测期间明确显示“检测中”，失败时保留上次列表并显示错误，不将失败当成工程已关闭。

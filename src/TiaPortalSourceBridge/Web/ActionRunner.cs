@@ -181,10 +181,11 @@ namespace TiaPortalSourceBridge.Web
         public static bool StartAction(string action, string configPath, string projectPath, string plcName, out string busyAction)
         { ActionProgress task; return StartAction(action, configPath, projectPath, plcName, out busyAction, out task); }
 
-        public static bool StartAction(string action, string configPath, string projectPath, string plcName, out string busyAction, out ActionProgress task)
+        public static bool StartAction(string action, string configPath, string projectPath, string plcName, out string busyAction, out ActionProgress task, string indexScope = "PLC")
         {
             task = null;
             if (!new[] { "trust", "build-index", "export", "import", "compile" }.Contains(action)) throw new ArgumentException("不支持的操作。");
+            if (action == "build-index" && !IsIndexScope(indexScope)) throw new ArgumentException("索引范围必须是 PLC、HMI、Hardware 或 All。");
             busyAction = "";
             string lane = LaneOf(action);
             ActionProgress progress;
@@ -210,7 +211,7 @@ namespace TiaPortalSourceBridge.Web
                 _last = progress;
             }
 
-            Thread worker = new Thread(() => ExecuteAction(progress, action, configPath, projectPath, plcName))
+            Thread worker = new Thread(() => ExecuteAction(progress, action, configPath, projectPath, plcName, indexScope))
             {
                 IsBackground = true,
                 Name = "WebActionWorker-" + lane
@@ -299,7 +300,10 @@ namespace TiaPortalSourceBridge.Web
             AppendLog(progress.actionName, exitCode == 0 ? ">>> 任务完成: 成功。" : ">>> 任务未成功: " + progress.message);
         }
 
-        private static void ExecuteAction(ActionProgress progress, string action, string configPath, string projectPath, string plcName)
+        internal static bool IsIndexScope(string scope)
+        { return new[] { "PLC", "HMI", "Hardware", "All" }.Contains(scope); }
+
+        private static void ExecuteAction(ActionProgress progress, string action, string configPath, string projectPath, string plcName, string indexScope)
         {
             string rootDir = Path.GetDirectoryName(Path.GetFullPath(configPath));
             string exePath = System.Reflection.Assembly.GetEntryAssembly().Location;
@@ -401,6 +405,8 @@ namespace TiaPortalSourceBridge.Web
                 {
                     string scriptPath = Path.Combine(rootDir, "Build-ProjectIndex.ps1");
                     string args = "-NoProfile -STA -ExecutionPolicy Bypass -File \"" + scriptPath + "\"";
+                    args += " -Scope " + indexScope;
+                    AppendLog(action, "索引范围：" + indexScope);
                     if (!string.IsNullOrWhiteSpace(projectPath))
                         args += " -ProjectPath \"" + projectPath + "\"";
 
@@ -418,6 +424,7 @@ namespace TiaPortalSourceBridge.Web
                         StandardErrorEncoding = Encoding.UTF8
                     };
                     exitCode = RunProcess(psi, action, TimeSpan.FromMinutes(ActionTimeoutMinutes), out timedOut);
+                    if (exitCode == 2) failMessage = "所选范围索引部分完成，请查看日志中的未完成对象和读取错误。";
                 }
                 else
                 {

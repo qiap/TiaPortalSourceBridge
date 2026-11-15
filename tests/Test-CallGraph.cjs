@@ -1,7 +1,7 @@
 // Isolated mocked dashboard checks. No TIA service, project or PLC is contacted.
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 function playwright(){for(const location of ['playwright',process.env.PLAYWRIGHT_MODULE,process.env.USERPROFILE&&path.join(process.env.USERPROFILE,'.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright')].filter(Boolean)){try{return require(location);}catch(error){if(error.code!=='MODULE_NOT_FOUND')throw error;}}throw Error('Install Playwright or set PLAYWRIGHT_MODULE.');}
-const root=path.join(__dirname,'..'),html=fs.readFileSync(path.join(root,'web/index.html'),'utf8').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''),script=fs.readFileSync(path.join(root,'web/audit.js'),'utf8');
+const root=path.join(__dirname,'..'),html=fs.readFileSync(path.join(root,'web/index.html'),'utf8').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'').replace(/<link\b[^>]*href="\/(?:workspace|workbench|theme|io-layout)\.css"[^>]*>/gi,''),script=fs.readFileSync(path.join(root,'web/audit.js'),'utf8');
 const target={project_path:'E:\\测试工程\\Fixture.ap17',plc_name:'Station/CPU',target_token:'fixture-token'};
 const node=(id,name,kind,status,unit='',ids=[])=>({id,name,kind,status,unit,group:'Programs',source_status:'parsed',root_id:ids[0]||'',path:ids,note:''});
 const call=(id,caller_id,callee_id,callee_name,resolution='resolved',instance='',instance_scope='',network='1')=>({id,caller_id,callee_id,callee_name,resolution,callee_type:instance?'FB':'FC',instance,instance_scope,instance_status:instance?'resolved':'none',location:{block:caller_id,group:'Programs',unit:'',network,location:'网络 '+network+' / 调用 '+id,evidence:'原生调用 '+callee_name}});

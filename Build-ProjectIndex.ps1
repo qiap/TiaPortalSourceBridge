@@ -120,7 +120,7 @@ try {
     $scopeStatus=Get-ScopeStatus $status
     foreach($key in @('total','ready','pending','errors')){$report[$key]=[int]$status.$key}
     $report.warnings=@($status.warnings)
-    Write-Host ('目录：{0} 个对象；开始分批读取。' -f $status.total)
+    Write-Host ('工程目录：{0} 个对象；本次范围 {1}：{2} 个对象，开始分批读取。' -f $status.total,$Scope,$scopeStatus.total)
     $batchLimit=[Math]::Max(100,([int]$status.total*2+10))
     for($batch=1;$batch -le $batchLimit;$batch++) {
         $reply=Invoke-IndexRequest 'tools/call' @{name='tia_build_project_index';arguments=@{project_path=$project;detail_level='content';kind_filter=$kindFilter;include_all_content=($Scope -eq 'All');max_objects=$BatchSize;time_budget_ms=$TimeBudgetMs;response_mode='compact'}}
@@ -129,7 +129,7 @@ try {
         $report.warnings=@($status.warnings)
         $report['scope_status']=$scopeStatus
         $report.batches+=@{batch=$batch;updated=[int]$data.updated;failed=[int]$data.failed;ready=[int]$status.ready;pending=[int]$status.pending;execution_ms=$reply._meta.performance.execution_ms}
-        Write-Host ('[{0}] 已索引 {1}/{2}，失败 {3}，本批新增 {4}。' -f $batch,$status.ready,$status.total,$status.errors,$data.updated)
+        Write-Host ('[{0}] {1} 已索引 {2}/{3}，失败 {4}，本批新增 {5}。' -f $batch,$Scope,$scopeStatus.ready,$scopeStatus.total,$scopeStatus.errors,$data.updated)
         if([int]$scopeStatus.pending -eq 0 -or [int]$scopeStatus.pending -eq [int]$scopeStatus.errors){break}
         if(([int]$data.updated+[int]$data.failed) -eq 0){throw '本批没有取得进展，但仍有未完成对象；请查看索引状态后重试。'}
         if($batch -eq $batchLimit){throw '索引持续变化或批次数超出上限；已保留进度，可以 -Resume 继续。'}
@@ -141,16 +141,25 @@ try {
             if($item.state -eq 'error'){$report.failed_objects+=@{name=$item.name;kind=$item.kind;owner=$item.owner;group_path=$item.group_path;error=$item.error}}
         }
     }
-    $report.completed=([int]$scopeStatus.pending -eq 0 -and @($status.warnings).Count -eq 0)
+    # Keep catalog-read failures distinct from documented coverage limitations.
+    $catalogErrors=@($status.warnings | Where-Object {
+        if($_ -eq '本结果不包含集成连接；Connections 空列表不代表 HMI 没有 PLC 连接。' -or $_.StartsWith('Previous index rebuilt:')){return $false}
+        if($_.StartsWith('HMI catalog ')){return $Scope -in @('HMI','All')}
+        if($_.StartsWith('Hardware catalog:')){return $Scope -in @('Hardware','All')}
+        return $true
+    })
+    $report['catalog_errors']=$catalogErrors
+    $report.completed=([int]$scopeStatus.pending -eq 0 -and [int]$scopeStatus.errors -eq 0 -and $catalogErrors.Count -eq 0)
     $report['deferred_objects']=[int]$status.pending-[int]$scopeStatus.pending
     $report.partial=(-not $report.completed)
     $exitCode=if($report.completed){0}else{2}
-    if($report.completed){Write-Host ('{0} 层索引已完成：{1}/{1}；其他层可用 -Scope HMI/Hardware/All 按需建立。' -f $Scope,$scopeStatus.total)}
+    if($report.completed){Write-Host ('{0} 索引已完成：{1}/{2}，失败 0。' -f $Scope,$scopeStatus.ready,$scopeStatus.total)}
     else {
-        Write-Host ('索引建立完成，但有未读取对象：已索引 {0}/{1}，失败 {2}。' -f $status.ready,$status.total,$status.errors)
-        foreach($item in $report.failed_objects){Write-Host ('  '+$item.name+'：'+$item.error)}
-        foreach($warning in $report.warnings){Write-Host ('  目录警告：'+$warning)}
+        Write-Host ('{0} 索引部分完成：已索引 {1}/{2}，未完成 {3}，失败 {4}。' -f $Scope,$scopeStatus.ready,$scopeStatus.total,$scopeStatus.pending,$scopeStatus.errors)
+        foreach($item in $report.failed_objects|Where-Object {$Scope -eq 'All' -or $_.kind.StartsWith($kindFilter)}){Write-Host ('  '+$item.name+'：'+$item.error)}
     }
+    if($report.deferred_objects -gt 0){Write-Host ('其他范围尚未读取 {0} 项，不影响本次 {1} 范围的完成状态。' -f $report.deferred_objects,$Scope)}
+    foreach($warning in $report.warnings){Write-Host ($(if($catalogErrors -contains $warning){'  目录读取失败：'}else{'  覆盖范围提示：'})+$warning)}
 }
 catch {
     $exitCode=1

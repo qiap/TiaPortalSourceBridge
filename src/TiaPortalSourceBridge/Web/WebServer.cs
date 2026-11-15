@@ -35,8 +35,14 @@ namespace TiaPortalSourceBridge.Web
         private static bool _isScanningPlcs = false;
         private static readonly object _plcLock = new object();
         private static DateTime _lastPortalScan = DateTime.MinValue;
+        private static DateTime _lastSuccessfulPortalScan = DateTime.MinValue;
         private static IList<PortalProcessInfo> _cachedPortalProcs = new List<PortalProcessInfo>();
         private static readonly object _portalLock = new object();
+        private static bool _portalScanRunning;
+        private static string _portalScanError = "";
+        private static int _dashboardToolCount;
+        private static readonly object _toolCountLock = new object();
+        private static Func<AppConfig,IList<PortalProcessInfo>> _portalDiscoveryReader = config => DiscoverDashboardProjects(config.ConfigFilePath);
         private static string _lastDetectedLiveProject = "";
         private static readonly Dictionary<string, List<Dictionary<string, string>>> _projectPlcsCache =
             new Dictionary<string, List<Dictionary<string, string>>>(StringComparer.OrdinalIgnoreCase);
@@ -45,28 +51,27 @@ namespace TiaPortalSourceBridge.Web
         {
             lock (_portalLock)
             {
-                if (!force && (DateTime.UtcNow - _lastPortalScan).TotalSeconds < 3 && _cachedPortalProcs != null && _cachedPortalProcs.Count > 0)
-                {
-                    return _cachedPortalProcs;
+                if (!_portalScanRunning && (force || (DateTime.UtcNow - _lastPortalScan).TotalSeconds >= 3)) {
+                    _portalScanRunning=true;
+                    ThreadPool.QueueUserWorkItem(_ => {
+                        IList<PortalProcessInfo> list=null;string error="";
+                        try { list=_portalDiscoveryReader(config); }catch(Exception ex){error=ex.Message;}
+                        lock(_portalLock) {
+                            // Failure is not evidence that the previously seen projects closed.
+                            if(list!=null){_cachedPortalProcs=list;_lastSuccessfulPortalScan=DateTime.UtcNow;}
+                            _portalScanError=error;_lastPortalScan=DateTime.UtcNow;_portalScanRunning=false;
+                        }
+                    });
                 }
+                return _cachedPortalProcs;
             }
-
-            IList<PortalProcessInfo> list;
-            try
-            {
-                list = DiscoverDashboardProjects(config.ConfigFilePath);
-            }
-            catch
-            {
-                list = new List<PortalProcessInfo>();
-            }
-
-            lock (_portalLock)
-            {
-                _cachedPortalProcs = list;
-                _lastPortalScan = DateTime.UtcNow;
-            }
-            return list;
+        }
+        private static object PortalDiscoveryState()
+        {
+            lock(_portalLock)return new { state=_portalScanRunning?"pending":_portalScanError.Length>0?"failed":"ready",
+                snapshot_utc=_lastSuccessfulPortalScan==DateTime.MinValue?"":_lastSuccessfulPortalScan.ToString("o"),
+                last_attempt_utc=_lastPortalScan==DateTime.MinValue?"":_lastPortalScan.ToString("o"),error=_portalScanError,
+                current_verified=!_portalScanRunning&&_portalScanError.Length==0 };
         }
 
         private static bool PathsEqual(string a, string b)
@@ -969,7 +974,10 @@ namespace TiaPortalSourceBridge.Web
             if (path.Equals("/api/status", StringComparison.OrdinalIgnoreCase))
             {
                 bool forceRefresh = request.QueryString["refresh"] == "true";
-                var runningPortals = GetRunningProjectsCached(_config, forceRefresh);
+                // Catalog lookup must precede discovery, which may hold DashboardGate for a slow Openness call.
+                lock(_toolCountLock)if(_dashboardToolCount==0)_dashboardToolCount=DashboardTools(_configPath).Length;
+                IList<PortalProcessInfo> runningPortals;object discoveryState;
+                lock(_portalLock) { runningPortals=GetRunningProjectsCached(_config, forceRefresh);discoveryState=PortalDiscoveryState(); }
 
                 string activeProject = !string.IsNullOrWhiteSpace(recent.LastProjectPath) ? recent.LastProjectPath : _config.ProjectPath;
 
@@ -1142,7 +1150,8 @@ namespace TiaPortalSourceBridge.Web
                     { "tool_version", "v" + ProductVersion.Release },
                     { "server_process_id", Process.GetCurrentProcess().Id },
                     { "browser_clients", BrowserClientCount() },
-                    { "tool_count", DashboardTools(_configPath).Length },
+                    { "tool_count", _dashboardToolCount },
+                    { "portal_discovery", discoveryState },
                     { "uptime_seconds", (int)(DateTime.UtcNow - _startTime).TotalSeconds },
                     { "config_path", _configPath },
                     { "project_path", activeProject },
@@ -1449,12 +1458,16 @@ namespace TiaPortalSourceBridge.Web
                 if (!new[] { "trust", "build-index", "export", "import", "compile" }.Contains(action))
                 { SendJson(response, 400, new { error = "不支持的操作。" }); return; }
                 string activeProject = Text(map, "project_path"), plcName = Text(map, "plc_name");
+                string indexScope = Text(map, "index_scope");
+                if (string.IsNullOrEmpty(indexScope)) indexScope = "PLC";
+                if (action == "build-index" && !ActionRunner.IsIndexScope(indexScope))
+                { SendJson(response, 400, new { error = "索引范围必须是 PLC、HMI、硬件或全部。" }); return; }
                 if (action != "trust" && (!File.Exists(activeProject) || (action != "build-index" && string.IsNullOrWhiteSpace(plcName)) || !actionTargets.Verify(activeProject, plcName, Text(map, "target_token"))))
                 {
                     SendJson(response, 409, new { error = "工程或 PLC 目标信息无效，请刷新页面并重新选择目标。" }); return;
                 }
                 string busy; ActionProgress startedTask;
-                bool started = ActionRunner.StartAction(action, _configPath, activeProject, plcName, out busy, out startedTask);
+                bool started = ActionRunner.StartAction(action, _configPath, activeProject, plcName, out busy, out startedTask, indexScope);
                 if (started)
                 {
                     SendJson(response, 200, new Dictionary<string, object>

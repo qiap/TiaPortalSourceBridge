@@ -15,7 +15,8 @@ namespace TiaPortalSourceBridge.Simulation
     {
         public int duration_ms {get;set;} public int interval_ms {get;set;} public int max_lateness_ms {get;set;}
         public PeripheralRule[] rules {get;set;} public SimulationStimulus[] stimuli {get;set;} public SimulationAssertion[] assertions {get;set;}
-        public PeripheralConfiguration(){duration_ms=10000;interval_ms=50;max_lateness_ms=500;rules=new PeripheralRule[0];stimuli=new SimulationStimulus[0];assertions=new SimulationAssertion[0];}
+        public ScenarioStep[] steps {get;set;} public ScenarioTag[] watch {get;set;}
+        public PeripheralConfiguration(){duration_ms=10000;interval_ms=50;max_lateness_ms=500;rules=new PeripheralRule[0];stimuli=new SimulationStimulus[0];assertions=new SimulationAssertion[0];steps=new ScenarioStep[0];watch=new ScenarioTag[0];}
     }
     // Deterministic tick model with injected clock/read/write functions. It has no
     // transport and cannot connect to hardware; only its owned Softbus adapter writes.
@@ -27,7 +28,7 @@ namespace TiaPortalSourceBridge.Simulation
         internal int Failures {get;private set;}
         internal static void Validate(PeripheralConfiguration config)
         {
-            if(config==null||config.rules==null||config.stimuli==null||config.assertions==null||config.rules.Length>32||config.stimuli.Length>1000||config.assertions.Length>1000||config.rules.Length+config.stimuli.Length+config.assertions.Length==0)throw new ArgumentException("请配置最多 32 条外设规则、1000 个激励和 1000 个检查点。");
+            if(config==null||config.rules==null||config.stimuli==null||config.assertions==null||config.steps==null||config.rules.Length>32||config.stimuli.Length>1000||config.assertions.Length>1000||config.rules.Length+config.stimuli.Length+config.assertions.Length+config.steps.Length==0)throw new ArgumentException("请配置最多 32 条外设规则、1000 个激励和 1000 个检查点，或顺序剧本。");
             if(config.duration_ms<100||config.duration_ms>1800000||config.interval_ms<20||config.interval_ms>1000||config.max_lateness_ms<config.interval_ms||config.max_lateness_ms>10000)throw new ArgumentException("运行时长、采样间隔或允许延迟超出范围。");
             Func<string,bool> valid=s=>!string.IsNullOrWhiteSpace(s)&&s.Length<=512&&!s.Any(char.IsControl);
             if(config.rules.Any(r=>r==null||!valid(r.command)||!valid(r.feedback)||r.on_delay_ms<0||r.on_delay_ms>60000||r.off_delay_ms<0||r.off_delay_ms>60000))throw new ArgumentException("外设规则名称或延时无效。");
@@ -35,6 +36,7 @@ namespace TiaPortalSourceBridge.Simulation
             if(outputs.Count!=config.rules.Length||config.rules.Any(r=>outputs.Contains(r.command)))throw new ArgumentException("反馈不能多处写入，也不能形成反馈到命令的循环。");
             if(config.stimuli.Any(s=>s==null||!valid(s.tag)||s.at_ms<0||s.at_ms>config.duration_ms||outputs.Contains(s.tag))||config.stimuli.GroupBy(s=>s.at_ms+"\n"+s.tag,StringComparer.OrdinalIgnoreCase).Any(g=>g.Count()>1))throw new ArgumentException("激励时刻、变量或重复写入无效；不能同时激励外设反馈变量。");
             if(config.assertions.Any(s=>s==null||!valid(s.tag)||s.at_ms<0||s.at_ms>config.duration_ms))throw new ArgumentException("检查点变量或时刻无效。");
+            ScenarioModel.Validate(config);
         }
         internal PeripheralModel(PeripheralConfiguration config){Validate(config);this.config=config;states=config.rules.Select(r=>new State()).ToArray();}
         private void Record(string kind,long time,string tag,object value,string reason=""){if(Evidence.Count>=20000)throw new InvalidOperationException("仿真证据达到 20000 条上限。");Evidence.Add(SimulationTools.Map("kind",kind,"elapsed_ms",time,"tag",tag,"value",value,"reason",reason));}

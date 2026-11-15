@@ -68,5 +68,6 @@ const tick = () => new Promise(resolve => setImmediate(resolve));
   dataDelay = null; await context.ioRead();
   assert.equal(JSON.parse(requests.filter(r => r.path.endsWith('/read')).at(-1).options.body).plc_name, 'PLC2');
   assert.equal(get('ioExportButton').disabled, false);
-  console.log('PASS: I/O panel refresh, filters, safe text, full export and stale target responses.');
+  let phase;context.IoLayout={update:s=>phase=s.phase,progress:()=>{}};get('ioView').value='points';await context.ioRead();assert.equal(phase,'failed','Unsupported response must not leave a permanent loading view');
+  console.log('PASS: I/O panel refresh, filters, safe text, full export, unsupported response and stale target responses.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

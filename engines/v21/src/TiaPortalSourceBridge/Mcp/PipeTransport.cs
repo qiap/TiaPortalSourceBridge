@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.IO.Pipes;
-using System.Security.AccessControl;
 using System.Security.Principal;
 using System.Text;
 using System.Threading;
@@ -54,14 +53,7 @@ namespace TiaPortalSourceBridge.Mcp
                         }
                         while (true)
                         {
-                            PipeSecurity security = new PipeSecurity();
-                            security.SetAccessRuleProtection(true, false);
-                            security.AddAccessRule(new PipeAccessRule(new SecurityIdentifier(WellKnownSidType.NetworkSid, null),
-                                PipeAccessRights.FullControl, AccessControlType.Deny));
-                            security.AddAccessRule(new PipeAccessRule(WindowsIdentity.GetCurrent().User,
-                                PipeAccessRights.FullControl, AccessControlType.Allow));
-                            using (NamedPipeServerStream pipe = new NamedPipeServerStream(selectedPipe, PipeDirection.InOut, 1,
-                                PipeTransmissionMode.Byte, PipeOptions.None, 65536, 65536, security))
+                            using (NamedPipeServerStream pipe = LocalPipeHelper.CreateLocalServerPipe(selectedPipe, 65536, false))
                             {
                                 Console.Error.WriteLine("等待 MCP 客户端接入（断开客户端不会释放 TIA 连接）……");
                                 pipe.WaitForConnection();

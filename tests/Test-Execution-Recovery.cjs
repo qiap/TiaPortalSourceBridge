@@ -6,7 +6,7 @@ function playwright(){
   throw new Error('Install Playwright or set PLAYWRIGHT_MODULE.');
 }
 const {chromium}=playwright();
-const index=fs.readFileSync(path.join(__dirname,'../web/index.html'),'utf8').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'');
+const index=fs.readFileSync(path.join(__dirname,'../web/index.html'),'utf8').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'').replace(/<link\b[^>]*href="\/(?:workspace|workbench|theme|io-layout)\.css"[^>]*>/gi,'');
 const script=fs.readFileSync(path.join(__dirname,'../web/execution.js'),'utf8');
 const applyScript=fs.readFileSync(path.join(__dirname,'../web/cylinder-apply.js'),'utf8');
 const ids={source:'11111111111141118111111111111111',check:'22222222222242228222222222222222',recovery:'33333333333343338333333333333333',saved:'44444444444444448444444444444444'};

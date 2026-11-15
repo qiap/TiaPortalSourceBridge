@@ -5,26 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TIA Portal Source Bridge - 可视化控制看板</title>
   <link rel="icon" href="/favicon.ico" type="image/x-icon">
+  <script src="/theme-init.js"></script>
   <style>
-    :root {
-      --bg: #0b1120;
-      --card-bg: #1e293b;
-      --card-border: #334155;
-      --text: #f1f5f9;
-      --text-muted: #94a3b8;
-      --primary: #00a3a6;
-      --primary-hover: #06b6d4;
-      --primary-light: rgba(0, 163, 166, 0.15);
-      --success: #10b981;
-      --warning: #f59e0b;
-      --danger: #ef4444;
-      --diff-add-bg: rgba(16, 185, 129, 0.2);
-      --diff-add-text: #34d399;
-      --diff-del-bg: rgba(239, 68, 68, 0.2);
-      --diff-del-text: #f87171;
-      --font-mono: Consolas, Monaco, "Courier New", monospace;
-    }
-
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       background-color: var(--bg);
@@ -37,7 +19,7 @@
 
     /* Header */
     header {
-      background-color: #0f172a;
+      background-color: var(--ui-0f172a);
       border-bottom: 1px solid var(--card-border);
       padding: 12px 24px;
       display: flex;
@@ -53,8 +35,8 @@
       gap: 12px;
     }
     .logo-badge {
-      background: linear-gradient(135deg, var(--primary), #0284c7);
-      color: #fff;
+      background: linear-gradient(135deg, var(--primary), var(--ui-0284c7));
+      color: var(--ui-fff);
       font-weight: 800;
       font-size: 14px;
       padding: 6px 10px;
@@ -109,7 +91,7 @@
     }
     .project-name {
       font-weight: 500;
-      color: #f1f5f9;
+      color: var(--ui-f1f5f9);
       overflow: hidden;
       text-overflow: ellipsis;
       max-width: 320px;
@@ -122,12 +104,12 @@
     }
     .badge-running {
       background: rgba(16, 185, 129, 0.2);
-      color: #34d399;
+      color: var(--ui-34d399);
       border: 1px solid rgba(16, 185, 129, 0.4);
     }
     .badge-offline {
       background: rgba(148, 163, 184, 0.15);
-      color: #94a3b8;
+      color: var(--ui-94a3b8);
       border: 1px solid rgba(148, 163, 184, 0.25);
     }
     .dropdown-chevron {
@@ -145,7 +127,7 @@
       transform: translateX(-50%);
       width: 520px;
       max-width: 90vw;
-      background: #0f172a;
+      background: var(--ui-0f172a);
       border: 1px solid rgba(59, 130, 246, 0.35);
       border-radius: 12px;
       box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
@@ -173,7 +155,7 @@
     .project-menu-header .menu-title {
       font-size: 13px;
       font-weight: 600;
-      color: #cbd5e1;
+      color: var(--ui-cbd5e1);
       display: flex;
       align-items: center;
       gap: 6px;
@@ -182,7 +164,7 @@
       padding: 8px 16px 4px 16px;
       font-size: 11px;
       font-weight: 600;
-      color: #64748b;
+      color: var(--ui-64748b);
       text-transform: uppercase;
       letter-spacing: 0.5px;
       display: flex;
@@ -221,14 +203,14 @@
     .project-item-title {
       font-size: 13px;
       font-weight: 500;
-      color: #f1f5f9;
+      color: var(--ui-f1f5f9);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     .project-item-sub {
       font-size: 11px;
-      color: #64748b;
+      color: var(--ui-64748b);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -251,17 +233,17 @@
       padding: 3px 8px;
       font-size: 11px;
       border-radius: 4px;
-      background: #1e293b;
-      border: 1px solid #334155;
-      color: #94a3b8;
+      background: var(--ui-1e293b);
+      border: 1px solid var(--ui-334155);
+      color: var(--ui-94a3b8);
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       gap: 4px;
     }
     .btn-xs:hover {
-      background: #334155;
-      color: #f1f5f9;
+      background: var(--ui-334155);
+      color: var(--ui-f1f5f9);
     }
     .status-dot {
       width: 8px;
@@ -278,8 +260,8 @@
       gap: 10px;
     }
     .btn {
-      background: #334155;
-      color: #fff;
+      background: var(--ui-334155);
+      color: var(--ui-fff);
       border: none;
       padding: 8px 14px;
       border-radius: 6px;
@@ -291,18 +273,18 @@
       gap: 6px;
       transition: all 0.2s;
     }
-    .btn:hover { background: #475569; }
+    .btn:hover { background: var(--ui-475569); }
     .btn-primary { background: var(--primary); }
     .btn-primary:hover { background: var(--primary-hover); }
     .btn-danger { background: var(--danger); }
-    .btn-danger:hover { background: #dc2626; }
+    .btn-danger:hover { background: var(--ui-dc2626); }
     .btn-success { background: var(--success); }
-    .btn-success:hover { background: #059669; }
+    .btn-success:hover { background: var(--ui-059669); }
     .btn-sm { padding: 4px 10px; font-size: 12px; }
 
     /* Navigation Tabs */
     nav.nav-tabs {
-      background-color: #0f172a;
+      background-color: var(--ui-0f172a);
       border-bottom: 1px solid var(--card-border);
       padding: 0 24px;
       display: flex;
@@ -381,7 +363,7 @@
     .metric-value {
       font-size: 28px;
       font-weight: 700;
-      color: #fff;
+      color: var(--ui-fff);
       margin: 8px 0;
     }
     .metric-desc {
@@ -417,7 +399,7 @@
       margin-top: 10px;
     }
     .action-card {
-      background: #243248;
+      background: var(--ui-243248);
       border: 1px solid var(--card-border);
       padding: 14px;
       border-radius: 8px;
@@ -435,7 +417,7 @@
     .action-card-title {
       font-size: 14px;
       font-weight: 600;
-      color: #fff;
+      color: var(--ui-fff);
       display: flex;
       align-items: center;
       gap: 6px;
@@ -448,7 +430,7 @@
 
     /* Console Drawer */
     .console-box {
-      background: #050914;
+      background: var(--ui-050914);
       border: 1px solid var(--card-border);
       border-radius: 8px;
       padding: 14px;
@@ -456,13 +438,13 @@
       font-size: 12px;
       height: 260px;
       overflow-y: auto;
-      color: #e2e8f0;
+      color: var(--ui-e2e8f0);
       line-height: 1.5;
     }
     .console-line { margin: 2px 0; }
-    .console-line.err { color: #f87171; }
-    .console-line.succ { color: #34d399; }
-    .console-line.info { color: #38bdf8; }
+    .console-line.err { color: var(--ui-f87171); }
+    .console-line.succ { color: var(--ui-34d399); }
+    .console-line.info { color: var(--ui-38bdf8); }
 
     /* Diff Viewer */
     .diff-container {
@@ -486,15 +468,15 @@
       cursor: pointer;
       transition: all 0.15s;
     }
-    .backup-item:hover { background: #283548; }
+    .backup-item:hover { background: var(--ui-283548); }
     .backup-item.active {
-      background: #1e3a5f;
+      background: var(--ui-1e3a5f);
       border-color: var(--primary);
     }
     .backup-item-title {
       font-size: 13px;
       font-weight: 600;
-      color: #fff;
+      color: var(--ui-fff);
       display: flex;
       justify-content: space-between;
     }
@@ -505,7 +487,7 @@
     }
 
     .diff-main {
-      background: #090e1a;
+      background: var(--ui-090e1a);
       border: 1px solid var(--card-border);
       border-radius: 8px;
       display: flex;
@@ -513,7 +495,7 @@
       overflow: hidden;
     }
     .diff-header {
-      background: #131d31;
+      background: var(--ui-131d31);
       padding: 10px 16px;
       border-bottom: 1px solid var(--card-border);
       display: flex;
@@ -557,7 +539,7 @@
       width: 48px;
       padding: 0 8px;
       text-align: right;
-      color: #475569;
+      color: var(--ui-475569);
       user-select: none;
       border-right: 1px solid rgba(255,255,255,0.06);
     }
@@ -565,7 +547,7 @@
       padding: 0 10px;
       flex: 1;
     }
-    .diff-line.same { color: #94a3b8; }
+    .diff-line.same { color: var(--ui-94a3b8); }
     .diff-line.add {
       background: var(--diff-add-bg);
       color: var(--diff-add-text);
@@ -583,11 +565,11 @@
     }
     .search-input {
       flex: 1;
-      background: #0f172a;
+      background: var(--ui-0f172a);
       border: 1px solid var(--card-border);
       padding: 10px 16px;
       border-radius: 6px;
-      color: #fff;
+      color: var(--ui-fff);
       font-size: 14px;
       outline: none;
     }
@@ -599,7 +581,7 @@
       flex-wrap: wrap;
     }
     .pill {
-      background: #1e293b;
+      background: var(--ui-1e293b);
       border: 1px solid var(--card-border);
       padding: 4px 12px;
       border-radius: 14px;
@@ -622,11 +604,11 @@
       font-size: 11px;
       font-weight: 600;
     }
-    .badge-teal { background: rgba(0,163,166,0.2); color: #2dd4bf; }
-    .badge-amber { background: rgba(245,158,11,0.2); color: #fbbf24; }
-    .badge-red { background: rgba(239,68,68,0.2); color: #f87171; }
-    .badge-blue { background: rgba(59,130,246,0.2); color: #60a5fa; }
-    .badge-green { background: rgba(16,185,129,0.2); color: #34d399; }
+    .badge-teal { background: rgba(0,163,166,0.2); color: var(--ui-2dd4bf); }
+    .badge-amber { background: rgba(245,158,11,0.2); color: var(--ui-fbbf24); }
+    .badge-red { background: rgba(239,68,68,0.2); color: var(--ui-f87171); }
+    .badge-blue { background: rgba(59,130,246,0.2); color: var(--ui-60a5fa); }
+    .badge-green { background: rgba(16,185,129,0.2); color: var(--ui-34d399); }
 
     /* Modal */
     .modal-overlay {
@@ -667,7 +649,7 @@
     #cyPoints label {display:grid;margin:0;min-width:0} #tab-cylinder label[hidden] {display:none}
     .execution-table {border-collapse:collapse;width:100%;text-align:left;font-size:13px}
     .execution-table th,.execution-table td {padding:8px;vertical-align:top;border-bottom:1px solid var(--card-border);overflow-wrap:anywhere}
-    .execution-table th {position:sticky;top:0;background:var(--bg-card,#1e293b)}
+    .execution-table th {position:sticky;top:0;background:var(--bg-card,var(--ui-1e293b))}
     .execution-table th:nth-child(1),.execution-table th:nth-child(2),.execution-table td:first-child {white-space:nowrap}
     #executionRows .badge,#executionRows td:nth-child(5) {white-space:nowrap}
     #executionRows td:nth-child(3) {min-width:130px}
@@ -692,8 +674,8 @@
     .audit-filters .search-input {width:auto;min-width:180px;flex:1}
     #auditCoverage {display:flex;flex-wrap:wrap;gap:8px 22px;color:var(--text-muted)}
     #auditLimitList {padding-left:22px;margin:8px 0}
-    #auditLimits summary {cursor:pointer;padding:10px 12px;border:1px solid var(--card-border);border-radius:6px;color:var(--warning,#fbbf24);font-weight:600}
-    #auditStale {padding:12px;border:1px solid var(--warning,#fbbf24);border-radius:8px;color:var(--warning,#fbbf24)}
+    #auditLimits summary {cursor:pointer;padding:10px 12px;border:1px solid var(--card-border);border-radius:6px;color:var(--warning,var(--ui-fbbf24));font-weight:600}
+    #auditStale {padding:12px;border:1px solid var(--warning,var(--ui-fbbf24));border-radius:8px;color:var(--warning,var(--ui-fbbf24))}
     .audit-finding {padding:16px 0;border-bottom:1px solid var(--card-border)}
     .audit-finding h4 {margin:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
     .audit-finding .badge {white-space:nowrap}
@@ -703,19 +685,23 @@
     .audit-source-position {margin-top:6px;color:var(--text-muted);white-space:normal}
     .audit-source-statement {margin:0;min-width:240px;max-width:640px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px}
     .audit-view-switch {display:flex;gap:8px;margin:18px 0}
-    .audit-view-switch [aria-pressed="true"] {background:var(--primary,#06b6d4);color:#fff}
+    .audit-view-switch [aria-pressed="true"] {background:var(--primary,var(--ui-06b6d4));color:var(--ui-fff)}
     .audit-graph-table {overflow:auto;max-height:560px;border:1px solid var(--card-border);border-radius:8px}
     .audit-graph-table .execution-table {margin:0;min-width:660px}
     .audit-graph-table .execution-table td:first-child {white-space:normal}
     .audit-graph-table td {overflow-wrap:anywhere}
     .audit-graph-table tr[data-selected="true"] {background:rgba(6,182,212,.12)}
-    #auditGraphBoundary {border-left:3px solid var(--warning,#fbbf24);padding:8px 12px;background:var(--bg)}
-    #auditGraphLimits summary {cursor:pointer;color:var(--warning,#fbbf24)}
+    #auditGraphBoundary {border-left:3px solid var(--warning,var(--ui-fbbf24));padding:8px 12px;background:var(--bg)}
+    #auditGraphLimits summary {cursor:pointer;color:var(--warning,var(--ui-fbbf24))}
     #auditGraphLimitList {padding-left:22px}
     #auditGraphSelected {margin:20px 0;padding:16px;border:1px solid var(--card-border);border-radius:8px;background:var(--bg)}
     #auditGraphPath {display:flex;flex-wrap:wrap;gap:8px;align-items:center}
     #auditGraphPath .btn {overflow-wrap:anywhere;white-space:normal;text-align:left}
   </style>
+  <link rel="stylesheet" href="/workspace.css">
+  <link rel="stylesheet" href="/workbench.css">
+  <link rel="stylesheet" href="/io-layout.css">
+  <link rel="stylesheet" href="/theme.css">
 </head>
 <body>
 
@@ -782,11 +768,11 @@
     </div>
 
     <div class="header-actions">
-      <button class="btn btn-sm" onclick="fetchStatus(true)" title="立即刷新状态">
+      <button class="btn btn-sm" onclick="fetchStatus(true)" title="只刷新连接状态，不重新读取工程源码">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-        刷新
+        刷新连接状态
       </button>
-      <button class="btn btn-sm" onclick="shutdownServer()" style="background:rgba(239,68,68,0.15); color:#f87171; border:1px solid rgba(239,68,68,0.35);" title="退出后台服务进程">
+      <button class="btn btn-sm" onclick="shutdownServer()" style="background:rgba(239,68,68,0.15); color:var(--ui-f87171); border:1px solid rgba(239,68,68,0.35);" title="退出后台服务进程">
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L12 12m0 0V3m0 9a9 9 0 11-6.364-2.636"></path></svg>
         退出服务
       </button>
@@ -807,14 +793,14 @@
     <button class="tab-btn" onclick="switchTab('io')">
       🔌 I/O 表与引用
     </button>
-    <button class="tab-btn" onclick="switchTab('cylinder')">气缸生成</button>
+    <button class="tab-btn" onclick="switchTab('cylinder')">机构生成</button>
     <button class="tab-btn" onclick="switchTab('audit')">程序体检</button>
     <button class="tab-btn" onclick="switchTab('monitor')">在线监测与参数</button>
     <button class="tab-btn" onclick="switchTab('simulation')">
       🎮 仿真驾驶舱
     </button>
     <button class="tab-btn" onclick="switchTab('tools')">
-      🛠️ MCP 工具字典 (<span id="toolCountNav">82</span>)
+      MCP 工具字典 <span id="toolCountNav" class="nav-count">82</span>
     </button>
     <button class="tab-btn" onclick="switchTab('logs')">
       📜 运行日志
@@ -924,9 +910,15 @@
             <div class="action-card-title">⚙️ 编译 PLC</div>
             <div class="action-card-desc">触发全量或增量一致性编译，返回结构化诊断。</div>
           </div>
-          <div class="action-card" onclick="runAction('build-index', '建立工程两阶段索引')">
+          <div class="action-card">
             <div class="action-card-title">🔄 建立工程索引</div>
-            <div class="action-card-desc">扫描工程树，建立可随工程迁移的轻量索引库。</div>
+            <div class="action-card-desc">按所选范围读取内容，覆盖范围提示不计为失败。</div>
+            <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+              <select id="indexScopeQuick" aria-label="索引范围" onchange="setIndexScope(this.value)">
+                <option value="PLC">PLC</option><option value="HMI">HMI</option><option value="Hardware">硬件</option><option value="All">全部</option>
+              </select>
+              <button class="btn btn-sm btn-primary" onclick="runAction('build-index', '建立工程索引')">建立索引</button>
+            </div>
           </div>
         </div>
       </div>
@@ -946,17 +938,17 @@
     <div id="tab-io" class="tab-content">
       <div class="card" style="margin-bottom:20px;">
         <div class="card-header" style="flex-wrap:wrap;gap:12px;">
-          <span class="card-title">🔌 PLC I/O 表与交叉引用</span>
+          <span class="card-title">PLC I/O 表与交叉引用</span><span id="ioSourceBadge" class="badge badge-teal">尚未读取</span>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button class="btn" onclick="ioRead('source')">读取本地源码</button>
-            <button class="btn" id="ioReadButton" onclick="ioRead()">🔄 重新读取</button>
+            <button class="btn" id="ioSourceButton" onclick="ioRead('source')">加载本地源码快照</button>
+            <button class="btn btn-primary" id="ioReadButton" onclick="ioRead()">从博途重新读取</button>
             <button class="btn" id="ioExportButton" onclick="ioExport()" disabled>📥 导出 Excel</button>
           </div>
         </div>
         <div id="ioTarget" style="word-break:break-all;color:var(--text-muted);margin-bottom:10px;">请选择工程与 PLC。</div>
-        <div id="ioMessage" role="status" aria-live="polite" style="margin-bottom:10px;">点击“重新读取”获取全部变量表及引用信息。只读取工程，不编译或保存。</div>
+        <div id="ioMessage" role="status" aria-live="polite" style="margin-bottom:10px;">点击“从博途重新读取”获取全部变量表及引用信息。只读取工程，不编译或保存。</div>
         <div id="ioSummary" style="color:var(--text-muted);white-space:pre-wrap;margin-bottom:10px;"></div>
-        <details id="ioWarningsBox" hidden style="margin-bottom:12px;color:var(--warning,#fbbf24);"><summary>读取不完整项 / 警告</summary><pre id="ioWarnings" style="white-space:pre-wrap;word-break:break-word;"></pre></details>
+        <details id="ioWarningsBox" hidden style="margin-bottom:12px;color:var(--warning,var(--ui-fbbf24));"><summary>读取不完整项 / 警告</summary><pre id="ioWarnings" style="white-space:pre-wrap;word-break:break-word;"></pre></details>
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
           <select id="ioView" class="search-input" aria-label="点位视图" onchange="ioFilter()"><option value="points">全部 Bool 点位（含数组与映射）</option><option value="raw">原始变量表</option><option value="all">点位和原始变量</option></select>
           <select id="ioGroupFilter" class="search-input" aria-label="工程组" onchange="ioFilter()"><option value="">全部工程组</option></select>
@@ -966,12 +958,12 @@
           <select id="ioTableFilter" class="search-input" style="width:250px;" aria-label="变量表" onchange="ioFilter()"><option value="">全部变量表</option></select>
           <input id="ioSearch" class="search-input" style="flex:1;min-width:200px;" placeholder="搜索变量名、地址、注释、类型…" aria-label="搜索 I/O" oninput="ioSearchChanged()">
         </div>
-        <div style="overflow:auto;max-height:560px;">
-          <table style="width:100%;border-collapse:collapse;font-size:13px;"><thead style="position:sticky;top:0;background:var(--bg-card,#1e293b);"><tr>
+        <div id="ioEmpty" class="empty-guide"><h3>读取工程点位与交叉引用</h3><p>选择实时工程或已保存的本地源码快照开始查看。</p><button class="btn btn-primary" id="ioEmptyLive" onclick="ioRead()">从博途重新读取</button><button class="btn" id="ioEmptyCache" onclick="ioRead('source')">加载本地源码快照</button></div><div id="ioTableWrap" style="overflow:auto;max-height:560px;">
+          <table style="width:100%;border-collapse:collapse;font-size:13px;"><thead style="position:sticky;top:0;background:var(--bg-card,var(--ui-1e293b));"><tr>
             <th style="padding:10px;text-align:left;">变量名</th><th>地址</th><th>类型</th><th>注释</th><th>变量表 / 组 / 单元</th><th>交叉引用</th>
           </tr></thead><tbody id="ioRows"></tbody></table>
         </div>
-        <div style="display:flex;align-items:center;gap:12px;margin-top:12px;"><button class="btn btn-sm" id="ioPrev" onclick="ioPage(-1)" disabled>上一页</button><span id="ioPageLabel">尚未读取</span><button class="btn btn-sm" id="ioNext" onclick="ioPage(1)" disabled>下一页</button></div>
+        <div id="ioPager" style="display:flex;align-items:center;gap:12px;margin-top:12px;" hidden><button class="btn btn-sm" id="ioPrev" onclick="ioPage(-1)" disabled>上一页</button><span id="ioPageLabel">尚未读取</span><button class="btn btn-sm" id="ioNext" onclick="ioPage(1)" disabled>下一页</button></div>
         <p style="color:var(--text-muted);font-size:12px;margin-top:12px;">显示 PLC 已声明变量；不含未分配变量的硬件通道和在线实时值。Excel 导出当前筛选范围的全部分页，并包含引用明细和覆盖说明。</p>
       </div>
       <div class="card" id="ioReconcilePanel" style="margin-bottom:20px;">
@@ -1105,7 +1097,13 @@
       <div class="card" style="margin-bottom: 20px;">
         <div class="card-header">
           <span class="card-title">工程索引概览</span>
-          <button class="btn btn-sm btn-primary" onclick="runAction('build-index', '重新建立索引')">重新建立索引</button>
+          <div style="display:flex;gap:8px;align-items:center">
+            <label for="indexScopeDetail">索引范围</label>
+            <select id="indexScopeDetail" aria-label="索引范围" onchange="setIndexScope(this.value)">
+              <option value="PLC">PLC</option><option value="HMI">HMI</option><option value="Hardware">硬件</option><option value="All">全部</option>
+            </select>
+            <button class="btn btn-sm btn-primary" onclick="runAction('build-index', '重新建立索引')">重新建立索引</button>
+          </div>
         </div>
         <div class="grid-4" id="indexStatsGrid" style="margin-bottom: 0;">
           <div><span class="metric-desc">总对象数:</span> <b id="idxTotal">--</b></div>
@@ -1239,7 +1237,7 @@
     </div>
     <div id="tab-cylinder" class="tab-content">
       <div class="card">
-        <div class="card-header"><span class="card-title">从已有气缸新建</span></div>
+        <div class="card-header"><span class="card-title">从项目样板生成机构</span></div>
         <p id="cyTarget"></p>
         <div><button class="btn" id="cyCached">读取本地工程源码</button> <button class="btn" id="cyLive">从博途重新读取</button></div>
         <p id="cyStatus" role="status" style="color:var(--text-muted);white-space:pre-wrap"></p>
@@ -1254,7 +1252,7 @@
             <label>机构类型 <select id="cyDeviceKind"><option value="cylinder">气缸</option><option value="motor">电机</option><option value="valve">阀门</option><option value="vacuum">真空机构</option><option value="servo">伺服外围使能</option></select></label>
             <p>复用项目内已有的单个直接 FB 调用。非气缸需逐项填写选点用途后缀；仅支持 Bool 映射 I/O，保留样板公共输入。不创建驱动硬件、运动轴或安全程序；请核对设备互锁与复位条件。</p>
             <p>公共输入可以沿用。请核对工作位、原位、模式、互锁和报警下标的含义。</p>
-            <p id="cyOpenNotice" hidden style="color:var(--warning,#fbbf24)"></p>
+            <p id="cyOpenNotice" hidden style="color:var(--warning,var(--ui-fbbf24))"></p>
             <div id="cyRules" style="overflow:auto"></div>
           </details>
           <p id="cyTemplateStatus" role="status" style="color:var(--text-muted);white-space:pre-wrap;margin:12px 0"></p>
@@ -1265,7 +1263,7 @@
             <input id="cyTemplateFile" type="file" accept=".json,application/json" hidden aria-label="导入气缸模板规则">
           </div>
           <div id="cyBinding" hidden>
-            <h3>2. 新气缸与点位</h3>
+            <h3>2. 机构名称与点位</h3>
             <label>机构名称 <input class="search-input" id="cyDisplayName" placeholder="例如 OP275侧面夹紧气缸" maxlength="64" autocomplete="off"></label>
             <label>程序实例名 <input class="search-input" id="cyName" placeholder="例如 Z04，可自行指定" maxlength="64" autocomplete="off"></label>
             <label id="cyAlarmLabel">新数组索引 <input class="search-input" id="cyAlarm" type="number" min="0" step="1"></label>
@@ -1285,7 +1283,7 @@
           </div>
           <div id="cyResult" hidden>
             <h3>3. 核对生成结果</h3>
-            <p id="cyWarnings" style="white-space:pre-wrap;color:var(--warning,#fbbf24)"></p>
+            <p id="cyWarnings" style="white-space:pre-wrap;color:var(--warning,var(--ui-fbbf24))"></p>
             <div id="cyDiff" style="max-height:300px;overflow:auto"></div>
             <pre id="cyCode" style="max-height:340px;overflow:auto;white-space:pre-wrap"></pre>
             <button class="btn btn-primary" id="cyApplyPreview">生成并写入博途</button>
@@ -1392,7 +1390,7 @@
     <div class="modal">
       <div class="modal-header">
         <span>切换当前博途工程</span>
-        <button onclick="closeProjectModal()" style="background:none;border:none;color:#fff;cursor:pointer;">✕</button>
+        <button onclick="closeProjectModal()" style="background:none;border:none;color:var(--ui-fff);cursor:pointer;">✕</button>
       </div>
       <p style="font-size:13px; color:var(--text-muted); margin-bottom:12px;">
         输入工程文件完整绝对路径（.ap16 / .ap17 / .ap20 / .ap21）：
@@ -1406,7 +1404,8 @@
   </div>
 
   <script>
-    let currentStatus = {};
+    var currentStatus = {};
+    let statusRequestSerial = 0, statusRequestPending = false;
     let allTools = [];
     let activeKindFilter = '';
     let currentLogType = 'mcp';
@@ -1415,9 +1414,10 @@
     function switchTab(tabId) {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      event.currentTarget.classList.add('active');
+      document.querySelectorAll('.tab-btn').forEach(b => { if (b.dataset.tab === tabId || (b.getAttribute('onclick') || '').includes("'" + tabId + "'")) b.classList.add('active'); });
       document.getElementById('tab-' + tabId).classList.add('active');
       if (window.showExecutionLog) window.showExecutionLog(tabId);
+      window.dispatchEvent(new CustomEvent('bridge-tab-change', {detail:tabId}));
 
       if (tabId === 'diff') loadBackups();
       if (tabId === 'index') loadIndexSummary();
@@ -1429,11 +1429,35 @@
       if (tabId === 'logs') fetchLogs();
     }
 
+    function portalDiscoveryPresentation(discovery, now = Date.now()) {
+      if (!discovery) return {kind: 'ready', detail: ''}; // Older servers have no discovery metadata.
+      const snapshot = Date.parse(discovery.snapshot_utc || '');
+      const age = now - snapshot;
+      const hasSnapshot = Number.isFinite(snapshot);
+      const recent = hasSnapshot && age >= -5000 && age <= 30000;
+      const last = hasSnapshot ? '上次确认：' + new Date(snapshot).toLocaleTimeString() : '';
+      if (discovery.state === 'failed' || discovery.error) {
+        return {kind: 'failed', detail: [discovery.error || '工程检测失败，尚未确认最新状态。', last].filter(Boolean).join(' · ')};
+      }
+      if (!hasSnapshot) return {kind: 'checking', detail: '首次工程检测在后台进行，稍后自动更新。'};
+      if (!recent) return {kind: 'stale', detail: last + ' · 超过 30 秒未确认，请等待后台检测或手动刷新。'};
+      if (discovery.state === 'pending') return {kind: 'refreshing', detail: '后台更新中，保留最近确认的状态 · ' + last};
+      if (discovery.state === 'ready') return {kind: 'ready', detail: last};
+      return {kind: 'stale', detail: '工程检测状态未知 · ' + last};
+    }
+
     async function fetchStatus(isManual = false) {
+      if (statusRequestPending && !isManual) return;
+      const ticket = ++statusRequestSerial;
+      statusRequestPending = true;
       try {
-        const res = await fetch('/api/status' + (isManual ? '?refresh=true' : ''), {cache: 'no-store'});
+        const res = await fetch('/api/status' + (isManual ? '?refresh=true' : ''), {cache: 'no-store', signal: AbortSignal.timeout(10000)});
+        if (!res.ok) throw new Error('状态读取失败：HTTP ' + res.status);
         const data = await res.json();
+        if (ticket !== statusRequestSerial) return;
         currentStatus = data;
+        window.dispatchEvent(new CustomEvent("bridge-target-change"));
+        window.dispatchEvent(new CustomEvent("bridge-status", {detail:{ok:true}}));
         if (window.ioTargetChanged) window.ioTargetChanged();
         if (window.auditSync) window.auditSync();
         if (window.diffSync) window.diffSync();
@@ -1445,15 +1469,23 @@
         const activePath = data.active_project || data.project_path || '';
         const activeName = data.active_project_name || (activePath ? activePath.split(/[\\/]/).pop() : '未选择工程');
         const isRunning = data.active_project_is_running || false;
+        const discovery = portalDiscoveryPresentation(data.portal_discovery);
+        const discoveryPending = discovery.kind !== 'ready' && discovery.kind !== 'refreshing';
 
         document.getElementById('currentProjectText').textContent = activeName;
         document.getElementById('currentProjectText').title = activePath;
 
         const pBadge = document.getElementById('currentProjectBadge');
         if (pBadge) {
-          if (isRunning) {
+          pBadge.title = discovery.detail;
+          if (discoveryPending) {
+            pBadge.className = 'project-badge-tag badge-offline';
+            pBadge.textContent = discovery.kind === 'failed' ? '检测失败，保留上次结果' : discovery.kind === 'stale' ? '状态待确认' : '正在检测博途…';
+            pBadge.style.display = 'inline-block';
+          } else if (isRunning) {
             pBadge.className = 'project-badge-tag badge-running';
-            pBadge.textContent = data.active_project_pid ? `博途在线 (${data.active_project_pid})` : '博途在线';
+            pBadge.textContent = '博途在线';
+            pBadge.title = ['进程 PID: ' + (data.active_project_pid || '未知'), discovery.detail].filter(Boolean).join(' · ');
             pBadge.style.display = 'inline-block';
           } else {
             pBadge.className = 'project-badge-tag badge-offline';
@@ -1469,21 +1501,28 @@
 
         const dot = document.getElementById('connectionDot');
         const tiaBadge = document.getElementById('tiaStatusBadge');
+        if (tiaBadge) tiaBadge.title = discovery.detail;
         const effectiveVer = data.detected_version || data.tia_portal_version || 'V17';
         document.getElementById('tiaVersionVal').textContent = effectiveVer;
 
-        if (data.tia_processes && data.tia_processes.length > 0) {
+        if (discoveryPending) {
+          dot.classList.remove('online');
+          tiaBadge.textContent = discovery.kind === 'failed' ? '检测失败' : discovery.kind === 'stale' ? '状态待确认' : '检测中';
+          tiaBadge.className = 'badge badge-yellow';
+          document.getElementById('tiaProcessDesc').textContent = discovery.detail;
+        } else if (data.tia_processes && data.tia_processes.length > 0) {
           dot.classList.add('online');
           tiaBadge.textContent = '运行中 (' + data.tia_processes.length + ' 实例)';
           tiaBadge.className = 'badge badge-green';
           let desc = 'PID: ' + data.tia_processes[0].pid + ' (' + data.tia_processes[0].memory_mb + ' MB)';
-          if (data.version_source) desc += ' · ' + data.version_source;
+          if (discovery.kind === 'refreshing') desc += ' · ' + discovery.detail;
+          else if (data.version_source) desc += ' · ' + data.version_source;
           document.getElementById('tiaProcessDesc').textContent = desc;
         } else {
           dot.classList.remove('online');
           tiaBadge.textContent = '未检测到博途';
           tiaBadge.className = 'badge badge-amber';
-          document.getElementById('tiaProcessDesc').textContent = data.version_source || '请先打开 TIA Portal';
+          document.getElementById('tiaProcessDesc').textContent = discovery.kind === 'refreshing' ? discovery.detail : data.version_source || '请先打开 TIA Portal';
         }
 
         // Real-time PLC update
@@ -1560,11 +1599,23 @@
 
         if (isManual) appendConsoleLog('状态已手动刷新。', 'info');
       } catch (err) {
-        console.error(err);
+        if (ticket === statusRequestSerial) {
+          console.error(err);
+          window.dispatchEvent(new CustomEvent("bridge-status", {detail:{ok:false}}));
+        }
+      } finally {
+        if (ticket === statusRequestSerial) statusRequestPending = false;
       }
     }
 
+    function setIndexScope(value) {
+      if (!['PLC', 'HMI', 'Hardware', 'All'].includes(value)) return;
+      ['indexScopeQuick', 'indexScopeDetail'].forEach(id => { document.getElementById(id).value = value; });
+    }
+
     async function runAction(action, label) {
+      const indexScope = action === 'build-index' ? document.getElementById('indexScopeQuick').value : undefined;
+      if (indexScope) label += '（' + ({PLC:'PLC',HMI:'HMI',Hardware:'硬件',All:'全部'})[indexScope] + '）';
       const target = currentStatus && {project_path: currentStatus.active_project || currentStatus.project_path, plc_name: currentStatus.target_plc, target_token: currentStatus.target_token};
       if (action !== 'trust' && (!target || !target.target_token || (action !== 'build-index' && !target.plc_name))) { alert('请先等待工程和 PLC 识别完成，再选择目标。'); return; }
       if (!confirm(`确定要执行【${label}】操作吗？${action === 'trust' ? '' : '\n工程：' + target.project_path + '\nPLC：' + target.plc_name}`)) return;
@@ -1573,7 +1624,7 @@
         const res = await fetch('/api/action/run', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(Object.assign({action: action}, target || {}))
+          body: JSON.stringify(Object.assign({action: action, index_scope: indexScope}, target || {}))
         });
         const data = await res.json();
         if (!data.success) {
@@ -1606,46 +1657,12 @@
       }
     }
 
-    let searchTimeout = null;
-    function onSearchIndex() {
-      clearTimeout(searchTimeout);
-      searchTimeout = setTimeout(async () => {
-        const query = document.getElementById('indexSearchInput').value.trim();
-        const tbody = document.getElementById('indexTableBody');
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);">正在检索工程索引...</td></tr>';
-
-        try {
-          const res = await fetch(`/api/index/search?q=${encodeURIComponent(query)}&kind=${encodeURIComponent(activeKindFilter)}`);
-          const items = await res.json();
-
-          if (!items || items.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);">未找到匹配的工程资产。</td></tr>';
-            return;
-          }
-
-          tbody.innerHTML = items.map(it => `
-            <tr>
-              <td><span class="badge badge-teal">${escapeHtml(it.kind || '')}</span></td>
-              <td style="font-weight:600;color:#fff;">${escapeHtml(it.name || '')}</td>
-              <td style="color:var(--text-muted);">${escapeHtml(it.group || '')}</td>
-              <td>${escapeHtml(it.language || '--')}</td>
-              <td>${escapeHtml(it.number || '--')}</td>
-              <td><span class="badge ${it.state === 'ready' ? 'badge-green' : 'badge-amber'}">${escapeHtml(it.state || 'catalog_only')}</span></td>
-            </tr>
-          `).join('');
-        } catch (err) {
-          tbody.innerHTML = `<tr><td colspan="6" style="color:var(--danger);text-align:center;">搜索失败: ${err.message}</td></tr>`;
-        }
-      }, 250);
-    }
-
+    function onSearchIndex() { if (window.IndexBrowser) window.IndexBrowser.search(activeKindFilter); }
     function setKindFilter(kind) {
-      activeKindFilter = kind;
-      document.querySelectorAll('#tab-index .pill').forEach(p => p.classList.remove('active'));
-      event.currentTarget.classList.add('active');
+      activeKindFilter = {Block:'plc.block',Type:'plc.type',TagTable:'plc.tags',HMIScreen:'hmi.screens'}[kind] || kind;
+      document.querySelectorAll('#tab-index .pill').forEach(p => p.classList.toggle('active', (p.getAttribute('onclick') || '').includes("setKindFilter('" + kind + "')")));
       onSearchIndex();
     }
-
     async function loadSimulation() {
       const container = document.getElementById('simInstancesList');
       container.innerHTML = '<div style="color:var(--text-muted);font-size:13px;">正在检测 PLCSIM Advanced 实例...</div>';
@@ -1663,14 +1680,14 @@
         }
 
         if (!s.instances || s.instances.length === 0) {
-          container.innerHTML = '<div style="padding:12px;background:#0f172a;border-radius:6px;font-size:13px;color:var(--text-muted);">当前无正在运行的受管 PLCSIM Advanced 实例。可调用 tia_simulation_create 创建。</div>';
+          container.innerHTML = '<div style="padding:12px;background:var(--ui-0f172a);border-radius:6px;font-size:13px;color:var(--text-muted);">当前无正在运行的受管 PLCSIM Advanced 实例。可调用 tia_simulation_create 创建。</div>';
           return;
         }
 
         container.innerHTML = s.instances.map(inst => `
-          <div style="background:#0f172a;border:1px solid var(--card-border);padding:14px;border-radius:8px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">
+          <div style="background:var(--ui-0f172a);border:1px solid var(--card-border);padding:14px;border-radius:8px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">
             <div>
-              <div style="font-weight:600;font-size:15px;color:#fff;margin-bottom:4px;">${escapeHtml(inst.instance_name)} (ID: ${inst.instance_id})</div>
+              <div style="font-weight:600;font-size:15px;color:var(--ui-fff);margin-bottom:4px;">${escapeHtml(inst.instance_name)} (ID: ${inst.instance_id})</div>
               <div style="font-size:12px;color:var(--text-muted);">
                 通信: ${escapeHtml(inst.communication)} | IP: ${escapeHtml(inst.ip_addresses || '未分配')} | 授权: ${escapeHtml(inst.license_status)}
               </div>
@@ -1681,7 +1698,7 @@
           </div>
         `).join('');
       } catch (err) {
-        container.innerHTML = '<div style="color:var(--danger);font-size:13px;">获取仿真状态失败: ' + err.message + '</div>';
+        container.textContent = '获取仿真状态失败: ' + err.message;
       }
     }
 
@@ -1703,7 +1720,7 @@
           <td style="font-family:var(--font-mono);font-weight:600;color:var(--primary-hover);">${escapeHtml(t.name)}</td>
           <td><span class="badge badge-teal">${escapeHtml(t.category)}</span></td>
           <td><span class="badge ${t.safe ? 'badge-green' : 'badge-amber'}">${t.safe ? '只读安全' : '需确认'}</span></td>
-          <td style="color:#cbd5e1;font-size:12px;">${escapeHtml(t.description)}</td>
+          <td style="color:var(--ui-cbd5e1);font-size:12px;">${escapeHtml(t.description)}</td>
         </tr>
       `).join('');
     }
@@ -1727,7 +1744,7 @@
     function showLogTab(type) {
       currentLogType = type;
       document.querySelectorAll('#tab-logs .pill').forEach(p => p.classList.remove('active'));
-      event.currentTarget.classList.add('active');
+      document.querySelectorAll('.tab-btn').forEach(b => { if (b.dataset.tab === tabId || (b.getAttribute('onclick') || '').includes("'" + tabId + "'")) b.classList.add('active'); });
       renderActiveLog();
     }
 
@@ -1819,7 +1836,7 @@
                   </div>
                 </div>
                 <div class="project-item-right">
-                  ${isActive ? '<span class="badge badge-teal" style="font-size:10px;">✓ 当前使用</span>' : '<button class="btn btn-xs" style="color:#38bdf8;">切换</button>'}
+                  ${isActive ? '<span class="badge badge-teal" style="font-size:10px;">✓ 当前使用</span>' : '<button class="btn btn-xs" style="color:var(--ui-38bdf8);">切换</button>'}
                 </div>
               </div>
             `;
@@ -1837,7 +1854,7 @@
             return `
               <div class="project-item ${isActive ? 'active' : ''}" data-project-path="${safePath}" onclick="selectProject(this.dataset.projectPath)">
                 <div class="project-item-left">
-                  <span style="font-size:14px;color:#94a3b8;">📁</span>
+                  <span style="font-size:14px;color:var(--ui-94a3b8);">📁</span>
                   <div style="min-width:0;">
                     <div class="project-item-title">${escapeHtml(p.name)}</div>
                     <div class="project-item-sub">${escapeHtml(p.path)}</div>
@@ -1902,7 +1919,7 @@
 
     // Auto poll status every 3 seconds
     fetchStatus();
-    setInterval(fetchStatus, 3000);
+    setInterval(() => { if (!document.hidden) fetchStatus(); }, 3000);
 
     async function refreshPlcs(force = false) {
       const btn = document.getElementById('refreshPlcBtn');
@@ -1944,13 +1961,13 @@
         await fetch('/api/shutdown', { method: 'POST' });
       } catch (e) { }
       document.body.innerHTML = `
-        <div style="height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0b1120;color:#94a3b8;font-family:system-ui,-apple-system,sans-serif;">
+        <div style="height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--ui-0b1120);color:var(--ui-94a3b8);font-family:system-ui,-apple-system,sans-serif;">
           <div style="width:64px;height:64px;background:rgba(239,68,68,0.1);border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:20px;border:1px solid rgba(239,68,68,0.3);">
-            <svg width="32" height="32" fill="none" stroke="#f87171" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg>
+            <svg width="32" height="32" fill="none" stroke="var(--ui-f87171)" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"></path></svg>
           </div>
-          <h2 style="color:#f1f5f9;margin:0 0 10px 0;font-size:22px;">后台服务已安全退出</h2>
-          <p style="margin:0 0 24px 0;font-size:14px;color:#64748b;">您可以关闭此浏览器标签页。需要使用时直接双击桌面图标即可再次启动。</p>
-          <button onclick="window.close()" style="background:#1e293b;color:#cbd5e1;border:1px solid #334155;padding:8px 20px;border-radius:6px;cursor:pointer;font-size:13px;">关闭此页面</button>
+          <h2 style="color:var(--ui-f1f5f9);margin:0 0 10px 0;font-size:22px;">后台服务已安全退出</h2>
+          <p style="margin:0 0 24px 0;font-size:14px;color:var(--ui-64748b);">您可以关闭此浏览器标签页。需要使用时直接双击桌面图标即可再次启动。</p>
+          <button onclick="window.close()" style="background:var(--ui-1e293b);color:var(--ui-cbd5e1);border:1px solid var(--ui-334155);padding:8px 20px;border-radius:6px;cursor:pointer;font-size:13px;">关闭此页面</button>
         </div>
       `;
     }
@@ -1984,15 +2001,24 @@
     });
     document.addEventListener('visibilitychange', () => { if (!document.hidden) browserHeartbeat(); });
   </script>
+  <script src="/workspace.js"></script>
+  <script src="/workbench-ui.js"></script>
+  <script src="/project-compare.js"></script>
+  <script src="/logic-patch.js"></script>
+  <script src="/simulation-download.js"></script>
+  <script src="/block-readable.js"></script>
+  <script src="/trace-view.js"></script>
   <script src="/semantic-diff.js"></script>
   <script src="/source-review.js"></script>
   <script src="/source-write.js"></script>
   <script src="/io.js"></script>
+  <script src="/io-layout.js"></script>
   <script src="/io-reconcile.js"></script>
   <script src="/io-tag-review.js"></script>
   <script src="/online-monitor.js"></script>
   <script src="/graph-monitor.js"></script>
   <script src="/hmi-companion.js"></script>
+  <script src="/hmi-editor.js"></script>
   <script src="/peripheral-simulation.js"></script>
   <script src="/execution.js"></script>
   <script src="/cylinder-model.js"></script>
@@ -2001,5 +2027,8 @@
   <script src="/cylinder-batch.js"></script>
   <script src="/cylinder-apply.js"></script>
   <script src="/audit.js"></script>
+  <script src="/workspace-forms.js"></script>
+  <script src="/navigation-ui.js"></script>
+  <script src="/theme.js"></script>
 </body>
 </html>

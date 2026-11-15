@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 function playwright(){for(const p of ['playwright',process.env.PLAYWRIGHT_MODULE,path.join(process.env.USERPROFILE,'.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright')].filter(Boolean)){try{return require(p);}catch(e){if(e.code!=='MODULE_NOT_FOUND')throw e;}}throw Error('Playwright required');}
-const root=path.join(__dirname,'..'),html=fs.readFileSync(path.join(root,'web/index.html'),'utf8').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,''),script=fs.readFileSync(path.join(root,'web/online-monitor.js'),'utf8');
+const root=path.join(__dirname,'..'),html=fs.readFileSync(path.join(root,'web/index.html'),'utf8').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'').replace(/<link\b[^>]*href="\/(?:workspace|workbench|theme|io-layout)\.css"[^>]*>/gi,''),script=fs.readFileSync(path.join(root,'web/online-monitor.js'),'utf8');
 (async()=>{const browser=await playwright().chromium.launch({channel:'msedge',headless:true});let checks=0;
  try{const context=await browser.newContext(),page=await context.newPage(),calls=[],errors=[];
   const sample={complete:true,values:{'<img>':{value:42,quality:'good',timestamp_utc:'2026-11-08T00:00:00Z',address:'DB10.DBW0'},Bad:{value:null,quality:'bad',error:'No access'}}};

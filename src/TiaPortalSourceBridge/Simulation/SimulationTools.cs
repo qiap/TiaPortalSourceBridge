@@ -34,6 +34,8 @@ namespace TiaPortalSourceBridge.Simulation
         }
         private void Save(string path, object value)
         { Directory.CreateDirectory(Path.GetDirectoryName(path)); File.WriteAllText(path, json.Serialize(value), new UTF8Encoding(false)); }
+        internal void RecordDownload(string id,Dictionary<string,object> report)
+        {string path=Path.Combine(root,"simulation-downloads",id+".json");Directory.CreateDirectory(Path.GetDirectoryName(path));report["receipt_path"]=path;SaveRun(path,report);}
         internal object Detail(object instance)
         { return Map("instance_name", Api.Get(instance, "Name"), "instance_id", Api.Get(instance, "ID"), "state", EnumText(Api.Get(instance, "OperatingState")), "communication", EnumText(Api.Get(instance, "CommunicationInterface")), "ip_addresses", Api.Get(instance, "ControllerIP"), "license_status", EnumText(Api.Get(instance, "LicenseStatus"))); }
         internal object Owned(Dictionary<string, object> args)
@@ -55,11 +57,13 @@ namespace TiaPortalSourceBridge.Simulation
         {
             try
             {
-                return Map("available", Convert.ToBoolean(Api.Get(null, "IsRuntimeManagerAvailable")), "api_path", Api.ApiPath,
+                bool ready=Convert.ToBoolean(Api.Get(null,"IsRuntimeManagerAvailable"));
+                return Map("available", ready,"runtime_available",ready,"state",ready?"ready":"runtime_not_ready", "api_path", Api.ApiPath,
                     "instances", Api.Instances().Select(info => Detail(Api.Open(Convert.ToString(info.GetType().GetField("Name").GetValue(info))))).ToArray(),
-                    "backend", "PLCSIM Advanced local API", "ordinary_plcsim_automatic_control", false);
+                    "backend", "PLCSIM Advanced local API", "api_version",Api is AdvancedRuntime?((AdvancedRuntime)Api).ApiVersion:"custom",
+                    "api_available",true,"ordinary_plcsim_automatic_control", false);
             }
-            catch (Exception ex) { return Map("available", false, "error", ex.GetBaseException().Message, "ordinary_plcsim_automatic_control", false); }
+            catch (Exception ex) { return Map("available", false, "api_available",runtime!=null,"api_path",runtime==null?"":runtime.ApiPath,"error", ex.ToString(), "ordinary_plcsim_automatic_control", false); }
         }
         internal object Start(Dictionary<string, object> args)
         {

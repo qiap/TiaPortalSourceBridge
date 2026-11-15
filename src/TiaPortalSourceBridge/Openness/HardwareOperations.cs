@@ -33,7 +33,7 @@ namespace TiaPortalSourceBridge.Openness
             index.Clear(); errors.Clear(); seen.Clear(); reverse.Clear();
             Add("/project", session.Project);
             Devices(Api.Get(session.Project, "Devices", false), "/devices");
-            object ungrouped = Api.Get(session.Project, "UngroupedDevices", false);
+            object ungrouped = Api.Get(session.Project, "UngroupedDevicesGroup", false) ?? Api.Get(session.Project, "UngroupedDevices", false);
             Devices(Api.Get(ungrouped, "Devices", false), "/ungrouped/devices");
             Groups(Api.Get(session.Project, "DeviceGroups", false), "/groups");
             Composition(Api.Get(session.Project, "Subnets", false), "/subnets", false);

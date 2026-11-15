@@ -40,6 +40,17 @@ namespace TiaPortalSourceBridge.Mcp
             if (!new[] { "start", "status", "stop" }.Contains(action)) throw new ArgumentException("Unsupported peripheral action");
             return CallTool("tia_simulation_peripheral_" + action, arguments);
         }
+        internal Dictionary<string, object> DashboardWorkbenchCall(string operation, Dictionary<string, object> arguments)
+        {
+            switch(operation) {
+                case "block-read": return CallTool("tia_read_block",arguments);
+                case "compare": return CallTool("tia_compare_projects",arguments);
+                case "logic-preview": case "logic-status": return CallTool("tia_read_logic_patch_plan",arguments);
+                case "logic-apply": return CallTool("tia_write_logic_patch",arguments);
+                case "download-preflight": case "download-apply": return CallTool("tia_simulation_download",arguments);
+                default: throw new ArgumentException("看板工作区不支持此操作。");
+            }
+        }
         internal Dictionary<string, object> DashboardHmiCompanionCall(bool apply, Dictionary<string, object> arguments)
         {return CallTool(apply?"tia_write_hmi_companion":"tia_read_hmi_companion_plan",arguments);}
         private string BackendRoot()

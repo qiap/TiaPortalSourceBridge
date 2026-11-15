@@ -1,7 +1,7 @@
 // Uses an isolated browser with mocked read-only services; never connects to TIA.
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 function playwright(){for(const location of ['playwright',process.env.PLAYWRIGHT_MODULE,process.env.USERPROFILE&&path.join(process.env.USERPROFILE,'.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright')].filter(Boolean)){try{return require(location);}catch(error){if(error.code!=='MODULE_NOT_FOUND')throw error;}}throw Error('Install Playwright or set PLAYWRIGHT_MODULE.');}
-const root=path.join(__dirname,'..'),html=fs.readFileSync(path.join(root,'web/index.html'),'utf8').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'');
+const root=path.join(__dirname,'..'),html=fs.readFileSync(path.join(root,'web/index.html'),'utf8').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'').replace(/<link\b[^>]*href="\/(?:workspace|workbench|theme|io-layout)\.css"[^>]*>/gi,'');
 const script=fs.readFileSync(path.join(root,'web/audit.js'),'utf8');
 const target={project_path:'E:\\工程 A\\Fixture.ap17',plc_name:'Station/CPU',target_token:'test-token'};
 const makeReport=()=>({schema:1,id:'report',...target,snapshot_started:'2026-11-08T01:00:00Z',snapshot_completed:'2026-11-08T01:01:00Z',generated_at:'2026-11-08T01:02:00Z',coverage:{programs_total:2,programs_read:1,tag_tables_total:4,tag_tables_read:3,blocks_total:10,blocks_read:9,blocks_parsed:8,native_tags:100,addresses_checked:80,templates:1,template_calls_checked:3,supported_write_sites:7,unsupported_blocks:1,source_mode:'local_cache',source_note:'本地缓存原始读取范围：2026-11-06T01:00:00Z 至 2026-11-07T02:00:00Z',truncated:false,limitations:['SCL 控制流未覆盖']},warnings:['一个块读取失败'],findings:[

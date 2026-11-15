@@ -28,7 +28,7 @@ namespace TiaPortalSourceBridge.Web
         private object SourceWritePreview(ReviewedSourcePlan plan)
         {
             bool supported=plan.patches.Count>0&&plan.patches.Count<=50&&plan.patches.All(p=>p.kind=="plc.block"&&p.diff.status=="structural");
-            return new{plan.id,plan.purpose,plan.note,plan.unmatched,fingerprint=XmlBatch.Hash(CylinderWritePipeline.Json().Serialize(plan)),can_apply=supported,
+            return new{plan.id,state="preview",plan.purpose,plan.note,plan.unmatched,fingerprint=XmlBatch.Hash(CylinderWritePipeline.Json().Serialize(plan)),can_apply=supported,
                 limitation=supported?"将备份、写入、编译并完整回读所选程序块，全部通过后保存整个离线工程。不会下载到 PLC。":"直接写回仅支持 1–50 个普通 PLC 程序块；变量表、UDT 或未识别对象请单独处理。",
                 patches=plan.patches.Select(p=>new{p.object_name,p.group,p.kind,p.diff}).ToArray()};
         }
@@ -60,6 +60,7 @@ namespace TiaPortalSourceBridge.Web
                     if(action=="status"){
                         var plan=LoadSourceWritePlan(Text(map,"id"),project,plc);string file=SourceWriteFile(plan.id,".json");
                         if(File.Exists(file)){if(new FileInfo(file).Length>32*1024*1024)throw new InvalidOperationException("执行记录过大。");SendJson(response,200,json.DeserializeObject(File.ReadAllText(file)));return true;}
+                        if(!File.Exists(SourceWriteFile(plan.id,".submitted"))){SendJson(response,200,SourceWritePreview(plan));return true;}
                         var task=ActionRunner.FindTask(plan.id);SendJson(response,200,new{id=plan.id,state=task==null?"unknown":task.status,error=task==null?"未取得最终结果，请人工核对工程和批次备份，禁止重复提交。":task.message});return true;
                     }
                     if(action=="text-export"||action=="text-preview"||action=="parameter-preview"){

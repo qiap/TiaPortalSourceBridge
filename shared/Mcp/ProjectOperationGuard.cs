@@ -162,13 +162,14 @@ namespace TiaPortalSourceBridge.Mcp
         internal static bool IsMutation(string name, Dictionary<string, object> args)
         {
             object dry;
+            if(name=="tia_simulation_download"&&(!args.TryGetValue("dry_run",out dry)||Equals(dry,true)))return false;
             if (new[] { "tia_apply_hardware_configuration", "tia_write_hmi_configuration", "tia_update_graph" }.Contains(name)
                 && args.TryGetValue("dry_run", out dry) && Equals(dry, true)) return false;
             // Compile may update instance DBs. Unknown project operations fail closed.
             return !(name.StartsWith("tia_read_", StringComparison.Ordinal) || name.StartsWith("tia_list_", StringComparison.Ordinal) ||
                 name.StartsWith("tia_query_", StringComparison.Ordinal) || name.StartsWith("tia_get_", StringComparison.Ordinal) ||
                 name.StartsWith("tia_search_", StringComparison.Ordinal) || name.StartsWith("tia_generate_", StringComparison.Ordinal) ||
-                new[] { "tia_connect", "tia_disconnect", "tia_disconnect_all", "tia_connection_status", "tia_build_project_index", "tia_patch_graph" }.Contains(name));
+                new[] { "tia_connect", "tia_disconnect", "tia_disconnect_all", "tia_connection_status", "tia_build_project_index", "tia_patch_graph", "tia_compare_projects" }.Contains(name));
         }
     }
 }

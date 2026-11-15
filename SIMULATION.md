@@ -8,7 +8,17 @@
 
 新增 PLCSIM Advanced 官方 API 通道，可自动启动本机仿真 CPU、显示控制面板、通过 Openness 装载、切到 RUN、按符号读取优化 DB，并运行自动复位功能测试。
 
-普通 S7-PLCSIM 的现有 S7ONLINE 监视接口继续保留；它不等于 Advanced 自动控制接口。本轮在本机 Advanced V5.0 API 上开发；API V8 合同变化，当前明确不自动加载 V8。
+普通 S7-PLCSIM 的现有 S7ONLINE 监视接口继续保留；它不等于 Advanced 自动控制接口。主引擎已增加 Advanced V8.0 适配，同时保留旧版 API 路线。API 优先匹配本机 Runtime 的产品主版本，不再优先选择遗留的 V5 DLL；未知的新主版本不会自动加载。
+
+## Advanced V8.0 适配（2026-11-10）
+
+- 明确调用 `RegisterInstance(ECPUType, string)`，避免 V8 的订货号重载误收 CPU 名称。
+- V8 的实例 `CommunicationInterface` 为只读，改用管理器 `NetworkMode` 选择 Softbus。已有其他注册实例且模式不是 Softbus 时拒绝修改全局模式；不会停止或接管已有实例。
+- 保留受管实例名称、ID、工程路径核验、Softbus 下载限制、符号读取、测试输入白名单及外设反馈测试。
+- 状态查询显示 API 路径、版本和 `api_available`，区分接口已安装与 Runtime 已就绪。查询不会启动管理器；明确启动实例时才按需启动管理器。原生初始化异常立即返回，不循环重试。
+- 已通过本机 V5/V8 DLL 的接口签名核验、反射调用替身测试和外设模型回归。实际 V8 启动检查遇到本机西门子 `Siemens.Simatic.Simulation.Runtime.Manager.exe` 崩溃，Windows 事件记录异常 `0xC0000005`；尚未创建测试 CPU，也没有下载 PLC 程序。因此尚未完成本机 V8 的启动、下载、RUN、实际变量读写端到端验收。此错误原因尚未查明，不能据此判断为许可证问题。
+
+离线检查：`tests/Test-AdvancedRuntime.ps1`。增加 `-ContractDll <DLL完整路径>` 只检查已安装 SDK 的签名，不运行仿真。增加 `-Live` 会创建独立空白测试实例、尝试 RUN/STOP 并清理该实例；不会连接或下载工程，也不代表业务程序功能测试通过。实测日志位于本次工作目录 `.work/plcsim-v8/`。
 
 ## 一次执行自动复位测试
 
@@ -50,7 +60,7 @@
 
 ## 验证边界
 
-`tests/Test-Simulation.ps1` 用替身检查身份隔离、未知实例拒绝、非 Softbus 拒绝、重复地址拒绝、签名和输入白名单、状态操作及启动不自动重放。
+`tests/Test-AdvancedRuntime.ps1` 检查 API 选择、V8 重载、全局通信模式保护和符号读写分派；`tests/Test-Peripheral.ps1` 用替身检查受管外设反馈、运行状态、目标隔离、失败停止及并发保护。
 
 本机实际启动和测试记录见 `tests/live-results/simulation-2.8/` 与 `VALIDATION_2.8.md`。不能仅根据模拟器启动成功就把程序装载和功能测试标记为通过。
 
@@ -62,3 +72,45 @@ Openness 白名单绑定工具 EXE 的路径、修改时间及文件哈希。更
 
 - [PLCSIM Advanced V5 功能手册](https://cache.industry.siemens.com/dl/files/110/109813110/att_1119149/v1/s7-plcsim_advanced_function_manual_en-US_en-US.pdf)
 - [Openness 下载 API](https://docs.tia.siemens.cloud/r/en-us/v20/tia-portal-openness-api-for-automation-of-engineering-workflows/tia-portal-openness-api/functions-for-accessing-the-data-of-a-plc-device/functions-for-downloading-data-to-plc-device/downloading-to-plc-devices)
+## 条件触发剧本（V17，4.13 起）
+
+先用 `tia_simulation_download` 默认预检查看 `blockers`；预检不编译、切在线/离线或下载。实际下载需单独传 `dry_run:false, confirm:true`，失败时按诊断和持久凭证核对，不直接重试。下载后由调用方明确把受管实例设为 RUN，再调用 `tia_simulation_peripheral_start`。
+
+下例为剧本形状示例，变量名与步号必须替换为所测工程的实际声明；并非已经验证的 OP275 配置。通过 MCP 的 `configuration_json` 传入序列化 JSON，或粘贴到 Web 外设规则页配置框：
+
+```json
+{
+  "duration_ms": 20000,
+  "interval_ms": 20,
+  "max_lateness_ms": 500,
+  "watch": [{"tag": "DB_Test.AutoStep", "type": "dint"}],
+  "rules": [],
+  "steps": [
+    {
+      "name": "首次检测返回 NG",
+      "timeout_ms": 5000,
+      "delay_ms": 200,
+      "wait_until": [{"tag": "DB_Test.AutoStep", "type": "dint", "equals": 15}],
+      "writes": [{"tag": "DB_Test.FirstNG", "value": true}]
+    },
+    {
+      "name": "重测返回 NG",
+      "timeout_ms": 5000,
+      "wait_until": [{"tag": "DB_Test.AutoStep", "type": "dint", "equals": 25}],
+      "writes": [{"tag": "DB_Test.SecondNG", "value": true}]
+    },
+    {
+      "name": "确认停站",
+      "timeout_ms": 5000,
+      "wait_until": [{"tag": "DB_Test.AutoStep", "type": "dint", "equals": 99}],
+      "checks": [{"tag": "DB_Test.Stopped", "type": "bool", "equals": true}]
+    }
+  ]
+}
+```
+
+条件是等值且全部满足，不执行字符串表达式。首次满足后开始延时，不要求条件一直为真；若动作前必须再次核对条件，在 `checks` 中重复列出。`checks` 先于同一步的 `writes`；要等写入后反馈，另起下一步。时间数值为整数毫秒，Bool 使用 JSON 布尔值；数值条件不接受数字字符串。未知配置字段会拒绝，避免把拼错的条件静默忽略。
+
+启动返回 `id`；向 `tia_simulation_peripheral_status` 传原工程、实例和 `run_id`。结果含步骤进度、每次变量变化、写入前意图、成功写入、失败原因和逐变量现场读取。默认最近 500 条；从 `event_offset:0,event_limit:200` 开始，按 `next_event_offset` 继续到 null。Web 的导出完整记录包含结束快照。未完成任务重启后标为 unknown，不自动补写。
+
+时序边界：20ms 只是最小请求采样间隔；SDK 阻塞和操作系统调度可能导致漏采。短脉冲须在 PLC 锁存/计数后观察。超出 `max_lateness_ms` 时停止后续动作，不补写过期刺激。结束快照为故障后逐点读取，含每点时间和错误，不是原子故障瞬间截图。所有步骤完成后仍运行既定外设规则和监视到总时长结束；需要提前终止可调用原有 stop。

@@ -59,6 +59,10 @@ namespace TiaPortalSourceBridge.Openness
         }
         private string Export(object item)
         {
+            return cacheReads ? readCache.Get(item, () => ExportFresh(item)) : ExportFresh(item);
+        }
+        private string ExportFresh(object item)
+        {
             string file = Path.Combine(Path.GetTempPath(), "tia-hmi-" + Guid.NewGuid().ToString("N") + ".xml");
             try { using (OperationMetrics.Measure("export")) { Api.Invoke(item, "Export", new FileInfo(file), Api.EnumValue("Siemens.Engineering.ExportOptions", "WithDefaults")); return File.ReadAllText(file); } }
             finally { if (File.Exists(file)) File.Delete(file); }
@@ -153,12 +157,10 @@ namespace TiaPortalSourceBridge.Openness
         }
         internal static bool SameObjectXml(string left, string right)
         {
-            // Strict object XML comparison deliberately keeps whitespace and IDs: false negatives are safe.
-            return string.Equals(ExtractRootOuterXml(left), ExtractRootOuterXml(right), StringComparison.Ordinal);
+            return HmiXmlIdentity.Equal(left, right);
         }
-        private Dictionary<string, object> WriteCore(string objectsJson, string backupRoot, bool skipUnchanged = true)
+        private Dictionary<string, object> WriteCore(HmiDocument[] objects, string backupRoot, bool skipUnchanged = true)
         {
-            HmiDocument[] objects = ParseDocuments(objectsJson, Api.LoadedPortalVersion);
             string[] order = { "connections", "cycles", "tag_tables", "text_lists", "graphic_lists", "scripts", "screen_templates", "popup_screens", "slidein_screens", "screens" };
             var results = new List<object>(); int success = 0, failures = 0; bool stopped = false;
             int unchanged = 0;
@@ -185,9 +187,7 @@ namespace TiaPortalSourceBridge.Openness
                         if (!string.IsNullOrEmpty(entry.group_path) && !string.Equals(matches[0].Item1, entry.group_path, StringComparison.OrdinalIgnoreCase)) throw new InvalidOperationException("目标对象已存在于其他组。");
                         entry.group_path = matches[0].Item1;
                         string original = Export(matches[0].Item2);
-                        if (skipUnchanged && (entry.RootOuterXml != null
-                            ? string.Equals(ExtractRootOuterXml(original), entry.RootOuterXml, StringComparison.Ordinal)
-                            : SameObjectXml(original, entry.xml)))
+                        if (skipUnchanged && SameObjectXml(original, entry.xml))
                         {
                             unchanged++; success++;
                             results.Add(new { name = entry.name, kind = entry.kind, ok = true, skipped = false, unchanged = true, backup = "", error = "" });
@@ -195,12 +195,13 @@ namespace TiaPortalSourceBridge.Openness
                         }
                         backup = BackupRecord.Write(backupRoot, entry.name, original, session.GetProjectPath(), hmi.DisplayName, entry.group_path, entry.kind, entry.name);
                     }
+                    readCache.Clear(); // Never reuse pre-import exports for readback.
                     mutationStarted = true;
                     object folder = Folder(spec, entry.group_path, true, folders); if (folder == null) throw new InvalidOperationException("当前 HMI 不提供该对象类型：" + entry.kind);
                     string path = Path.Combine(Path.GetTempPath(), "tia-hmi-import-" + Guid.NewGuid().ToString("N") + ".xml");
                     try { using (OperationMetrics.Measure("import")) { File.WriteAllText(path, entry.xml); Api.Invoke(Api.Get(folder, spec[3], true), "Import", new FileInfo(path), Api.EnumValue("Siemens.Engineering.ImportOptions", matches.Length == 0 ? "None" : "Override")); } }
                     finally { if (File.Exists(path)) File.Delete(path); }
-                    VerifyImported(entry);
+                    using (OperationMetrics.Measure("hmi_readback")) VerifyImported(entry);
                     success++; results.Add(new { name = entry.name, kind = entry.kind, ok = true, skipped = false, backup = backup, verification = "requested_fields_verified", error = "" });
                 }
                 catch (Exception ex) { failures++; stopped = true; results.Add(new { name = entry.name, kind = entry.kind, ok = false, skipped = false, backup = backup, may_have_changed = mutationStarted, stage = mutationStarted ? "import_or_readback" : "before_import", error = ex.ToString(), verification_differences = ex is HmiVerificationException ? ((HmiVerificationException)ex).Differences : new object[0] }); }

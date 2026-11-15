@@ -6,7 +6,7 @@
   const message=text=>el('monitorStatus').textContent=text;
   function sync(){
     const t=target();el('monitorTarget').textContent=[t.project_path,t.plc_name].join(' · ');
-    if(scope!==key(t)){scope=key(t);generation++;clearTimeout(timer);archive=null;el('monitorValues').replaceChildren();el('monitorWaveforms').replaceChildren();el('monitorArchive').textContent='';if(connection)message('工程已切换。请先断开原监控连接，再配置当前目标。');}
+    if(scope!==key(t)){scope=key(t);generation++;clearTimeout(timer);archive=null;el('monitorValues').replaceChildren();el('monitorWaveforms').replaceChildren();window.BridgeTrace?.reset();el('monitorArchive').textContent='';if(connection)message('工程已切换。请先断开原监控连接，再配置当前目标。');}
     for(const id of ['monitorIp','monitorRack','monitorSlot','monitorTransport','monitorMode','monitorTags'])el(id).disabled=busy||!!connection;
     el('monitorConnect').disabled=busy||!!connection||!t.target_token;
     el('monitorDisconnect').disabled=busy||!connection;
@@ -27,7 +27,7 @@
     // Keep a handle even if the selected project changed while connecting, so it can be closed.
     connection={id:result.session_id,target:selected};recording=false;if(valid())message('只读连接已建立，请读取已知变量核对地址。');
   });
-  el('monitorDisconnect').onclick=()=>work('正在断开通信…',async valid=>{await request('disconnect');connection=null;recording=false;window.dispatchEvent(new CustomEvent("bridge-monitor-sample",{detail:null}));clearTimeout(timer);if(valid())message('监控连接已断开。');});
+  el('monitorDisconnect').onclick=()=>work('正在断开通信…',async valid=>{await request('disconnect');connection=null;recording=false;window.BridgeTrace?.reset();window.dispatchEvent(new CustomEvent("bridge-monitor-sample",{detail:null}));clearTimeout(timer);if(valid())message('监控连接已断开。');});
   el('monitorRead').onclick=()=>work('正在读取变量…',async valid=>{const sample=await request('read');if(valid()){showValues(sample);message('已读取一次；各组数据不保证属于同一扫描周期。');}});
   el('monitorSnapshot').onclick=()=>work('正在读取并归档参数…',async valid=>{const data=await request('snapshot');if(valid()){archive=data;showValues(data.sample);el('monitorArchive').textContent=JSON.stringify(data,null,2);if(el('sourceParameterId')){el('sourceParameterId').value=data.id;el('sourceParameterId').dispatchEvent(new Event('input'));}message('参数快照已归档。可在“变更审查与 Diff”选择源码快照并预览初始值回填，当前尚未修改工程。');}});
   el('monitorDownloadSnapshot').onclick=()=>{if(archive)download(new Blob([JSON.stringify(archive,null,2)],{type:'application/json'}),'TIA-Parameters-'+archive.id+'.json');};
@@ -36,10 +36,11 @@
   el('monitorStop').onclick=()=>work('正在停止录波…',async valid=>{await request('stop');recording=false;clearTimeout(timer);if(valid()){await poll(generation,connection);message('录波已停止，可以导出完整记录。');}});
   async function poll(ticket,binding){
     if(ticket!==generation||binding!==connection)return;
-    try{const data=await request('events',{},binding);if(ticket!==generation||binding!==connection)return;recording=!!data.watch.running;draw(data.events||[]);el('monitorTraceStatus').textContent='采样 '+data.watch.samples+' 次 / 变化及状态事件 '+data.watch.events+' 条；页面最近 500 条。可能遗漏短脉冲，不能当作逐扫描周期记录。';sync();if(recording)timer=setTimeout(()=>poll(ticket,binding),1000);}
-    catch(e){if(ticket===generation){recording=false;message('采样状态读取失败：'+e.message+'。请停止或断开后核对。');sync();}}
+    try{const data=await request('events',{},binding);if(ticket!==generation||binding!==connection)return;recording=!!data.watch.running;draw(data.events||[]);el('monitorTraceStatus').textContent='采样 '+data.watch.samples+' 次 / 变化及状态事件 '+data.watch.events+' 条；页面最近 500 条。可能遗漏短脉冲，不能当作逐扫描周期记录。';sync();if(recording)timer=setTimeout(()=>poll(ticket,binding),1000);else message('录波已结束，可暂停画面核对或导出完整记录。');}
+    catch(e){if(ticket===generation){message('采样状态读取失败：'+e.message+'。请停止或断开后核对。');sync();}}
   }
   function draw(events){
+    if(window.BridgeTrace){window.BridgeTrace.update(events);return;}
     const series=new Map();for(const event of events)for(const [name,row] of Object.entries(event.values||{})){if(!series.has(name))series.set(name,[]);series.get(name).push({time:Date.parse(row.timestamp_utc||event.timestamp_utc),value:row.quality==='good'?(typeof row.value==='boolean'?Number(row.value):Number(row.value)):null,quality:row.quality});}
     const box=el('monitorWaveforms');box.replaceChildren();const all=[...series.values()].flat().map(p=>p.time).filter(Number.isFinite);if(!all.length){box.append(node('p','尚无有效采样事件。'));return;}const start=Math.min(...all),end=Math.max(...all,start+1);
     for(const [name,points] of series){const values=points.filter(p=>p.value!==null&&Number.isFinite(p.value)).map(p=>p.value),min=Math.min(...values,0),max=Math.max(...values,min+1);box.append(node('p',name+' · 独立纵轴 '+min+'～'+max));
@@ -49,5 +50,5 @@
       box.append(svg);
     }
   }
-  sync();setInterval(sync,750);
+  sync();window.BridgeUI ? window.BridgeUI.watch('monitorConnect',sync) : setInterval(sync,750);
 })();

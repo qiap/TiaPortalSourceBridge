@@ -52,6 +52,45 @@ internal static class HmiGuardChecks
         issues.Clear();
         HmiValidation.CheckTagEvidence(new[] { new HmiDocument { kind = "tag_tables", name = "T", xml = Table("Bool") } }, existing, issue, warnings);
         Check(issues.Count == 0 && warnings.Count > 0, "preserved native binding reports PLC-end validation limitation");
+        string members = "<ObjectList><Hmi.Tag.TagStructureMember CompositionName='Members'><AttributeList><Name>State</Name><LogicalAddress>%DB1.DBX2.0</LogicalAddress></AttributeList><ObjectList><Hmi.Tag.TagStructureMember CompositionName='Members'><AttributeList><Name>Ready</Name></AttributeList></Hmi.Tag.TagStructureMember></ObjectList></Hmi.Tag.TagStructureMember></ObjectList>";
+        string structure = Table("Bool").Replace("<Name>Barcode</Name>", "<Name>RFID/A.B{2}</Name>").Replace("</Hmi.Tag.Tag>", members + "</Hmi.Tag.Tag>");
+        var paths = HmiValidation.TagPaths(structure).Select(p => p.Key).ToArray();
+        Check(paths.Contains("RFID/A.B{2}.State.Ready") && paths.Contains("RFID/A.B{2}.State"), "nested paths preserve literal punctuation in root names");
+        Check(!paths.Contains("RFID/A.B{2}.State.Readyy"), "member prefix never accepts misspelled member");
+        Check(HmiValidation.Validate(structure).Count == 0, "members inherit type and need no fabricated explicit type");
+        Check(HmiValidation.Compare(structure, structure.Replace(members, "")).Length > 0, "removed members fail readback");
+        Check(HmiValidation.Compare(structure, structure.Replace("%DB1.DBX2.0", "%DB1.DBX3.0")).Length == 1, "member address drift detected");
+        Check(HmiValidation.Validate(structure.Replace(members, members.Replace("</ObjectList></Hmi.Tag.TagStructureMember>", "</ObjectList></Hmi.Tag.TagStructureMember><Hmi.Tag.TagStructureMember><AttributeList><Name>State</Name></AttributeList></Hmi.Tag.TagStructureMember>"))).Any(e=>e.Contains("tag_path_conflict")), "ambiguous member paths rejected");
+        issues.Clear();
+        HmiValidation.CheckTagEvidence(new[] { new HmiDocument { kind="tag_tables", name="T", xml=structure.Replace("%DB1.DBX2.0", "%DB1.DBX3.0") } }, new Dictionary<string,string>{{"T",structure}}, issue, warnings);
+        Check(issues.Contains("plc_binding_unverified"), "unchanged root binding cannot hide altered member binding");
+        string internalTag = Table("Bool").Replace("<Connection><Name>Integrated1</Name></Connection>", "").Replace("<ControllerTag><Name>DB.Code</Name></ControllerTag>", "");
+        Check(HmiValidation.Validate(internalTag).Count == 0, "internal symbolic-mode tag needs no fake PLC connection");
+        string db = "<Document><SW.Blocks.GlobalDB><AttributeList><Name>DB</Name><Number>1</Number><MemoryLayout>Standard</MemoryLayout><Interface><Sections xmlns='urn:interface'><Section Name='Static'><Member Name='Command' Datatype='Struct'><Member Name='Recipe' Datatype='Byte'/><Member Name='Start' Datatype='Bool'/></Member><Member Name='Status' Datatype='Struct'><Member Name='NG' Datatype='Bool'/><Member Name='OK' Datatype='Bool'/><Member Name='Running' Datatype='Bool'/><Member Name='Ended' Datatype='Bool'/><Member Name='Fault' Datatype='Bool'/><Member Name='Value' Datatype='Real'/></Member></Section></Sections></Interface></AttributeList></SW.Blocks.GlobalDB></Document>";
+        var layout = HmiPlcBindingValidation.ReadLayout(db);
+        Check(layout.Bits == 64 && layout.Fields.Single(f=>f.Name=="DB.Status.Ended").Bit == 19, "standard structs pack Bool and align Real to word boundaries");
+        Func<string,string,string> absolute = (type,address) => Table(type).Replace("Symbolic", "Absolute").Replace("<Name>Barcode</Name>", "<Name>Barcode</Name><LogicalAddress>"+address+"</LogicalAddress>").Replace("<ControllerTag><Name>DB.Code</Name></ControllerTag>", "");
+        Func<string,string,string> verify = (type,address) => HmiPlcBindingValidation.Check(HmiValidation.Tags(absolute(type,address))[0],layout);
+        Check(verify("Bool","%DB1.DBX2.3") == null, "existing Bool member accepts new HMI binding");
+        Check(verify("Word","%DB1.DBW2") == null, "packed Bool alarm word accepted within declared DB");
+        Check(verify("Bool","%DB1.DBX2.6") != null, "padding is not a Bool member");
+        Check(verify("Real","%DB1.DBD2") != null, "wrongly aligned Real rejected");
+        Check(verify("Word","%DB1.DBW8") != null, "out of bounds word rejected");
+        Check(verify("Bool","%DB2.DBX2.3") != null, "wrong DB number rejected");
+        Check(verify("Bool","%DB1.DBW2") != null, "type and address width mismatch rejected");
+        Check(HmiPlcBindingValidation.Check(HmiValidation.Tags(absolute("Bool","%DB1.DBX2.3"))[0],HmiPlcBindingValidation.ReadLayout(db.Replace("Standard","Optimized"))) != null, "optimized DB offsets never inferred");
+        Check(HmiPlcBindingValidation.Check(HmiValidation.Tags(Table("Bool","DB.Status.Ended"))[0],layout) == null, "symbolic path and type verified");
+        Check(HmiPlcBindingValidation.Check(HmiValidation.Tags(Table("Int","DB.Status.Ended"))[0],layout) != null, "symbolic type mismatch rejected");
+        string hiddenDb=db.Replace("<Member Name='Ended' Datatype='Bool'/>","<Member Name='Ended' Datatype='Bool'><AttributeList><BooleanAttribute Name='ExternalAccessible'>false</BooleanAttribute></AttributeList></Member>");
+        Check(HmiPlcBindingValidation.Check(HmiValidation.Tags(absolute("Word","%DB1.DBW2"))[0],HmiPlcBindingValidation.ReadLayout(hiddenDb)) != null, "alarm word cannot span hidden PLC member");
+        bool unsupported=false; try { HmiPlcBindingValidation.ReadLayout(db.Replace("Datatype='Real'","Datatype='UnknownUDT'")); } catch(InvalidOperationException) { unsupported=true; }
+        Check(unsupported,"unknown UDT layout is blocked, never guessed");
+        issues.Clear();
+        HmiValidation.CheckTagEvidence(new[]{new HmiDocument{kind="tag_tables",name="T",xml=absolute("Bool","%DB1.DBX2.3")}}, existing, issue, warnings, t=>HmiPlcBindingValidation.Check(t,layout));
+        Check(issues.Count==0,"verified live PLC binding can pass evidence check");
+        issues.Clear();
+        HmiValidation.CheckTagEvidence(new[]{new HmiDocument{kind="tag_tables",name="T",xml=absolute("Bool","%DB1.DBX2.6")}}, existing, issue, warnings, t=>HmiPlcBindingValidation.Check(t,layout));
+        Check(issues.Contains("plc_binding_unverified"),"failed resolver evidence remains blocked");
         Console.WriteLine("PASS: " + count + " HMI guard checks; no project connection or writes."); return 0;
     }
 }

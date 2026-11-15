@@ -43,7 +43,8 @@ scripts/blocks_meta.json
 source-reviews/
 parameter-snapshots/
 
-online-records/
 simulation-runs/
+simulation-sessions/
 
 hmi-companion-backups/
+vm-connection.json

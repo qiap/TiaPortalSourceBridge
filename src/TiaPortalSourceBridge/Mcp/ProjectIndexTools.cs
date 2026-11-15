@@ -188,6 +188,7 @@ namespace TiaPortalSourceBridge.Mcp
         }
         private void AttachIndexHint(string name, Dictionary<string, object> args, Dictionary<string, object> result)
         {
+            if(IsBlockSnapshotRead(name) && StringArg(args,"read_mode")=="cache")return;
             if (_projects != null || IsIndexTool(name) || name.StartsWith("tia_online_") || name.StartsWith("tia_simulation_")) return;
             if (projectIndex == null && _sessionPath != null) Index(NewProjectConfig(_sessionPath, "", ""));
             if (projectIndex == null) return;

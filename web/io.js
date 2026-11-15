@@ -1,6 +1,6 @@
 /* I/O snapshots are bound to the project/PLC selected when a read starts. */
 (() => {
-  const state = { id: '', target: null, busy: false, ready: false, page: 1, pages: 1, sequence: 0, refSequence: 0 };
+  const state = { id: '', target: null, busy: false, ready: false, phase: 'initial', error: '', data: null, page: 1, pages: 1, sequence: 0, refSequence: 0, mode: '' };
   const el = id => document.getElementById(id);
   const text = (id, value) => { el(id).textContent = value || ''; };
   const normalize = s => (s || '').replace(/\\/g, '/').toLowerCase();
@@ -9,13 +9,13 @@
   const current = () => same(state.target, target());
   window.cylinderIoState = () => ({id: state.ready && current() ? state.id : '', busy: state.busy, target: target()});
   window.cylinderIoInvalidate = () => {
-    state.ready = false; state.id = ''; state.sequence++; state.refSequence++;
+    state.ready = false; state.id = ''; state.phase = 'target_changed'; state.data = null; state.sequence++; state.refSequence++;
     empty('ioRows','气缸写入操作结束，请从博途重新读取当前工程。');
     el('ioReferencesPanel').hidden = true; el('ioWarningsBox').hidden = true;
     message('请从博途重新读取，获取最新点位和气缸列表。'); controls();
   };
-  const message = value => text('ioMessage', value);
-  const cell = value => { const td = document.createElement('td'); td.textContent = value == null ? '' : String(value); td.style.cssText = 'padding:10px;border-bottom:1px solid #334155;white-space:pre-wrap;word-break:break-word;'; return td; };
+  const message = value => {text('ioMessage', value); if(window.IoLayout)window.IoLayout.progress(value);};
+  const cell = value => { const td = document.createElement('td'); td.textContent = value == null ? '' : String(value); td.style.cssText = 'padding:10px;border-bottom:1px solid var(--card-border);white-space:pre-wrap;word-break:break-word;'; return td; };
   const empty = (id, value) => { const tr = document.createElement('tr'); const td = cell(value); td.colSpan = 6; tr.appendChild(td); el(id).replaceChildren(tr); };
   const filters = () => ({ area: el('ioArea').value, q: el('ioSearch').value, table: el('ioTableFilter').value, group: el('ioGroupFilter').value, view: el('ioView').value });
   const url = (path, extra = {}) => '/api/io/' + path + '?' + new URLSearchParams({ id: state.id, ...filters(), ...extra });
@@ -27,20 +27,27 @@
   }
   function controls() {
     const t = target();
+    if(el('ioPager'))el('ioPager').hidden=!state.ready||!current()||!state.data?.total;
+    if(el('ioEmpty'))el('ioEmpty').hidden=state.ready||state.busy;
+    if(el('ioTableWrap'))el('ioTableWrap').hidden=!state.ready&&!state.busy;
+    for(const id of ['ioSourceButton','ioEmptyLive','ioEmptyCache'])if(el(id))el(id).disabled=state.busy||!t.target_token||!t.plc_name;
+    if(el('ioSourceBadge')&&!state.ready)el('ioSourceBadge').textContent=state.busy?'读取中…':'尚未读取';
     el('ioReadButton').disabled = state.busy || !t.target_token || !t.plc_name;
-    el('ioReadButton').textContent = state.busy ? '读取中…' : '🔄 重新读取';
-    el('ioExportButton').disabled = state.busy || !state.ready || !current();
+    el('ioReadButton').textContent = state.busy ? '读取中…' : '从博途重新读取';
+    el('ioExportButton').disabled = state.busy || !state.ready || !current() || !state.data?.total;
     el('ioPrev').disabled = !state.ready || !current() || state.page <= 1;
     el('ioNext').disabled = !state.ready || !current() || state.page >= state.pages;
     if (window.cylinderSync) window.cylinderSync();
+    if (window.IoLayout) window.IoLayout.update({...state, current: current(), selected: t});
   }
   window.ioTargetChanged = () => {
-    const t = target(); text('ioTarget', (t.project_path || '未选择工程') + '  ·  ' + (t.plc_name || '未选择 PLC'));
+    const t = target(); if(!window.IoLayout)text('ioTarget', (t.plc_name || '未选择 PLC') + (state.busy?' · 扫描中':state.ready?' · 已读取快照':''));
     if (state.target && !current()) {
       empty('ioRows', '工程或 PLC 已切换，请重新读取。'); text('ioSummary', '上一份读取结果属于其它目标，已停止显示。');
       el('ioReferencesPanel').hidden = true; el('ioWarningsBox').hidden = true;
       state.ready = false; state.sequence++; state.refSequence++;
-      message(state.busy ? '正在完成上一目标的读取；完成后可读取新目标。' : '请选择“重新读取”，获取当前目标的数据。');
+      state.phase = 'target_changed'; state.data = null; state.error = '';
+      message(state.busy ? '正在完成上一目标的读取；完成后可读取新目标。' : '请选择“从博途重新读取”，获取当前目标的数据。');
     }
     controls();
   };
@@ -49,7 +56,8 @@
     if (state.busy) return;
     const selected = target();
     if (!selected.target_token || !selected.plc_name) { message('请先选择工程与 PLC，等待目标识别完成。'); return; }
-    state.busy = true; state.ready = false; state.id = ''; state.target = selected; state.page = 1; state.sequence++; state.refSequence++;
+    state.busy = true; state.ready = false; state.id = ''; state.target = selected; state.page = 1; state.sequence++; state.refSequence++; state.mode = mode;
+    state.phase = 'reading'; state.error = ''; state.data = null;
     el('ioReferencesPanel').hidden = true; el('ioWarningsBox').hidden = true; text('ioSummary', '');
     empty('ioRows', '正在读取新的数据快照…'); message('正在启动读取…'); controls();
     try {
@@ -64,7 +72,7 @@
       }
       if (current()) { el('ioGroupFilter').replaceChildren(new Option('全部工程组', '')); el('ioTableFilter').replaceChildren(new Option('全部变量表', '')); await load(true); }
       else message('上一目标读取已完成。请重新读取当前工程 / PLC。');
-    } catch (error) { message('读取失败：' + error.message); }
+    } catch (error) { if(current()){state.phase='failed';state.error=error.message;message('读取失败：' + error.message);} }
     finally { state.busy = false; controls(); }
   };
   async function load(resetTables = false) {
@@ -75,6 +83,7 @@
       if (sequence !== state.sequence || id !== state.id || !current()) return;
       if (el('ioView').value === 'points' && !Array.isArray(data.groups)) {
         state.ready = false;
+        state.phase = 'failed'; state.error = '当前看板服务尚未支持 Bool 映射点位，请更新或重开看板后再读取。';
         text('ioSummary', '');
         text('ioPageLabel', '');
         el('ioReferencesPanel').hidden = true;
@@ -84,22 +93,24 @@
         return;
       }
       state.ready = true; state.page = data.page; state.pages = Math.max(1, Math.ceil(data.total / data.page_size));
+      state.phase = 'ready'; state.error = ''; state.data = data;
+      if(el('ioSourceBadge'))el('ioSourceBadge').textContent=state.mode==='source'?'本地源码快照 · 可能落后于博途':'实时工程快照 · '+new Date(data.read_completed_utc).toLocaleTimeString();
       if (resetTables) (data.groups || []).forEach(g => el("ioGroupFilter").add(new Option(g,g)));
       if (resetTables) data.tables.forEach(table => el('ioTableFilter').add(new Option(table, table)));
-      text('ioSummary', '读取完成：' + new Date(data.read_completed_utc).toLocaleString() + '  ·  变量表 ' + data.tables_read + '/' + data.tables_total + '  ·  当前筛选 ' + data.total + ' / 全部 ' + data.total_all + ' 项\n' + data.reference_source + '：' + data.reference_coverage);
+      text('ioSummary', '数据来源：' + (state.mode === 'source' ? '本地源码快照（可能落后于博途）' : '本次从博途读取的工程快照') + '\n读取完成：' + new Date(data.read_completed_utc).toLocaleString() + '  ·  变量表 ' + data.tables_read + '/' + data.tables_total + '  ·  当前筛选 ' + data.total + ' / 全部 ' + data.total_all + ' 项\n' + data.reference_source + '：' + data.reference_coverage + '\n此表不是在线实时值；工程修改后请重新读取。');
       el('ioWarningsBox').hidden = data.warnings.length === 0; text('ioWarnings', data.warnings.join('\n'));
       text('ioPageLabel', '第 ' + state.page + ' / ' + state.pages + ' 页 · 每页 100 项');
       const fragment = document.createDocumentFragment();
       data.rows.forEach(row => {
         const tr = document.createElement('tr');
         [row.name, row.address || (row.area === 'CONST' ? '常量 = ' + row.value : row.area === 'DB' ? 'DB 内部' : row.area === 'LOCAL' ? '块内符号' : '—'), row.data_type, row.comment, [row.origin, row.mapping_group, row.mapping_fc, row.carrier, row.table, row.group, row.unit].filter(Boolean).join(' / ')].forEach(v => tr.appendChild(cell(v)));
-        const td = cell(''), button = document.createElement('button'); button.className = 'btn btn-sm'; button.textContent = row.reference_count + ' 条证据';
+        const td = cell(''), button = document.createElement('button'); button.className = 'btn btn-sm'; button.textContent = row.reference_count > 0 ? row.reference_count + ' 处' : '未发现引用';
         button.addEventListener('click', () => references(row.id)); td.appendChild(button); tr.appendChild(td); fragment.appendChild(tr);
       });
       el('ioRows').replaceChildren(fragment);
       if (!data.rows.length) empty('ioRows', '当前筛选范围没有变量。可选择“全部变量和常量”或查看读取警告。');
       controls();
-    } catch (error) { if (sequence === state.sequence) { state.ready = false; message(error.message); controls(); } }
+    } catch (error) { if (sequence === state.sequence) { state.ready = false; state.phase='failed';state.error=error.message;message(error.message); controls(); } }
   }
   window.ioFilter = () => { state.page = 1; state.refSequence++; el('ioReferencesPanel').hidden = true; load(); };
   let searchTimer;
@@ -116,7 +127,7 @@
       data.references.forEach(r => { const tr = document.createElement('tr'); [r.block, r.group, r.access, r.location, r.evidence, r.source + ' / ' + r.state].forEach(v => tr.appendChild(cell(v))); fragment.appendChild(tr); });
       el('ioReferencesRows').replaceChildren(fragment);
       if (!data.total) empty('ioReferencesRows', '当前读取范围内未匹配到引用；不代表该变量未使用。');
-      el('ioReferencesPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      if(!window.matchMedia||!window.matchMedia('(min-width: 1500px)').matches)el('ioReferencesPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     } catch (error) { message('引用读取失败：' + error.message); }
   }
   window.ioExport = async () => {

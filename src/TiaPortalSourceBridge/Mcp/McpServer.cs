@@ -124,6 +124,7 @@ namespace TiaPortalSourceBridge.Mcp
                     {
                         var result = ExecuteLoggedTool(name, arguments);
                         if (StringArg(arguments, "response_mode") == "compact") CompactResponse(result);
+                        ToolTextSummary.Apply(name, arguments, result);
                         metrics.Attach(result);
                         WriteResult(id, result);
                     }
@@ -143,6 +144,13 @@ namespace TiaPortalSourceBridge.Mcp
             if (responseMode.Length > 0 && responseMode != "full" && responseMode != "compact") throw new ArgumentException("response_mode 必须为 full 或 compact。");
             if (_knownTools == null) _knownTools = new HashSet<string>(ToolDefinitions().Cast<Dictionary<string, object>>().Select(t => Convert.ToString(t["name"])), StringComparer.Ordinal);
             if (!_knownTools.Contains(name)) throw new ArgumentException("未知工具：" + name);
+            if (name == "tia_compare_projects") return CompareProjects(args);
+            if (IsRestrictedLogic(name)) {
+                ValidateRestrictedTarget(args);
+                if (name=="tia_write_logic_patch" && !BoolArg(args,"confirm",false)) throw new ArgumentException("应用已审查方案需要 confirm=true；尚未连接工程。");
+                if (name == "tia_read_logic_patch_plan" && StringArg(args,"plan_id").Length > 0)
+                    return LogicPlanReply(RestrictedLogic.Load(Path.GetDirectoryName(_configPath),StringArg(args,"plan_id"),StringArg(args,"project_path"),StringArg(args,"plc_name")));
+            }
             Dictionary<string, object> versionedResult;
             if (TryVersionedLocalCall(name, args, out versionedResult)) return versionedResult;
             if (name == "tia_list_process_library" || name == "tia_read_process_library" || name == "tia_render_process_template")
@@ -168,6 +176,7 @@ namespace TiaPortalSourceBridge.Mcp
                 }
                 var data = value as Dictionary<string, object>;
                 bool failed = data != null && (StringArg(data,"state")=="failed" || (data.ContainsKey("passed") && !(bool)data["passed"]) || (data.ContainsKey("available") && !(bool)data["available"]) || (data.ContainsKey("failure_count") && Convert.ToInt32(data["failure_count"]) > 0));
+                if(name=="tia_simulation_status"&&data!=null&&data.ContainsKey("api_available")&&(bool)data["api_available"]&&!data.ContainsKey("error"))failed=false;
                 return ToolResult("本机 PLCSIM Advanced 操作结果。", failed, value);
             }
             if (_projects != null && name != "tia_generate_lad" && name != "tia_generate_graph" && name != "tia_generate_hmi_configuration" && name != "tia_patch_graph")
@@ -238,6 +247,11 @@ namespace TiaPortalSourceBridge.Mcp
             AppConfig config = NewProjectConfig(projectPath, StringArg(args, "plc_name"), StringArg(args, "source_directory"));
 
             if (IsIndexTool(name)) return CallIndexTool(name, args, config);
+            if (IsBlockSnapshotRead(name)) {
+                BlockReadNames(name,args);
+                if (BlockReadMode(args)=="cache") return ReadCachedBlocks(name,args,config);
+                if(StringArg(args,"unit_name").Length>0)throw new ArgumentException("V17 实时读取不支持软件单元。");
+            }
             PrepareIndexContext(name, args, config);
 
             OpennessSession session = Connect(config);
@@ -261,6 +275,7 @@ namespace TiaPortalSourceBridge.Mcp
                     CompileSummary summary = new HardwareOperations(session).Compile(StringArg(args, "target_path"));
                     return ToolResult(summary.ToReport(), summary.ErrorCount > 0, Dict("saved", false, "error_count", summary.ErrorCount, "warning_count", summary.WarningCount));
                 }
+                if (name == "tia_read_hmi_editor" || name == "tia_write_hmi_editor") return HmiEditorTool(name == "tia_write_hmi_editor",args,session,projectPath);
                 if (name == "tia_read_hmi_companion_plan" || name == "tia_write_hmi_companion") return HmiCompanion(name,args,session,projectPath);
                 if (name == "tia_read_hmi_configuration")
                 {
@@ -274,10 +289,11 @@ namespace TiaPortalSourceBridge.Mcp
                     if (!dryRun) RequireConfirmation(args, "批量写入 HMI 画面、变量等组态会修改离线工程");
                     bool compile = BoolArg(args, "compile", true);
                     HmiContext target = session.SelectHmi(StringArg(args, "hmi_name"));
-                    var result = new HmiOperations(session, target).Write(StringArg(args, "objects_json"), Path.Combine(Path.GetDirectoryName(_configPath), "hmi-backups"), BoolArg(args, "skip_unchanged", true), dryRun);
+                    var result = new HmiOperations(session, target).Write(StringArg(args, "objects_json"), Path.Combine(Path.GetDirectoryName(_configPath), "hmi-backups"), BoolArg(args, "skip_unchanged", true), dryRun, StringArg(args, "connection_plcs_json"));
                     bool failed = Convert.ToInt32(result["failure_count"]) > 0;
                     result["compiled"] = false;
-                    if (!dryRun && !failed && compile && Convert.ToInt32(result["success_count"]) > 0) try
+                    if(!dryRun&&!failed&&compile&&!HmiOperations.NeedsCompile(result))result["compile_skipped_reason"]="no_changes";
+                    if (!dryRun && !failed && compile && HmiOperations.NeedsCompile(result)) try
                     {
                         CompileSummary summary = session.CompileHmi(target); result["compiled"] = true;
                         result["error_count"] = summary.ErrorCount; result["warning_count"] = summary.WarningCount; result["compile_report"] = summary.ToReport(); failed |= summary.ErrorCount > 0;
@@ -393,11 +409,26 @@ namespace TiaPortalSourceBridge.Mcp
                 {
                     using(_simulation.AcquireSimulationMutation()) {
                     var result = (Dictionary<string, object>)SimulationDownload.Execute(session, plc, _simulation, args);
-                    return ToolResult("本机受管仿真实例装载结果；未保存离线项目。", result.ContainsKey("downloaded") && !(bool)result["downloaded"], result);
+                    return ToolResult("本机受管仿真实例预检/装载诊断；预检不编译、不切换在线状态；实际下载不自动重试。未保存离线项目。", !Equals(Value(result,"ok"),true), result);
                 }
                 }
                 BlockOperations ops = new BlockOperations(session, plc);
                 string backupRoot = Path.Combine(Path.GetDirectoryName(_configPath), "block-backups");
+
+                if (IsRestrictedLogic(name)) {
+                    if (plc.DisplayName != StringArg(args,"plc_name")) throw new ArgumentException("请指定 PLC 完整路径："+plc.DisplayName);
+                    string root=Path.GetDirectoryName(_configPath);
+                    if (name == "tia_read_logic_patch_plan") {
+                        var edit=RestrictedLogic.ParseEdit(StringArg(args,"edit_json"));
+                        string block=StringArg(args,"block_name"),group=StringArg(args,"group_path");
+                        return LogicPlanReply(RestrictedLogic.Create(root,projectPath,plc.DisplayName,block,group,ops.Read(block,group),edit));
+                    }
+                    if (!BoolArg(args,"confirm",false)) throw new ArgumentException("应用已审查方案需要 confirm=true。");
+                    var plan=RestrictedLogic.Load(root,StringArg(args,"plan_id"),projectPath,plc.DisplayName);
+                    var value=RestrictedLogic.Apply(root,plan,()=>ops.Read(plan.block_name,plan.group_path),(items,id)=>ops.ImportXmlBatch(items,backupRoot,()=>session.CompilePlc(plc),null,id));
+                    var data=(Dictionary<string,object>)value;
+                    return ToolResult("受限修改执行结果；仅 verified_unsaved 表示编译与完整回读通过。未自动保存、未下载 PLC。",!Equals(Value(data,"ok"),true),data);
+                }
 
                 if (name == "tia_list_blocks")
                 {
@@ -463,11 +494,10 @@ namespace TiaPortalSourceBridge.Mcp
                         StringArg(args, "rename_json"), StringArg(args, "group_names_json"), Path.Combine(Path.GetDirectoryName(_configPath), "group-backups"));
                     return ToolResult("程序块组整理完成；未保存、未改块内容、未下载。", false, result);
                 }
-                if (name == "tia_read_block")
-                {
-                    string xml = ops.Read(StringArg(args, "block_name"), StringArg(args, "group_path"));
-                    return ToolResult(xml, false, Dict("xml", xml));
-                }
+                if (IsBlockSnapshotRead(name))
+                    return ReadLiveBlocks(name,args,config,
+                        blockName => ops.Read(blockName, StringArg(args,"group_path")),
+                        blockName => { string extension,group;string source=ops.ReadSource(blockName,StringArg(args,"group_path"),out extension,out group);return Dict("source",source,"extension",extension,"group_path",group); });
                 if (name == "tia_read_source")
                 {
                     string ext;
@@ -921,7 +951,7 @@ namespace TiaPortalSourceBridge.Mcp
                     ObjectSchema(Property("project_path", project), Property("hmi_name", StringProperty("HMI 完整名称或精确别名")), Property("kind", StringProperty("all/screens/screen_templates/popup_screens/slidein_screens/tag_tables/scripts/text_lists/graphic_lists/cycles/connections")),
                         Property("name_filter", StringProperty("名称关键字")), Property("group_prefix", StringProperty("组路径前缀")), Property("include_xml", BooleanProperty("返回 XML，默认 false")), Property("include_model", BooleanProperty("返回完整节点模型，默认 false"))), true, false, true),
                 Tool("tia_write_hmi_configuration", "默认只预检查经典 HMI；整批校验后写入并强制回读核对类型和绑定。覆盖前备份，失败停止。不保存、不下载。",
-                    ObjectSchema(new[] { "objects_json" }, Property("project_path", project), Property("hmi_name", StringProperty("HMI 完整名称或精确别名")), Property("objects_json", StringProperty("对象数组，每项 kind/group_path/xml 或 model；变量必须明确 DataType/HmiDataType")), Property("dry_run", BooleanProperty("默认 true：只预检查；实际写入必须 dry_run=false 且 confirm=true")),
+                    ObjectSchema(new[] { "objects_json" }, Property("project_path", project), Property("hmi_name", StringProperty("HMI 完整名称或精确别名")), Property("objects_json", StringProperty("对象数组，每项 kind/group_path/xml 或 model；变量必须明确 DataType/HmiDataType")), Property("connection_plcs_json", StringProperty("可选 JSON 对象：已在工程中核对的连接名到 PLC 精确名称，例如 {\"HMI_连接_1\":\"PLC_1\"}。用于新增基础类型 DB 绑定的实时导出核验；不能据此推断集成连接伙伴。")), Property("dry_run", BooleanProperty("默认 true：只预检查；实际写入必须 dry_run=false 且 confirm=true")),
                         Property("compile", BooleanProperty("默认 true")), Property("skip_unchanged", BooleanProperty("默认 true；严格比较对象 XML 完全相同时跳过导入。false 可强制覆盖。")), Property("confirm", BooleanProperty("确认写入离线 HMI 组态"))), false, true, false),
                 Tool("tia_disconnect", "释放指定项目连接，保留其他项目连接。不保存、不关闭用户项目；多个项目时必须传 project_path。", ObjectSchema(Property("project_path", project)), false, false, true),
                 Tool("tia_list_blocks", "快速列出 PLC 程序块及组路径（内置会话缓存，支持按组/名称/语言过滤）。",
@@ -969,7 +999,14 @@ namespace TiaPortalSourceBridge.Mcp
                     Property("group_names_json", StringProperty("需补齐的直属组名称JSON数组")), Property("confirm", BooleanProperty("确认整理离线工程的组"))), false, false, true),
                 Tool("tia_read_block", "读取单个程序块的 SimaticML XML，包含梯形图网络。", ObjectSchema(new[] { "block_name" },
                     Property("project_path", project), Property("plc_name", plc), Property("block_name", StringProperty("程序块名称（大小写不敏感）")),
+                    Property("read_mode",StringProperty("live（默认）或 cache；缓存只用于分析，不作为写入基准")),
+                    Property("format",StringProperty("xml（默认）或 readable（带原文锚点的结构化接线视图）")),
+                    Property("network_offset",Dict("type","integer","minimum",0)),Property("network_limit",Dict("type","integer","minimum",1,"maximum",20)),
                     Property("group_path", StringProperty("可选组路径，用 / 分隔；提供后可极速直达查找。"))), true, false, true),
+                Tool("tia_read_blocks_batch","批量读取混合语言程序块；auto 返回 SCL/DB 源码和 LAD/GRAPH XML，readable 返回网络接线结构。逐项返回失败和缓存证据。",MixedReadSchema(),true,false,true),
+                Tool("tia_compare_projects","只读双工程指定组对比：程序块增删改、结构化接口与网络差异。明确区分缓存缺失、读取失败和实时目录确认的删除。支持 V17/V21 读取，分页不证明原子快照。",CompareSchema(),true,false,true),
+                Tool("tia_read_logic_patch_plan","V17 LAD/GRAPH 受限触点修改预览：只替换指定触点的直接符号操作数或常开/常闭。绑定实时完整块指纹并持久保存方案；传 plan_id 查询方案及执行结果。",LogicPreviewSchema(),true,false,true),
+                Tool("tia_write_logic_patch","应用已审查的受限触点修改方案：实时指纹复核、完整备份、导入、编译、完整块回读。失败保留现场；不自动重试、保存或下载。",LogicApplySchema(),false,true,false),
                 Tool("tia_read_source", "读取单个 SCL/STL/DB 程序块或 UDT 数据类型的纯文本源码（.scl/.db/.udt/.awl）。", ObjectSchema(new[] { "block_name" },
                     Property("project_path", project), Property("plc_name", plc), Property("block_name", StringProperty("程序块或 UDT 名称")),
                     Property("group_path", StringProperty("可选组路径，用 / 分隔。"))), true, false, true),
@@ -1077,7 +1114,7 @@ namespace TiaPortalSourceBridge.Mcp
                 Tool("tia_save_project", "保存当前博途项目的全部未保存修改；必须 confirm=true。",
                     ObjectSchema(new[] { "confirm" }, Property("project_path", project),
                         Property("confirm", BooleanProperty("必须为 true，表示确认保存项目。"))), false, true, false)
-            }.Concat(AlarmDefinitions()).Concat(ProjectIndexDefinitions()).Concat(SimulationDefinitions()).Concat(OnlineTools.Definitions()).ToArray();
+            }.Concat(HmiEditorDefinitions()).Concat(AlarmDefinitions()).Concat(ProjectIndexDefinitions()).Concat(SimulationDefinitions()).Concat(OnlineTools.Definitions()).ToArray();
         }
 
         private static object[] SimulationDefinitions()
@@ -1088,12 +1125,12 @@ namespace TiaPortalSourceBridge.Mcp
                 Tool("tia_simulation_status", "检测 PLCSIM Advanced API 并只读列出本机仿真实例；不创建或启动 CPU。普通 PLCSIM 不支持此自动控制接口。", ObjectSchema(), true, false, true),
                 Tool("tia_simulation_start", "通过官方 Advanced API 创建并启动本机 Softbus 仿真实例，绑定明确项目；拒绝接管未知实例。可显示仿真控制面板。", ObjectSchema(new[]{"project_path","confirm"}, Property("project_path",project),Property("instance_name",instance),Property("cpu_type",StringProperty("默认 CPU1513；支持 CPU1511/1513/1515/1516/1517/1518/CPU1500_Unspecified。")),Property("show_ui",BooleanProperty("显式显示仿真控制面板，默认false。")),Property("confirm",confirm)),false,false,false),
                 Tool("tia_simulation_control", "仅对本工具创建且项目匹配的本机 Softbus 仿真实例执行 RUN/STOP/断电；不控制实体 PLC。", ObjectSchema(new[]{"project_path","instance_name","action","confirm"},Property("project_path",project),Property("instance_name",instance),Property("action",Dict("type","string","enum",new[]{"run","stop","power_off"})),Property("confirm",confirm)),false,true,false),
-                Tool("tia_simulation_download", "仅通过 PLCSIM Softbus 向本工具受管且项目匹配的本机实例装载硬件和软件；验证目标 IP 唯一性，拒绝物理网卡。默认 dry_run=true。实际装载前编译；不自动 RUN、不保存。",ObjectSchema(new[]{"project_path","instance_name"},Property("project_path",project),Property("plc_name",StringProperty("目标 PLC 完整显示名称。")),Property("instance_name",instance),Property("dry_run",BooleanProperty("默认true，仅返回目标和接口检查。")),Property("enable_simulation_support",BooleanProperty("若尚未启用，允许打开离线项目仿真编译支持；不保存。")),Property("confirm",confirm)),false,true,false),
+                Tool("tia_simulation_download", "仅受管本机 Softbus 仿真。V17 默认只读预检：实例身份/状态、接口和 IP 唯一性、TIA 在线状态、仿真编译设置；返回 blockers、诊断码和持久凭证。未知状态不猜原因，不自动切离线或重试。预检不编译，实际下载前才编译。不自动 RUN、不保存。V21 保持已有能力。",ObjectSchema(new[]{"project_path","instance_name"},Property("project_path",project),Property("plc_name",StringProperty("目标 PLC 完整显示名称。")),Property("instance_name",instance),Property("dry_run",BooleanProperty("默认true，仅检查；compile_status 明示尚未编译。")),Property("enable_simulation_support",BooleanProperty("实际下载时允许启用离线仿真编译设置；预检仍不修改。")),Property("confirm",confirm)),false,true,false),
                 Tool("tia_simulation_read", "使用 Advanced API 按符号读取本机受管仿真实例，支持优化 DB。tags 每项{name,type}，type支持bool/udint/dint/time/real。",ObjectSchema(new[]{"project_path","instance_name","tags"},Property("project_path",project),Property("instance_name",instance),Property("tags",Dict("type","array","minItems",1,"maxItems",200,"items",ObjectSchema(new[]{"name","type"},Property("name",text),Property("type",text))))),true,false,true),
                 Tool("tia_simulation_write_test", "仅写本机受管仿真 DB_BridgeSim_AutoReset 中四个测试输入，验证签名；不允许任意业务变量写入。",ObjectSchema(new[]{"project_path","instance_name","field","value","confirm"},Property("project_path",project),Property("instance_name",instance),Property("field",Dict("type","string","enum",new[]{"Enable","Trigger","ManualReset","ClearCount"})),Property("value",BooleanProperty("测试输入值。")),Property("confirm",confirm)),false,false,false),
                 Tool("tia_simulation_test_autoreset", "在 RUN 状态的本机受管仿真实例执行自动复位测试，验证触发、计时复位、持续高电平、再次触发、手动取消、关闭使能和计数清零；释放测试输入并保存报告。需先安装测试 DB 和循环调用。",ObjectSchema(new[]{"project_path","instance_name","confirm"},Property("project_path",project),Property("instance_name",instance),Property("confirm",confirm)),false,false,false),
-                Tool("tia_simulation_peripheral_start", "V17：在项目绑定的受管本机 Softbus 实例启动 Bool 外设延时反馈、卡阻模拟、定时激励和检查点；持久化报告。拒绝真实 PLC 和非受管实例。",ObjectSchema(new[]{"project_path","instance_name","configuration_json","confirm"},Property("project_path",project),Property("instance_name",instance),Property("configuration_json",StringProperty("{duration_ms,interval_ms,max_lateness_ms,rules:[{command,feedback,on_delay_ms,off_delay_ms,invert,stuck,stuck_value}],stimuli:[{at_ms,tag,value}],assertions:[{at_ms,tag,expected}]}")),Property("run_id",StringProperty("Optional client-generated 32-digit GUID; never reused")),Property("confirm",confirm)),false,true,false),
-                Tool("tia_simulation_peripheral_status", "读取本进程外设仿真的状态、检查结果和最近 500 条事件。",ObjectSchema(new[]{"project_path","instance_name","run_id"},Property("project_path",project),Property("instance_name",instance),Property("run_id",text)),true,false,true),
+                Tool("tia_simulation_peripheral_start", "V17：在受管本机 Softbus RUN 实例执行外设规则及条件剧本。steps 顺序等待条件、延时、检查、写 Bool 激励；watch 跟踪步号等类型变量。持久化时间轴和失败现场，不自动重试或复位。20ms 为最小请求间隔而非实时保证，短脉冲应先在 PLC 锁存。",ObjectSchema(new[]{"project_path","instance_name","configuration_json","confirm"},Property("project_path",project),Property("plc_name",StringProperty("记录所测 PLC 完整路径")),Property("instance_name",instance),Property("configuration_json",StringProperty("{duration_ms,interval_ms,max_lateness_ms,rules:[{command,feedback,on_delay_ms,off_delay_ms,invert,stuck,stuck_value}],stimuli:[{at_ms,tag,value}],assertions:[{at_ms,tag,expected}],watch:[{tag,type}],steps:[{name,timeout_ms,delay_ms,wait_until:[{tag,type,equals}],checks:[{tag,type,equals}],writes:[{tag,value}]}]}; 条件为全部满足，checks 在本步 writes 前执行；写后检查放下一步。type=bool/dint/udint/time/real；数值为 JSON 数字。")),Property("run_id",StringProperty("Optional client-generated 32-digit GUID; never reused")),Property("confirm",confirm)),false,true,false),
+                Tool("tia_simulation_peripheral_status", "读取仿真步骤进度、变量变化时间轴及 final_snapshot/failure_snapshot，支持重启后读记录。默认最近 500 条事件；event_offset 分页获取完整时间轴。",ObjectSchema(new[]{"project_path","instance_name","run_id"},Property("project_path",project),Property("instance_name",instance),Property("run_id",text),Property("event_offset",Dict("type","integer","minimum",0,"maximum",20000)),Property("event_limit",Dict("type","integer","minimum",1,"maximum",500))),true,false,true),
                 Tool("tia_simulation_peripheral_stop", "停止外设规则后续激励与反馈写入，保留当前仿真值；不自动复位或停止 CPU。",ObjectSchema(new[]{"project_path","instance_name","run_id"},Property("project_path",project),Property("instance_name",instance),Property("run_id",text)),false,false,true)
             };
         }

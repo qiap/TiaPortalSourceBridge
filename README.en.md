@@ -1,4 +1,4 @@
-# TIA Portal Source Bridge
+﻿# TIA Portal Source Bridge
 
 [简体中文](README.md) | **English**
 
@@ -31,35 +31,28 @@ For the current tool list and parameters, use the dashboard's **MCP tool diction
 
 You do not need to download the source or compile the application. Choose either package:
 
-Current release: **v4.10.1**. The source, V17/V21 binaries, installer and portable package share this version. See the [v4.10.1 release notes](https://github.com/qiap/TiaPortalSourceBridge/releases/tag/v4.10.1) for changes and validation scope.
+v4.15.0 is available as a portable Windows package. For an installer, choose an earlier release and check its release notes for included features.
 
 | Package | Download | How to run |
 | --- | --- | --- |
-| Portable ZIP | [Download v4.10.1 Portable.zip](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.10.1/TiaPortalSourceBridge-4.10.1-Portable.zip) | Extract the entire archive, then double-click `WebDashboard.cmd` or `LaunchWeb.vbs` |
-| Windows installer | [Download v4.10.1 Setup.exe](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.10.1/TiaPortalSourceBridge-4.10.1-Setup.exe) | Run the installer, then open the application from the desktop or Start menu |
+| Portable ZIP | [Download v4.15.0 Portable.zip](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.15.0/TiaPortalSourceBridge-4.15.0-Portable.zip) | Extract the entire archive, then double-click `WebDashboard.cmd` or `LaunchWeb.vbs` |
+| Windows installer | [Choose Setup.exe in Releases](https://github.com/qiap/TiaPortalSourceBridge/releases) | Run the installer, then open the application from the desktop or Start menu |
 
 Both packages include the V17/V21 engines, default configuration, and runtime templates. Open your project in TIA Portal first, then select the project and PLC in the dashboard. The target computer must meet the requirements below.
 
-[All releases and release notes](https://github.com/qiap/TiaPortalSourceBridge/releases) · Download `SHA256SUMS.txt` from the same version's assets to verify both packages.
+[All releases and release notes](https://github.com/qiap/TiaPortalSourceBridge/releases) · The v4.15.0 release notes include the portable ZIP's SHA-256.
 
 GitHub's **Code → Download ZIP** and the automatically generated **Source code** release archives contain source code, not a ready-to-run application. For portable use, download **Portable.zip** above. The EXE installer is currently unsigned.
 
 Refreshing, switching, or closing browser tabs does not stop the background service. To stop it, use **退出服务** (Exit service) in the dashboard. Active engineering tasks finish before shutdown.
 
-### v4.10.1 changes and upgrading
-
-- Project review adds independent source snapshots, caller impact paths, structural differences, multilingual text updates and delivery exports.
-- Electrical Excel reconciliation supports reviewed V17 writes. Cylinder workflows add persistent history, inspected recovery, reusable templates, batches and additional actuator types.
-- New panels provide read-only online monitoring, parameter archives, GRAPH Boolean condition checks, classic HMI companion changes and managed local PLCSIM peripheral simulation. Supported scope and limitations are documented below.
-- Shortcuts use a dedicated Windows launcher. Packaging checks cover Unicode paths with spaces, icons, actual shortcut launch and dashboard responses.
-
-Exit the old dashboard service before upgrading. For portable use, **extract the complete ZIP into a new directory**; do not replace only a BAT, VBS or individual EXE. Run `创建快捷方式.bat` or `CreateShortcuts.vbs` from the new directory to recreate the desktop shortcut. Repeat after moving the directory. Retain old project configuration, backups, templates and operation records and migrate them as needed. Installer upgrades retain existing configuration.
-
-If the shortcut creation window closes immediately, enter `cmd /k call 创建快捷方式.bat` in Explorer's address bar in the extracted directory to retain the error output. Run `WebDashboard.cmd` for startup diagnostics. Source checkouts require compilation; portable packages include the binaries.
-
-Release checks cover both engine builds, offline regressions and packaged startup. Offline tests of new engineering writes, classic HMI changes and simulation do not establish compatibility with every TIA version or real project; use the preview and verification results documented for each workflow.
-
 ### Execution history and failure recovery
+
+The dashboard has collapsible navigation and a horizontal navigation strip on narrower screens. **任务中心** (Task center) lists recent device generation, tag-table writes, source updates, HMI operations, simulation runs with complete target identity, and parameter archives for the selected project and PLC. Filter or search records and open the original operation without copying its ID. Scan limits and unreadable records are reported; older simulation records without a PLC identity are not assigned by guesswork. Reading history never replays an operation.
+
+HMI, peripheral simulation, and monitoring variables use forms, with raw configuration retained under advanced settings. Monitoring still requires an explicit standard-DB absolute address; a symbolic name does not establish that the address is correct. Variable lists can be saved per project in the current browser. Result cards show status, save confirmation, available block results, and the next action, with raw evidence in an expandable section.
+
+Text and parameter updates have a separate page, including a parameter archive picker. I/O results distinguish cached source from a fresh TIA read. Refreshing connection status does not reread source. Traces include time labels, pointer/keyboard inspection, zoom, and display pause; pausing the display does not stop acquisition. Missing or bad-quality samples remain unknown.
 
 Open **工程变更记录 · 气缸** (Cylinder operation history) in the control center or execution log to revisit a task after refreshing the page or restarting the tool. These local engineering records are retained independently of the general log's latest 100 calls.
 
@@ -317,12 +310,9 @@ scripts/                   Build and utility scripts
 installer/                 Windows package definitions
 ```
 
-Run the offline regression suite with Node.js/npm and Microsoft Edge installed. Install browser test dependencies from the lockfile first:
+Run the offline regression suite:
 
 ```powershell
-Push-Location tests
-npm ci --ignore-scripts
-Pop-Location
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tests\Run-Checks.ps1
 ```
 
@@ -337,6 +327,81 @@ Report bugs or suggest features through [Issues](https://github.com/qiap/TiaPort
 - After an engineering operation times out, check connection status and any delayed result before submitting the write again.
 - Online reading and simulation control have different scopes and limitations. See the online monitoring and simulation guides.
 
+## PLCSIM Advanced V8
+
+The V17 main engine now matches the installed Advanced runtime API version, selects the CPU-type registration overload explicitly, and handles V8 global Softbus mode without changing the mode of existing instances. Offline dispatch and native SDK contract checks pass. Local live validation is blocked by Siemens Runtime Manager startup crashing with `0xC0000005`; program download, execution, and real symbol read/write have not been validated. See [simulation details](SIMULATION.md).
+
+## HMI page editor
+
+The V17 classic WinCC editor supports field patches for ordinary screens. Preview uses the read snapshot; apply rechecks live pages and dependencies before importing. Queue up to 20 pages in the same HMI for one batch import workflow, one compile, and one project save. Request-scoped dependency reads are reused, with cache invalidation before import and final readback. Unchanged content skips import, compilation, and saving. The UI shows execution stages, waiting time, and stage durations. Line endpoints are synchronized with geometry and verified after compilation. Alarm and unsupported compound controls remain protected. See [scope and workflow](docs/HMI-Page-Editor.md).
+
 ## License
 
 This repository does not currently specify a project-level open-source license. Third-party license notices remain in their respective directories. Public source availability does not imply a grant under a common open-source license.
+
+
+### MCP text summaries (source update)
+
+Text `content` now includes target identity, status and a bounded projection of structured results for text-only agents. Connection lists, simulation state/IP, reference locations, per-item import outcomes and backup paths are visible. Small source snippets remain readable; `structuredContent` is unchanged.
+
+Summaries have an approximately 16,000-character budget and show up to 30 entries per list, with short scalar properties combined on one line per entry. Source/XML already present in full text is not repeated. Compact plain source has a 12,000-character limit; XML snippets have a 2,400-character limit, both subject to the overall budget. Omitted data is explicitly marked in text and `text_summary.truncated`; the overall budget never cuts a list row mid-line. This is separate from server-side pagination (`offset`, `limit`, `next_offset`); omitted entries must not be interpreted as absent. Use `full` for complete XML.
+
+Failures include `diagnostic` context and conservative categories. Timeouts never trigger automatic replay, and a low-level message alone is not classified as a network mismatch or an online-session conflict. Formatting failures preserve the original execution receipt. Offline cache fallback, readable logic models and scenario execution are separate work.
+
+### 4.11: mixed-language reads, cache provenance and readable logic
+
+`tia_read_blocks_batch` reads 1–30 named blocks. The defaults are `read_mode: "live"` and `format: "auto"`: SCL/STL/DB use external text when available; LAD/GRAPH use XML. Failed text export explicitly falls back to the XML exported during that live read. Results and errors are reported per block; missing data never implies deletion. Requests are limited to 16 MiB total and 8 MiB per XML object.
+
+Both `tia_read_block` and `tia_read_blocks_batch` accept `read_mode: "cache"`. This mode requires the full `plc_name`, optionally scoped by `group_path` and `unit_name`, and never connects to TIA or refreshes the index. Each result includes `source_kind: "index_cache"`, catalog and acquisition timestamps, object hash, cache state, freshness and `write_baseline: false`. Uncached, ambiguous, missing and corrupt objects are explicit failures. Known stale snapshots remain readable for analysis, labeled `known_stale`. Success covers only the requested names, not the entire project or live freshness. Live reads never silently fall back to cache; engineering writes still require live baselines.
+
+Use `format: "readable"` for an anchored structural view: network number/title/comment, CompileUnit ID, UIds, symbols, normally open/closed and edge contacts, S/R coils, call instances/parameters and port connections. Basic contacts/coils and explicit OR nodes also produce AND/OR/NOT condition trees. Calls, edges, complex addressing and unsupported topology are not guessed into Boolean expressions. GRAPH preserves steps, transitions, attributes and connections, and renders embedded FlgNet conditions with the same model. Unsupported actions/instructions retain `OPAQUE_NODE` markers and local raw XML; gaps and malformed wiring produce explicit warnings.
+
+The default is five networks per block. Continue with `network_offset` and `network_limit` (1–20). `view_summary` reports pagination and coverage, `view` holds the structural tree, and `readable_text` serves text-only agents. This release is an evidence-preserving reader, not a full decompiler, semantic editor, dependency-sorted importer or simulation scenario runner.
+
+### 4.12: restricted LAD / GRAPH edits and two-project comparison
+
+Three MCP entry points are available; this release does not add a Web page:
+
+- `tia_read_logic_patch_plan`: preview a contact edit from a live export. Pass an existing `plan_id` to inspect the saved plan and execution receipt without connecting to TIA.
+- `tia_write_logic_patch`: apply the reviewed plan with `confirm: true`.
+- `tia_compare_projects`: compare selected program groups in two projects, with block, interface and network differences.
+
+Restricted editing currently targets **V17**. Select a LAD `compile_unit_id`, or a GRAPH `sequence_index` (zero-based) plus `transition` number, and a `contact_uid` from a live read. `edit_json` may replace the direct symbolic operand using `scope` (`GlobalVariable` or `LocalVariable`) and `components`, and/or set `negated` (true means normally closed). It cannot rewrite arbitrary Boolean expressions, shared operands, edge contacts, arrays, indirect addressing, actions or network topology. V21 retains its existing write tools.
+
+Plans in `logs/logic-plans/` bind the project, PLC, full-block fingerprint and exact edit. Applying rechecks the live baseline, backs up before importing, compiles and verifies a full readback. Only `verified_unsaved` indicates all checks passed; it is not a proof of logical safety. There is no automatic project save, PLC download, retry or rollback. Failed or interrupted writes retain their evidence and cannot replay the same plan. Query the plan to inspect results; stale baselines require a new preview.
+
+Comparison requires `project_path_a/plc_name_a` and `project_path_b/plc_name_b`. Optional `group_path_a/group_path_b` select group roots; matching uses relative group paths and exact block names. V21 supports optional `unit_name_a/unit_name_b`. Choose `read_mode: "live"` (default) or explicit `"cache"`. Only successful, complete live catalogs establish absence. Missing cache entries, uncached sources, ambiguous identities and read failures remain unknown, never confirmed deletions.
+
+Pages default to 10 blocks (`limit`: 1–20). Continue with `next_offset` and the returned `catalog_token`; catalog changes reject mixed pages. Each block displays up to 200 structural changes with explicit total/truncation fields; read its source for complete evidence. Hashes, read/acquisition timestamps, cache freshness and parser warnings remain attached. Reads are sequential, not an atomic two-project snapshot. Scope is PLC program blocks only, excluding HMI, hardware, cross-block impact and download reinitialization. Renames appear as remove/add. Unsupported semantics, including GRAPH control flow, retain conservative XML differences rather than an equivalence claim.
+
+The existing V21 catalog interface does not prove container-read completeness, so one-sided absences remain unconfirmed. An empty software-unit selector compares ordinary blocks only; it never mixes other units into the same scope.
+
+### 4.13: simulation diagnostics and condition-driven scenarios
+
+V17 `tia_simulation_download` defaults to read-only preflight. It checks owned local instance identity/state, Softbus interface and target uniqueness, addresses, TIA online state and simulation compilation settings. `blockers` distinguish confirmed facts from unavailable checks. Preflight does not compile, modify settings or switch TIA offline; `compile_status` explicitly says compilation has not been checked. Actual download requires `dry_run:false` and `confirm:true`, compiles first and issues at most one download. No automatic retry, RUN or project save. Phase evidence, native messages, decisions and attempt state are persisted in `simulation-downloads/`; an unfinished `download_intent` requires checking actual instance state. `InterfaceRemoved` is a symptom, not proof of a NIC mismatch. V21 behavior is unchanged.
+
+The existing `tia_simulation_peripheral_start` configuration now accepts `steps` and `watch`. A step waits until all `wait_until` equality conditions match, latches that observation, waits `delay_ms`, evaluates `checks`, then performs Bool `writes`. Checks therefore precede the same step's writes; use a following step for feedback assertions. Condition types are `bool/dint/udint/time/real`. Step timeout includes its wait and delay; total duration is also bounded. Steps execute alongside existing delayed peripheral rules, with conflicting writers rejected.
+
+Status includes step progress, observed tick cost, change events and per-variable final/failure snapshots with timestamps and individual read errors. Exceptions, failed checks and missed timing stop subsequent writes without retry/reset. Default status shows the latest 500 events; use `event_offset`, `event_limit` (1–500) and `next_event_offset` for the complete timeline. Summaries and `.jsonl` evidence live in `simulation-runs/`, survive restarts and include final/failure snapshots. The existing Web peripheral configuration accepts the same JSON. See [SIMULATION.md](SIMULATION.md) for a sample.
+
+20ms is the minimum requested interval, not a real-time guarantee. Use PLC-side latches/counters for one-scan pulses. Reads and failure snapshots are sequential, not atomic. Limits are 200 steps, 128 total tags and 20,000 events, with explicit stopping on overflow. Validation used fake transports and offline regression, not acceptance of the real OP275 process or physical hardware. Comparison summaries also now use compact relative paths, and logic comparison tests can run outside the repository directory.
+
+### 4.14: Web reading, comparison, restricted editing and simulation workflows
+
+The index opens block details with explicit cache/live provenance, network pagination, Boolean condition trees, raw XML and partial-coverage evidence. Kind filters use valid index categories. Diff adds two-project comparison and V17 restricted-contact workflows with before/after wiring, fingerprints, confirmation and durable receipt lookup.
+
+Simulation exposes managed download preflight, blockers, explicit compilation-support opt-in, confirmed download and phase evidence. Peripheral forms edit watches and conditional steps without opening JSON; preview is required before starting the current configuration. Step statistics, paged events and per-tag failure/final snapshots have dedicated views. Task center links to these records, including native logic plans and download receipts.
+
+Fixed same-origin routes under /api/io/workbench/ require a target token and dispatch only allowlisted operations. Mutations use persisted target-bound previews, run asynchronously, retain receipts in logs/workbench/ and never replay automatically. Losing a browser response does not establish that execution did not occur. New operations do not save the engineering project, switch TIA offline or download to physical hardware. Peripheral preview tokens are invalidated by configuration or instance changes.
+
+Navigation is grouped with uniform icons and a tool-count badge. Shutdown is moved to a menu with confirmation; PID is in the project tooltip. I/O has source badges, empty-state actions, hidden empty pagination and less repeated path text. Secondary navigation uses underline tabs, with responsive checks from 480px to desktop widths.
+
+### 4.15: I/O reading layout and day/night themes
+
+The header switches between day and night themes; dark remains the default and the browser remembers your choice. Themes affect the console, not engineering data or HMI design colors.
+
+I/O distinguishes initial, loading, failed, empty-source and empty-filter states. Filters and pagination stay hidden until useful. Connection refresh is labeled separately from data reads. Snapshot origin, acquisition/loading times and the absence of live PLC values are explicit; missing timestamp evidence stays unknown.
+
+Compact labeled Flex filters leave space for search. The table fills remaining viewport height with internal scrolling and sticky headers. Column widths and optional columns are configurable; names and addresses can be copied. Target details retain full raw identities, while repeated adjacent device names are deduplicated only for display. References open beside the table on wide screens and below it on narrow screens. Zero explicit references do not imply unused variables. Business APIs and engineering workflows are unchanged.
+
+Dashboard project discovery now runs in the background. Initial status requests report pending discovery instead of waiting for Openness; failures retain the previous list and report the error rather than implying projects were closed.

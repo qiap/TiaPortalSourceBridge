@@ -46,4 +46,12 @@ with tempfile.TemporaryDirectory(prefix='tia-routing-') as folder:
     failed = rpc(v21,engine/'mcp-config.json',[('tools/call',dict(name='unknown_fixture',arguments={}))])[0]
     tasks = read_tasks()
     check(failed['isError'] and any(t['action']=='unknown_fixture' and t['status']=='failed' and 'unknown_fixture' in t['message'] for t in tasks), 'direct V21 failure and reason visible to the main dashboard')
+    for exe,cfg in [(main,root/'mcp-config.json'),(v21,engine/'mcp-config.json')]:
+        compact = rpc(exe,cfg,[('tools/call',dict(name='tia_generate_lad',arguments=dict(base,response_mode='compact')))])[0]
+        text = '\n'.join(c.get('text','') for c in compact['content'])
+        check('RoutingCheck' in text and 'data.xml' in text, 'compact source evidence in text')
+        check(sum('data.xml' in c.get('text','') for c in compact['content']) == 1, 'one summary through routing')
+        bad = rpc(exe,cfg,[('tools/call',dict(name='unknown_summary_fixture',arguments={}))])[0]
+        text = '\n'.join(c.get('text','') for c in bad['content'])
+        check(bad['diagnostic']['code']=='INVALID_ARGUMENT' and 'INVALID_ARGUMENT' in text, 'typed error visible in both channels')
     print('PASS: %d dual-engine protocol, execution log and routing checks (no TIA connection).' % checks)

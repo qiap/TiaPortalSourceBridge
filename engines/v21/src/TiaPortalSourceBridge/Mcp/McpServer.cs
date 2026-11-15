@@ -117,6 +117,7 @@ namespace TiaPortalSourceBridge.Mcp
                 {
                     var result = ExecuteLoggedTool(name, arguments);
                     if (StringArg(arguments, "response_mode") == "compact") CompactResponse(result);
+                        ToolTextSummary.Apply(name, arguments, result);
                     metrics.Attach(result);
                     WriteResult(id, result);
                 }
@@ -214,6 +215,10 @@ namespace TiaPortalSourceBridge.Mcp
             AppConfig config = NewProjectConfig(projectPath, StringArg(args, "plc_name"), StringArg(args, "source_directory"));
 
             if (IsIndexTool(name)) return CallIndexTool(name, args, config);
+            if (IsBlockSnapshotRead(name)) {
+                BlockReadNames(name,args);
+                if (BlockReadMode(args)=="cache") return ReadCachedBlocks(name,args,config);
+            }
             PrepareIndexContext(name, args, config);
 
             OpennessSession session = Connect(config);
@@ -249,10 +254,11 @@ namespace TiaPortalSourceBridge.Mcp
                     if (!dryRun) RequireConfirmation(args, "批量写入 HMI 画面、变量等组态会修改离线工程");
                     bool compile = BoolArg(args, "compile", true);
                     HmiContext target = session.SelectHmi(StringArg(args, "hmi_name"));
-                    var result = new HmiOperations(session, target).Write(StringArg(args, "objects_json"), Path.Combine(Path.GetDirectoryName(_configPath), "hmi-backups"), BoolArg(args, "skip_unchanged", true), dryRun);
+                    var result = new HmiOperations(session, target).Write(StringArg(args, "objects_json"), Path.Combine(Path.GetDirectoryName(_configPath), "hmi-backups"), BoolArg(args, "skip_unchanged", true), dryRun, StringArg(args, "connection_plcs_json"));
                     bool failed = Convert.ToInt32(result["failure_count"]) > 0;
                     result["compiled"] = false;
-                    if (!dryRun && !failed && compile && Convert.ToInt32(result["success_count"]) > 0) try
+                    if(!dryRun&&!failed&&compile&&!HmiOperations.NeedsCompile(result))result["compile_skipped_reason"]="no_changes";
+                    if (!dryRun && !failed && compile && HmiOperations.NeedsCompile(result)) try
                     {
                         CompileSummary summary = session.CompileHmi(target); result["compiled"] = true;
                         result["error_count"] = summary.ErrorCount; result["warning_count"] = summary.WarningCount; result["compile_report"] = summary.ToReport(); failed |= summary.ErrorCount > 0;
@@ -575,11 +581,10 @@ namespace TiaPortalSourceBridge.Mcp
                         StringArg(args, "rename_json"), StringArg(args, "group_names_json"), Path.Combine(Path.GetDirectoryName(_configPath), "group-backups"), unitName);
                     return ToolResult("程序块组整理完成；未保存、未改块内容、未下载。", false, result);
                 }
-                if (name == "tia_read_block")
-                {
-                    string xml = ops.Read(StringArg(args, "block_name"), StringArg(args, "group_path"), unitName, stripDocInfo);
-                    return ToolResult(xml, false, Dict("xml", xml));
-                }
+                if (IsBlockSnapshotRead(name))
+                    return ReadLiveBlocks(name,args,config,
+                        blockName => ops.Read(blockName, StringArg(args,"group_path"), unitName, stripDocInfo),
+                        blockName => { string extension,group;string source=ops.ReadSource(blockName,StringArg(args,"group_path"),out extension,out group,unitName);return Dict("source",source,"extension",extension,"group_path",group); });
                 if (name == "tia_read_source")
                 {
                     string ext;
@@ -1097,7 +1102,7 @@ namespace TiaPortalSourceBridge.Mcp
                     ObjectSchema(Property("project_path", project), Property("hmi_name", StringProperty("HMI 完整名称或精确别名")), Property("kind", StringProperty("all/screens/screen_templates/popup_screens/slidein_screens/tag_tables/scripts/text_lists/graphic_lists/cycles/connections")),
                         Property("name_filter", StringProperty("名称关键字")), Property("group_prefix", StringProperty("组路径前缀")), Property("include_xml", BooleanProperty("返回 XML，默认 false")), Property("include_model", BooleanProperty("返回完整节点模型，默认 false"))), true, false, true),
                 Tool("tia_write_hmi_configuration", "默认只预检查经典 HMI；整批校验后写入并强制回读核对类型和绑定。尝试 V21 事务，回滚状态需核验。不保存、不下载。",
-                    ObjectSchema(new[] { "objects_json" }, Property("project_path", project), Property("hmi_name", StringProperty("HMI 完整名称或精确别名")), Property("objects_json", StringProperty("对象数组，每项 kind/group_path/xml 或 model；变量必须明确 DataType/HmiDataType")), Property("dry_run", BooleanProperty("默认 true：只预检查；实际写入必须 dry_run=false 且 confirm=true")),
+                    ObjectSchema(new[] { "objects_json" }, Property("project_path", project), Property("hmi_name", StringProperty("HMI 完整名称或精确别名")), Property("objects_json", StringProperty("对象数组，每项 kind/group_path/xml 或 model；变量必须明确 DataType/HmiDataType")), Property("connection_plcs_json", StringProperty("可选 JSON 对象：已在工程中核对的连接名到 PLC 精确名称，例如 {\"HMI_连接_1\":\"PLC_1\"}。用于新增基础类型 DB 绑定的实时导出核验；不能据此推断集成连接伙伴。")), Property("dry_run", BooleanProperty("默认 true：只预检查；实际写入必须 dry_run=false 且 confirm=true")),
                         Property("compile", BooleanProperty("默认 true")), Property("skip_unchanged", BooleanProperty("默认 true；严格比较对象 XML 完全相同时跳过导入。")), Property("confirm", BooleanProperty("确认写入离线 HMI 组态"))), false, true, false),
                 Tool("tia_disconnect", "释放指定项目连接，保留其他项目连接。不保存、不关闭用户项目；多个项目时必须传 project_path。", ObjectSchema(Property("project_path", project)), false, false, true),
                 Tool("tia_list_software_units", "列出 PLC 中的所有 TIA V21 Software Units（含 SafetyUnits）、预设命名空间（NamespacePreset）、块/类型/变量表数量及单元间关系（Relations）。",
@@ -1177,8 +1182,12 @@ namespace TiaPortalSourceBridge.Mcp
                     Property("group_names_json", StringProperty("需补齐的直属组名称JSON数组")), Property("confirm", BooleanProperty("确认整理离线工程的组"))), false, false, true),
                 Tool("tia_read_block", "读取单个程序块的 SimaticML XML（支持 V21 FlgNet/v5 与 strip_document_info 纯净导出）。", ObjectSchema(new[] { "block_name" },
                     Property("project_path", project), Property("plc_name", plc), Property("unit_name", unitProp), Property("block_name", StringProperty("程序块名称（大小写不敏感）")),
+                    Property("read_mode",StringProperty("live（默认）或 cache；缓存只用于分析，不作为写入基准")),
+                    Property("format",StringProperty("xml（默认）或 readable（带原文锚点的结构化接线视图）")),
+                    Property("network_offset",Dict("type","integer","minimum",0)),Property("network_limit",Dict("type","integer","minimum",1,"maximum",20)),
                     Property("group_path", StringProperty("可选组路径，用 / 分隔；提供后可极速直达查找。")),
                     Property("strip_document_info", stripDocProp)), true, false, true),
+                Tool("tia_read_blocks_batch","批量读取混合语言程序块；auto 返回 SCL/DB 源码和 LAD/GRAPH XML，readable 返回网络接线结构。逐项返回失败和缓存证据。",MixedReadSchema(),true,false,true),
                 Tool("tia_read_source", "读取单个 SCL/STL/DB 程序块或 UDT 数据类型的传统外部文本源码（.scl/.db/.udt/.awl）。V21 亦推荐使用 tia_read_document。", ObjectSchema(new[] { "block_name" },
                     Property("project_path", project), Property("plc_name", plc), Property("unit_name", unitProp), Property("block_name", StringProperty("程序块或 UDT 名称")),
                     Property("group_path", StringProperty("可选组路径，用 / 分隔。"))), true, false, true),

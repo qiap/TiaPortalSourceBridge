@@ -56,7 +56,7 @@ internal static class ReviewServerChecks
             var capture=new Dictionary<string,object>(target){{"label","Baseline"}};var saved=Request(server,listener,url,"/api/io/review/capture","POST",capture,200);
             var compare=new Dictionary<string,object>(target){{"before_id",saved["id"]},{"after_id",saved["id"]}};var diff=Request(server,listener,url,"/api/io/review/compare","POST",compare,200);Check(((ArrayList)diff["objects"]).Count==0,"identical independently persisted snapshots compare empty");
             compare["before_id"]="../bad";Request(server,listener,url,"/api/io/review/compare","POST",compare,409);
-            foreach(string route in new[]{"monitor/connect","source-write/apply","peripheral/start","hmi-companion/preview"}){
+            foreach(string route in new[]{"monitor/connect","source-write/apply","peripheral/start","hmi-companion/preview","hmi-editor/read","hmi-editor/preview","hmi-editor/apply","hmi-editor/status"}){
                 Request(server,listener,url,"/api/io/"+route,"POST",invalid,409);
                 Request(server,listener,url,"/api/io/"+route,"POST",body,403,"http://evil.invalid");
             }
@@ -65,9 +65,34 @@ internal static class ReviewServerChecks
             var sourceRequest=new Dictionary<string,object>(target){{"id",sourcePlan.id},{"confirm",false},{"fingerprint",XmlBatch.Hash(CylinderWritePipeline.Json().Serialize(sourcePlan))}};
             Request(server,listener,url,"/api/io/source-write/apply","POST",sourceRequest,409);Request(server,listener,url,"/api/io/source-write/restore-preview","POST",sourceRequest,409);
             sourceRequest["confirm"]=true;Request(server,listener,url,"/api/io/source-write/apply","POST",sourceRequest,409);Check(!File.Exists(Path.Combine(sourceDir,sourcePlan.id+".submitted")),"unsupported source plan not submitted");
+            var reopened=Request(server,listener,url,"/api/io/source-write/status","POST",sourceRequest,200);
+            Check(Text(reopened,"state")=="preview"&&!CylinderWritePipeline.True(reopened,"can_apply"),"unsubmitted source draft reopens for review without authorization");
+            string taskQuery="/api/io/tasks?project_path="+Uri.EscapeDataString(project)+"&plc_name=PLC&target_token="+Uri.EscapeDataString(Text(target,"target_token"));
+            var catalog=Request(server,listener,url,taskQuery,"GET",null,200);
+            Check(CylinderWritePipeline.Rows(catalog,"jobs").Any(r=>Text(r,"id")==sourcePlan.id&&Text(r,"state")=="preview"),"source draft visible without manual identifier");
+            string unrelated=Guid.NewGuid().ToString("N");File.WriteAllText(Path.Combine(sourceDir,unrelated+".plan.json"),CylinderWritePipeline.Json().Serialize(D("id",unrelated,"project_path",project,"plc_name","OtherPLC")));
+            File.WriteAllText(Path.Combine(sourceDir,sourcePlan.id+".json"),CylinderWritePipeline.Json().Serialize(D("state","importing","saved",false)));
+            catalog=Request(server,listener,url,taskQuery,"GET",null,200);
+            Check(!CylinderWritePipeline.Rows(catalog,"jobs").Any(r=>Text(r,"id")==unrelated),"task catalog isolates PLC identity");
+            Check(CylinderWritePipeline.Rows(catalog,"jobs").Any(r=>Text(r,"id")==sourcePlan.id&&Text(r,"state")=="unknown"),"orphaned running record is not asserted active or successful");
+            Request(server,listener,url,taskQuery,"GET",null,403,"http://evil.invalid");
+            Request(server,listener,url,"/api/io/tasks?project_path="+Uri.EscapeDataString(project)+"&plc_name=PLC&target_token=wrong","GET",null,409);
+            Request(server,listener,url,"/api/io/tasks","POST",target,405);
             var graphRequest=new Dictionary<string,object>(target){{"id",saved["id"]}};Request(server,listener,url,"/api/io/review/graph-list","POST",graphRequest,200);
             graphRequest["object_id"]="missing";Request(server,listener,url,"/api/io/review/graph","POST",graphRequest,409);
             string v21=Path.Combine(root,"Fixture.ap21");File.WriteAllText(v21,"");var unsupported=new Dictionary<string,object>(body);unsupported["project_path"]=v21;unsupported["target_token"]=targets.Sign(v21,"PLC");Request(server,listener,url,"/api/io/tag-review/preview","POST",unsupported,409);
+            Request(server,listener,url,"/api/io/hmi-editor/read","POST",unsupported,409);
+            Request(server,listener,url,"/api/io/hmi-editor/catalog","GET",null,405);
+            var editorRequest=new Dictionary<string,object>(target){{"hmi_name","HMI"},{"job_id","../escape"}};
+            Request(server,listener,url,"/api/io/hmi-editor/status","POST",editorRequest,409);
+            Request(server,listener,url,"/api/io/hmi-editor/read","POST",editorRequest,409);
+            string editorDir=Path.Combine(root,"logs","hmi-editor"),editorId=Guid.NewGuid().ToString("N");Directory.CreateDirectory(editorDir);
+            var editorJob=new Dictionary<string,object>(target){{"hmi_name","HMI"},{"job_id",editorId},{"action","apply"}};
+            File.WriteAllText(Path.Combine(editorDir,editorId+".job.json"),CylinderWritePipeline.Json().Serialize(editorJob));editorRequest["job_id"]=editorId;
+            Check(Text(Request(server,listener,url,"/api/io/hmi-editor/status","POST",editorRequest,200),"state")=="unknown","missing final write result remains unknown");
+            editorJob["state"]="completed";editorJob["saved"]=true;File.WriteAllText(Path.Combine(editorDir,editorId+".result.json"),CylinderWritePipeline.Json().Serialize(editorJob));
+            Check(Text(Request(server,listener,url,"/api/io/hmi-editor/status","POST",editorRequest,200),"state")=="completed","durable native final result recovered");
+            editorRequest["hmi_name"]="Other";Request(server,listener,url,"/api/io/hmi-editor/status","POST",editorRequest,409);
             Check(File.ReadAllText(project)=="fixture"&&!Directory.Exists(Path.Combine(root,"block-backups")),"HTTP tests perform no engineering writes or backups");
             Check(lanes["tia"].actionName=="offline-test-sentinel","existing engineering task untouched");
         }finally{lanes.Remove("tia");listener.Close();}

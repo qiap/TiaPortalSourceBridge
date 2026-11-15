@@ -31,6 +31,8 @@ internal static class ReliabilityChecks
     {
         string root = Path.Combine(Path.GetTempPath(), "tia-reliability-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(root);
         try {
+            foreach (string scope in new[] { "PLC", "HMI", "Hardware", "All" }) Check(ActionRunner.IsIndexScope(scope), "accept index scope " + scope);
+            Check(!ActionRunner.IsIndexScope("All -Command bad") && !ActionRunner.IsIndexScope(""), "reject invalid index arguments");
             string a = Path.Combine(root, "A.ap17"), b = Path.Combine(root, "B.ap21");
             var guard = new ActionTarget(); string token = guard.Sign(a, "Station/CPU");
             Check(guard.Verify(a, "Station/CPU", token), "snapshot remains valid after another tab selects B");

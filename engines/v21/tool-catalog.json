@@ -697,6 +697,10 @@
                                                                     "type":  "string",
                                                                     "description":  "对象数组，每项 kind/group_path/xml 或 model；变量必须明确 DataType/HmiDataType"
                                                                 },
+                                               "connection_plcs_json":  {
+                                                                            "type":  "string",
+                                                                            "description":  "可选 JSON 对象：已在工程中核对的连接名到 PLC 精确名称，例如 {\"HMI_连接_1\":\"PLC_1\"}。用于新增基础类型 DB 绑定的实时导出核验；不能据此推断集成连接伙伴。"
+                                                                        },
                                                "dry_run":  {
                                                                "type":  "boolean",
                                                                "description":  "默认 true：只预检查；实际写入必须 dry_run=false 且 confirm=true"
@@ -1577,6 +1581,23 @@
                                                                   "type":  "string",
                                                                   "description":  "程序块名称（大小写不敏感）"
                                                               },
+                                               "read_mode":  {
+                                                                 "type":  "string",
+                                                                 "description":  "live（默认）或 cache；缓存只用于分析，不作为写入基准"
+                                                             },
+                                               "format":  {
+                                                              "type":  "string",
+                                                              "description":  "xml（默认）或 readable（带原文锚点的结构化接线视图）"
+                                                          },
+                                               "network_offset":  {
+                                                                      "type":  "integer",
+                                                                      "minimum":  0
+                                                                  },
+                                               "network_limit":  {
+                                                                     "type":  "integer",
+                                                                     "minimum":  1,
+                                                                     "maximum":  20
+                                                                 },
                                                "group_path":  {
                                                                   "type":  "string",
                                                                   "description":  "可选组路径，用 / 分隔；提供后可极速直达查找。"
@@ -1601,6 +1622,75 @@
                         },
         "annotations":  {
                             "title":  "tia_read_block",
+                            "readOnlyHint":  true,
+                            "destructiveHint":  false,
+                            "idempotentHint":  true,
+                            "openWorldHint":  false
+                        }
+    },
+    {
+        "name":  "tia_read_blocks_batch",
+        "description":  "批量读取混合语言程序块；auto 返回 SCL/DB 源码和 LAD/GRAPH XML，readable 返回网络接线结构。逐项返回失败和缓存证据。",
+        "inputSchema":  {
+                            "type":  "object",
+                            "properties":  {
+                                               "project_path":  {
+                                                                    "type":  "string",
+                                                                    "description":  "目标工程路径"
+                                                                },
+                                               "plc_name":  {
+                                                                "type":  "string",
+                                                                "description":  "目标 PLC 完整路径；缓存读取必填"
+                                                            },
+                                               "unit_name":  {
+                                                                 "type":  "string",
+                                                                 "description":  "软件单元；V17 实时读取不支持"
+                                                             },
+                                               "group_path":  {
+                                                                  "type":  "string",
+                                                                  "description":  "共同组路径；不自动选择同名块"
+                                                              },
+                                               "block_names":  {
+                                                                   "type":  "array",
+                                                                   "minItems":  1,
+                                                                   "maxItems":  30,
+                                                                   "items":  {
+                                                                                 "type":  "string"
+                                                                             }
+                                                               },
+                                               "read_mode":  {
+                                                                 "type":  "string",
+                                                                 "description":  "live（默认）或 cache（只读快照，不连接博途）"
+                                                             },
+                                               "format":  {
+                                                              "type":  "string",
+                                                              "description":  "auto（SCL/DB 文本，其余 XML）、xml 或 readable"
+                                                          },
+                                               "network_offset":  {
+                                                                      "type":  "integer",
+                                                                      "minimum":  0
+                                                                  },
+                                               "network_limit":  {
+                                                                     "type":  "integer",
+                                                                     "minimum":  1,
+                                                                     "maximum":  20
+                                                                 },
+                                               "response_mode":  {
+                                                                     "type":  "string",
+                                                                     "enum":  [
+                                                                                  "full",
+                                                                                  "compact"
+                                                                              ],
+                                                                     "description":  "默认 full 保持兼容；compact 不在文本内容中重复 structuredContent 已包含的 XML/源码，减少响应体积。"
+                                                                 }
+                                           },
+                            "required":  [
+                                             "block_names"
+                                         ],
+                            "additionalProperties":  false
+                        },
+        "annotations":  {
+                            "title":  "tia_read_blocks_batch",
                             "readOnlyHint":  true,
                             "destructiveHint":  false,
                             "idempotentHint":  true,

@@ -18,7 +18,14 @@ namespace TiaPortalSourceBridge.Web
                 if(!File.Exists(project)||plc.Length==0||!actionTargets.Verify(project,plc,Text(map,"target_token")))throw new InvalidOperationException("工程或 PLC 目标已失效。");
                 if(AppConfig.DetectProjectVersion(project)!="V17")throw new InvalidOperationException("新增外设规则仅支持 V17；V21 仿真能力保持原有范围。");
                 if(action=="start"&&shutdownRequested)throw new InvalidOperationException("看板正在退出。");
-                var args=new Dictionary<string,object>{{"project_path",project},{"instance_name",Text(map,"instance_name")},{"portal_version","V17"},{"run_id",Text(map,"run_id")}};
+                var args=new Dictionary<string,object>{{"project_path",project},{"plc_name",plc},{"instance_name",Text(map,"instance_name")},{"portal_version","V17"},{"run_id",Text(map,"run_id")}};
+                if(action=="preview"||action=="start"){
+                    string configText=Text(map,"configuration_json");var parsed=Simulation.ScenarioModel.Parse(configText);
+                    string binding=plc+"\nperipheral\n"+Text(map,"instance_name")+"\n"+XmlBatch.Hash(configText);
+                    if(action=="preview"){SendJson(response,200,new{state="preview",configuration=parsed,preview_token=actionTargets.Sign(project,binding),note="配置结构已校验；启动时仍须实时核对受管 Softbus 实例、RUN 状态与全部变量。未写入。"});return true;}
+                    if(!actionTargets.Verify(project,binding,Text(map,"preview_token")))throw new InvalidOperationException("请先预览当前配置，修改配置或实例后必须重新预览。");
+                }
+                if(action=="status")foreach(string key in new[]{"event_offset","event_limit"}){object value;if(map.TryGetValue(key,out value))args[key]=value;}
                 if(action=="export"){
                     Guid id;if(!Guid.TryParseExact(Text(map,"run_id"),"N",out id))throw new ArgumentException("仿真编号无效。");string root=Path.Combine(Path.GetDirectoryName(_configPath),"simulation-runs"),file=SnapshotDiff.Confined(root,id.ToString("N")+".json");if(!File.Exists(file)||new FileInfo(file).Length>16*1024*1024)throw new InvalidOperationException("仿真记录缺失或过大。");
                     var record=CylinderWritePipeline.Json().Deserialize<Dictionary<string,object>>(File.ReadAllText(file));if(!PathsEqual(Text(record,"project_path"),project)||Text(record,"instance_name")!=Text(map,"instance_name"))throw new InvalidOperationException("仿真记录目标不一致。");

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -46,7 +46,9 @@ namespace TiaPortalSourceBridge.Mcp
             } catch (Exception ex) {
                 string message = RootMessage(ex);
                 if (log != null) log.Update(ex is TimeoutException ? "unknown" : "failed", message, true);
-                return ToolResult("操作失败：" + message, true, null);
+                var failure = ToolResult("操作失败：" + message, true, null);
+                failure["diagnostic"] = ToolTextSummary.Failure(name, args, ex, message);
+                return failure;
             } finally {
                 if (operation != null) operation.Dispose();
             }

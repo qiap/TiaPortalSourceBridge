@@ -62,8 +62,8 @@
   }
   filter.addEventListener('change', render);
   window.showExecutionLog = tab => {
-    if (tab !== 'dashboard' && tab !== 'logs') return;
-    document.getElementById(tab === 'dashboard' ? 'dashboardExecutionSlot' : 'logsExecutionSlot')
+    if (tab !== 'dashboard' && tab !== 'logs' && tab !== 'tasks') return;
+    document.getElementById(tab === 'dashboard' ? 'dashboardExecutionSlot' : tab === 'tasks' ? 'tasksExecutionSlot' : 'logsExecutionSlot')
       .appendChild(document.getElementById('executionJournal'));
     refresh();
   };

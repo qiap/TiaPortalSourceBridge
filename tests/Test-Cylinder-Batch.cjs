@@ -1,7 +1,7 @@
 // Real cylinder form, batch queue and apply flow, backed only by isolated HTTP fixtures.
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 function playwright(){for(const location of ['playwright',process.env.PLAYWRIGHT_MODULE,process.env.USERPROFILE&&path.join(process.env.USERPROFILE,'.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright')].filter(Boolean)){try{return require(location);}catch(e){if(e.code!=='MODULE_NOT_FOUND')throw e;}}throw new Error('Install Playwright or set PLAYWRIGHT_MODULE.');}
-const root=path.join(__dirname,'..'),html=fs.readFileSync(path.join(root,'web/index.html'),'utf8').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'');
+const root=path.join(__dirname,'..'),html=fs.readFileSync(path.join(root,'web/index.html'),'utf8').replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'').replace(/<link\b[^>]*href="\/(?:workspace|workbench|theme|io-layout)\.css"[^>]*>/gi,'');
 const scripts=['cylinder-model.js','cylinder-naming.js','cylinder.js','cylinder-batch.js','cylinder-apply.js'].map(file=>fs.readFileSync(path.join(root,'web',file),'utf8'));
 const pins=['i_Wpos','i_Hpos','oOutput_W','oOutput_H'],rules=Object.fromEntries(pins.map((pin,i)=>[pin,i<2?'input':'output']));
 const oldNames=['旧气缸伸出到位I1.0','旧气缸缩回到位I1.1','旧气缸伸出阀Q1.0','旧气缸缩回阀Q1.1'];

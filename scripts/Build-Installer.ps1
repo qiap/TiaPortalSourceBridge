@@ -49,9 +49,20 @@ foreach ($name in @('web','app.ico','app.png','LaunchWeb.vbs','CreateShortcuts.v
     Copy-Item -LiteralPath (Join-Path $root $name) -Destination $payload -Recurse
 }
 Get-ChildItem -LiteralPath $root -Filter '*.md' -File | Copy-Item -Destination $payload
+$payloadDocs = Join-Path $payload 'docs'
+New-Item -ItemType Directory -Force $payloadDocs | Out-Null
+Copy-Item -LiteralPath (Join-Path $root 'docs\HMI-Page-Editor.md') -Destination $payloadDocs
 Copy-Item -LiteralPath (Join-Path $root 'installer\INSTALL.txt') -Destination $payload
 Copy-Item -LiteralPath (Join-Path $root 'installer\PORTABLE.txt') -Destination $payload
 Copy-Item -LiteralPath (Join-Path $root 'WebDashboard.cmd') -Destination $payload
+Copy-Item -LiteralPath (Join-Path $root '虚拟机启动看板.bat') -Destination $payload
+Copy-Item -LiteralPath (Join-Path $root '连接虚拟机看板.bat') -Destination $payload
+Copy-Item -LiteralPath (Join-Path $root '虚拟机启用SSH.bat') -Destination $payload
+$payloadScripts = Join-Path $payload 'scripts'
+New-Item -ItemType Directory -Force $payloadScripts | Out-Null
+foreach ($vmScript in @('Start-VmDashboard.ps1', 'Connect-VmDashboard.ps1')) {
+    Copy-Item -LiteralPath (Join-Path $root ('scripts\' + $vmScript)) -Destination $payloadScripts
+}
 $main = Join-Path $payload "$binRelative\TiaPortalSourceBridge.exe"
 $v21 = Join-Path $payload "engines\v21\$binRelative\TiaPortalSourceBridge.exe"
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root 'tests\Test-ReleaseVersion.ps1') -MainExecutable $main -V21Executable $v21
@@ -79,6 +90,20 @@ try {
 }
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root 'tests\Run-Checks.ps1') -MainExecutable $main -V21Executable $v21
 if ($LASTEXITCODE -ne 0) { throw 'Offline checks failed' }
+# Protocol checks can write worker logs next to the packaged engine configuration.
+$payloadPath = (Resolve-Path -LiteralPath $payload).ProviderPath.TrimEnd('\') + '\'
+foreach ($relativeLogPath in @('logs', 'engines\v21\logs')) {
+    $logDirectory = Join-Path $payload $relativeLogPath
+    if (Test-Path -LiteralPath $logDirectory) {
+        $resolvedLogs = (Resolve-Path -LiteralPath $logDirectory).ProviderPath
+        if (-not $resolvedLogs.StartsWith($payloadPath, [StringComparison]::OrdinalIgnoreCase) -or
+            ($resolvedLogs -ne ($payloadPath + $relativeLogPath)) -or
+            ((Get-Item -LiteralPath $resolvedLogs).Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+            throw 'Unsafe package log path'
+        }
+        Remove-Item -LiteralPath $resolvedLogs -Recurse -Force
+    }
+}
 & $CompilerPath "/DPayloadDir=$payload" "/DOutputDir=$output" "/DAppVersion=$Version" (Join-Path $root 'installer\Setup.iss')
 if ($LASTEXITCODE -ne 0) { throw 'Installer compilation failed' }
 $exe = Join-Path $output "TiaPortalSourceBridge-$Version-Setup.exe"
@@ -90,6 +115,7 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 $archive = [IO.Compression.ZipFile]::OpenRead($zip)
 try {
     $entries = @($archive.Entries | ForEach-Object { $_.FullName.Replace('\','/') })
+    if ($entries -match '(^|/)(logs|simulation-sessions)(/|$)|\.log$') { throw 'Portable ZIP contains runtime artifacts.' }
     foreach ($launcher in @('创建快捷方式.bat','CreateShortcuts.vbs','LaunchWeb.vbs')) {
         if ("TiaPortalSourceBridge-$Version-Portable/$launcher" -cnotin $entries) {
             throw "Portable ZIP is missing launcher: $launcher"
