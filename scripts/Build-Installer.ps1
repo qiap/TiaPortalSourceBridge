@@ -58,9 +58,11 @@ Copy-Item -LiteralPath (Join-Path $root 'WebDashboard.cmd') -Destination $payloa
 Copy-Item -LiteralPath (Join-Path $root '虚拟机启动看板.bat') -Destination $payload
 Copy-Item -LiteralPath (Join-Path $root '连接虚拟机看板.bat') -Destination $payload
 Copy-Item -LiteralPath (Join-Path $root '虚拟机启用SSH.bat') -Destination $payload
+Copy-Item -LiteralPath (Join-Path $root '虚拟机SSH诊断.bat') -Destination $payload
+Copy-Item -LiteralPath (Join-Path $root '虚拟机安装宿主机公钥.bat') -Destination $payload
 $payloadScripts = Join-Path $payload 'scripts'
 New-Item -ItemType Directory -Force $payloadScripts | Out-Null
-foreach ($vmScript in @('Start-VmDashboard.ps1', 'Connect-VmDashboard.ps1')) {
+foreach ($vmScript in @('Start-VmDashboard.ps1', 'Connect-VmDashboard.ps1', 'VmAutoConnect.ps1', 'Install-VmHostKey.ps1', 'Test-VmSshSetup.ps1')) {
     Copy-Item -LiteralPath (Join-Path $root ('scripts\' + $vmScript)) -Destination $payloadScripts
 }
 $main = Join-Path $payload "$binRelative\TiaPortalSourceBridge.exe"
@@ -115,7 +117,10 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 $archive = [IO.Compression.ZipFile]::OpenRead($zip)
 try {
     $entries = @($archive.Entries | ForEach-Object { $_.FullName.Replace('\','/') })
-    if ($entries -match '(^|/)(logs|simulation-sessions)(/|$)|\.log$') { throw 'Portable ZIP contains runtime artifacts.' }
+    if ($entries -match '(^|/)(logs|simulation-sessions|vm-access|\.ssh)(/|$)|\.log$|/vm-connection[^/]*\.json$') { throw 'Portable ZIP contains runtime artifacts or local pairing data.' }
+    foreach ($vmFile in @('scripts/Start-VmDashboard.ps1','scripts/Connect-VmDashboard.ps1','scripts/VmAutoConnect.ps1','scripts/Install-VmHostKey.ps1','scripts/Test-VmSshSetup.ps1','虚拟机启动看板.bat','连接虚拟机看板.bat','虚拟机启用SSH.bat','虚拟机SSH诊断.bat','虚拟机安装宿主机公钥.bat')) {
+        if ("TiaPortalSourceBridge-$Version-Portable/$vmFile" -cnotin $entries) { throw "Portable ZIP is missing VM component: $vmFile" }
+    }
     foreach ($launcher in @('创建快捷方式.bat','CreateShortcuts.vbs','LaunchWeb.vbs')) {
         if ("TiaPortalSourceBridge-$Version-Portable/$launcher" -cnotin $entries) {
             throw "Portable ZIP is missing launcher: $launcher"

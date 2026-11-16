@@ -26,6 +26,8 @@ foreach ($test in @('Test-WorkbenchServer.ps1','Test-LogicCompare.ps1','Test-Blo
 if ($LASTEXITCODE -ne 0) { throw 'Release version checks failed' }
 & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-VmTunnel.ps1') -MainExecutable $MainExecutable
 if ($LASTEXITCODE -ne 0) { throw 'VM tunnel checks failed' }
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-VmAutoConnect.ps1')
+if ($LASTEXITCODE -ne 0) { throw 'VM automatic connection checks failed' }
 & python (Join-Path $PSScriptRoot 'Test-VersionRouting.py') $MainExecutable $V21Executable
 if ($LASTEXITCODE -ne 0) { throw 'Version routing checks failed' }
 & python (Join-Path $PSScriptRoot 'Test-BlockReadProtocol.py') $MainExecutable $V21Executable

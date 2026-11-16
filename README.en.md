@@ -1,4 +1,4 @@
-﻿# TIA Portal Source Bridge
+# TIA Portal Source Bridge
 
 [简体中文](README.md) | **English**
 
@@ -31,16 +31,16 @@ For the current tool list and parameters, use the dashboard's **MCP tool diction
 
 You do not need to download the source or compile the application. Choose either package:
 
-v4.15.0 is available as a portable Windows package. For an installer, choose an earlier release and check its release notes for included features.
+v4.15.1 is available as a portable Windows package. For an installer, choose an earlier release and check its release notes for included features.
 
 | Package | Download | How to run |
 | --- | --- | --- |
-| Portable ZIP | [Download v4.15.0 Portable.zip](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.15.0/TiaPortalSourceBridge-4.15.0-Portable.zip) | Extract the entire archive, then double-click `WebDashboard.cmd` or `LaunchWeb.vbs` |
+| Portable ZIP | [Download v4.15.1 Portable.zip](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.15.1/TiaPortalSourceBridge-4.15.1-Portable.zip) | Extract the entire archive, then double-click `WebDashboard.cmd` or `LaunchWeb.vbs` |
 | Windows installer | [Choose Setup.exe in Releases](https://github.com/qiap/TiaPortalSourceBridge/releases) | Run the installer, then open the application from the desktop or Start menu |
 
 Both packages include the V17/V21 engines, default configuration, and runtime templates. Open your project in TIA Portal first, then select the project and PLC in the dashboard. The target computer must meet the requirements below.
 
-[All releases and release notes](https://github.com/qiap/TiaPortalSourceBridge/releases) · The v4.15.0 release notes include the portable ZIP's SHA-256.
+[All releases and release notes](https://github.com/qiap/TiaPortalSourceBridge/releases) · The v4.15.1 release notes include the portable ZIP's SHA-256.
 
 GitHub's **Code → Download ZIP** and the automatically generated **Source code** release archives contain source code, not a ready-to-run application. For portable use, download **Portable.zip** above. The EXE installer is currently unsigned.
 

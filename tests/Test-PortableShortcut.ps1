@@ -9,6 +9,8 @@ $launcher = Join-Path (Split-Path -Parent $exe) 'TiaPortalDashboard.exe'
 $config = Join-Path $root 'config.json'
 $path = Join-Path $root 'TIA Portal Source Bridge.lnk'
 $script = Join-Path $root 'CreateShortcuts.vbs'
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root 'scripts\Start-VmDashboard.ps1') -CheckOnly -Config $config
+if ($LASTEXITCODE -ne 0) { throw 'Packaged VM launcher or its helper dependencies failed.' }
 & cscript.exe //nologo $script /folder-only
 if ($LASTEXITCODE -ne 0) { throw 'Shortcut generator failed' }
 for ($i=0; !(Test-Path -LiteralPath $path) -and $i -lt 60; $i++) { Start-Sleep -Milliseconds 200 }

@@ -1,4 +1,4 @@
-﻿# TIA Portal Source Bridge
+# TIA Portal Source Bridge
 
 **简体中文** | [English](README.en.md)
 
@@ -33,16 +33,16 @@
 
 普通用户无需下载源码或自行编译，选择一种方式即可：
 
-v4.15.0 提供 Windows 便携包。安装版可在历史版本中选择，功能以对应版本的发布说明为准。
+v4.15.1 提供 Windows 便携包。安装版可在历史版本中选择，功能以对应版本的发布说明为准。
 
 | 方式 | 下载 | 使用方法 |
 | --- | --- | --- |
-| ZIP 免安装版 | [下载 v4.15.0 Portable.zip](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.15.0/TiaPortalSourceBridge-4.15.0-Portable.zip) | 完整解压后双击 `WebDashboard.cmd` 或 `LaunchWeb.vbs` |
+| ZIP 免安装版 | [下载 v4.15.1 Portable.zip](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.15.1/TiaPortalSourceBridge-4.15.1-Portable.zip) | 完整解压后双击 `WebDashboard.cmd` 或 `LaunchWeb.vbs` |
 | EXE 安装版 | [在 Releases 中选择 Setup.exe](https://github.com/qiap/TiaPortalSourceBridge/releases) | 运行安装程序，通过桌面或开始菜单打开 |
 
 两种方式均包含 V17/V21 引擎、默认配置和运行模板。先在 TIA Portal 中打开工程，再在看板选择工程和 PLC；目标电脑需满足下面的运行环境要求。
 
-[全部版本与发布说明](https://github.com/qiap/TiaPortalSourceBridge/releases) · v4.15.0 便携包的 SHA-256 在发布说明中。
+[全部版本与发布说明](https://github.com/qiap/TiaPortalSourceBridge/releases) · v4.15.1 便携包的 SHA-256 在发布说明中。
 
 GitHub 的 **Code → Download ZIP** 和 Release 中自动生成的 **Source code** 是源码压缩包；需要解压即用，请选择上面的 **Portable.zip**。EXE 安装包目前未做代码签名。
 
