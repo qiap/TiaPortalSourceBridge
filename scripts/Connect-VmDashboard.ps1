@@ -21,6 +21,10 @@ try {
 } catch {}
 
 $toolRoot = Split-Path -Parent $PSScriptRoot
+. (Join-Path $PSScriptRoot 'VmAutoConnect.ps1')
+$automatic = $false
+$knownHosts = ''
+$discoveredExe = ''
 $defaultConnFile = Join-Path $toolRoot 'vm-connection.json'
 $useSavedFile = -not $NoSave
 if ($PSBoundParameters.ContainsKey('ConnectionFile')) {
@@ -46,6 +50,22 @@ if ($useSavedFile -and (Test-Path -LiteralPath $ConnectionFile)) {
 }
 
 $shouldSave = $false
+if (-not $Configure -and -not $DryRun -and -not $NoSave -and
+    -not $PSBoundParameters.ContainsKey('Target') -and -not $PSBoundParameters.ContainsKey('ConnectionFile')) {
+    $identity = Initialize-VmHostIdentity $toolRoot
+    $discovered = Resolve-VmEndpoint $toolRoot $identity
+    $Target = $discovered.target
+    $SshPort = [int]$discovered.record.sshPort
+    $RemotePort = [int]$discovered.record.remotePort
+    $LocalPort = $RemotePort
+    $VmToolDir = $discovered.record.toolDir
+    $IdentityFile = $identity.identityFile
+    $knownHosts = $discovered.knownHosts
+    $discoveredExe = $discovered.record.executable
+    $automatic = $true
+    $shouldSave = $true
+    Write-Host ('[VM] 已自动找到 {0}，正在使用已授权密钥连接。' -f $Target)
+}
 if ($Configure -or [string]::IsNullOrWhiteSpace($Target)) {
     if ($DryRun -and [string]::IsNullOrWhiteSpace($Target)) {
         throw 'DryRun 模式下需要提供 -Target（例如 Administrator@192.168.56.101）。'
@@ -126,13 +146,23 @@ function Build-SshTunnelArgs {
     if (-not [string]::IsNullOrWhiteSpace($IdentityFile)) {
         $list.Add('-i'); $list.Add($IdentityFile)
     }
+    if ($automatic) {
+        $logDir = Join-Path $env:LOCALAPPDATA 'TiaPortalSourceBridge'
+        [IO.Directory]::CreateDirectory($logDir) | Out-Null
+        $list.Add('-E'); $list.Add((Join-Path $logDir 'vm-ssh.log'))
+        foreach ($option in @('BatchMode=yes','IdentitiesOnly=yes','StrictHostKeyChecking=yes',('UserKnownHostsFile=' + $knownHosts),'ConnectTimeout=8')) {
+            $list.Add('-o'); $list.Add($option)
+        }
+    }
     $list.Add('-L'); $list.Add(("127.0.0.1:{0}:127.0.0.1:{1}" -f $LocalPort, $RemotePort))
     $list.Add($Target)
     return @($list)
 }
 
 function Build-McpRemoteSnippet {
-    $vmExe = if ([string]::IsNullOrWhiteSpace($VmToolDir)) {
+    $vmExe = if ($discoveredExe) {
+        $discoveredExe
+    } elseif ([string]::IsNullOrWhiteSpace($VmToolDir)) {
         '<虚拟机工具目录>\src\TiaPortalSourceBridge\bin\Release\net48\TiaPortalSourceBridge.exe'
     } else {
         $trimmed = $VmToolDir.TrimEnd('\', '/')
@@ -145,6 +175,11 @@ function Build-McpRemoteSnippet {
     }
     if (-not [string]::IsNullOrWhiteSpace($IdentityFile)) {
         $mcpArgs.Add('-i'); $mcpArgs.Add($IdentityFile)
+    }
+    if ($automatic) {
+        foreach ($option in @('BatchMode=yes','IdentitiesOnly=yes','StrictHostKeyChecking=yes',('UserKnownHostsFile=' + $knownHosts),'ConnectTimeout=8')) {
+            $mcpArgs.Add('-o'); $mcpArgs.Add($option)
+        }
     }
     $mcpArgs.Add($Target)
     $mcpArgs.Add(('"{0}" mcp-client' -f $vmExe))
@@ -192,7 +227,8 @@ function Test-LocalTcpReady([int]$CheckPort) {
 }
 
 function Test-DashboardBuildEndpoint([int]$CheckPort) {
-    $req = [Net.HttpWebRequest]::Create(("http://localhost:{0}/api/build" -f $CheckPort))
+    # The SSH listener is IPv4-only; localhost may try ::1 before falling back.
+    $req = [Net.HttpWebRequest]::Create(("http://127.0.0.1:{0}/api/build" -f $CheckPort))
     $req.Proxy = $null
     $req.Timeout = 1500
     try {
@@ -208,8 +244,24 @@ function Test-DashboardBuildEndpoint([int]$CheckPort) {
 }
 
 $sshArgs = @(Build-SshTunnelArgs)
-$dashboardUrl = "http://localhost:$LocalPort/"
+$dashboardUrl = "http://127.0.0.1:$LocalPort/"
 $mcpSnippet = Build-McpRemoteSnippet
+$tunnelStateFile = Join-Path $env:LOCALAPPDATA 'TiaPortalSourceBridge\vm-tunnel.json'
+if ($automatic) {
+    [IO.File]::WriteAllText((Join-Path $toolRoot 'vm-access\tia-portal-vm.mcp.json'), $mcpSnippet, [Text.UTF8Encoding]::new($false))
+    if (Test-Path -LiteralPath $tunnelStateFile) {
+        try {
+            $state = Get-Content -LiteralPath $tunnelStateFile -Raw | ConvertFrom-Json
+            $running = Get-Process -Id $state.pid -ErrorAction Stop
+            if ($running.ProcessName -eq 'ssh' -and $running.StartTime.ToUniversalTime().Ticks.ToString() -eq $state.started -and
+                $state.target -eq $Target -and $state.port -eq $LocalPort -and (Test-DashboardBuildEndpoint $LocalPort)) {
+                Write-Host '[VM] 连接已经运行，直接打开看板。'
+                if (-not $NoBrowser) { Start-Process $dashboardUrl | Out-Null }
+                exit 0
+            }
+        } catch {}
+    }
+}
 
 if ($DryRun) {
     Write-Host ("SSH_CMD: ssh {0}" -f (($sshArgs | ForEach-Object { Format-SshCliArg $_ }) -join ' '))
@@ -239,10 +291,15 @@ if (Test-LoopbackPortBusy $LocalPort) {
 }
 
 Write-Host ("正在建立 SSH 隧道到 {0} (localhost:{1} -> 虚拟机 127.0.0.1:{2})..." -f $Target, $LocalPort, $RemotePort)
-Write-Host '（如首次连接，请按提示确认指纹或输入虚拟机用户密码）'
+if ($automatic) { Write-Host '已自动核对虚拟机主机公钥，无需输入密码。' }
+else { Write-Host '（如首次连接，请按提示确认指纹或输入虚拟机用户密码）' }
 
 $argString = ($sshArgs | ForEach-Object { Format-SshCliArg $_ }) -join ' '
-$sshProc = Start-Process -FilePath $sshCmd.Source -ArgumentList $argString -NoNewWindow -PassThru
+if ($automatic) { $sshProc = Start-Process -FilePath $sshCmd.Source -ArgumentList $argString -WindowStyle Hidden -PassThru }
+else { $sshProc = Start-Process -FilePath $sshCmd.Source -ArgumentList $argString -NoNewWindow -PassThru }
+if ($automatic) {
+    Write-VmJson $tunnelStateFile @{ pid=$sshProc.Id; started=$sshProc.StartTime.ToUniversalTime().Ticks.ToString(); target=$Target; port=$LocalPort }
+}
 $waitingVmMessageShown = $false
 $tunnelBoundAt = $null
 
@@ -275,6 +332,7 @@ try {
     }
 
     if ($sshProc.HasExited -and -not $ready) {
+        if ($automatic) { throw ('自动连接未成功（退出码 {0}）。请在虚拟机重新运行“虚拟机启动看板.bat”完成授权，再点击宿主机连接。' -f $sshProc.ExitCode) }
         throw ("SSH 隧道启动失败并退出（退出码 {0}）。请核对：1) 虚拟机已开启 OpenSSH Server (sshd)；2) 虚拟机 IP / 用户名正确；3) 防火墙放行 TCP {1}。" -f $sshProc.ExitCode, $SshPort)
     }
 
@@ -301,6 +359,12 @@ try {
     }
     Write-Host ("SSH 隧道已断开（退出码 {0}）。" -f $sshProc.ExitCode)
 } finally {
+    if ($automatic -and (Test-Path -LiteralPath $tunnelStateFile)) {
+        try {
+            $state = Get-Content -LiteralPath $tunnelStateFile -Raw | ConvertFrom-Json
+            if ($state.pid -eq $sshProc.Id) { Remove-Item -LiteralPath $tunnelStateFile -Force }
+        } catch {}
+    }
     if ($null -ne $sshProc -and -not $sshProc.HasExited) {
         try {
             $sshProc.Kill()

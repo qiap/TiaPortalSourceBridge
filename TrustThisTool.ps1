@@ -50,14 +50,16 @@ if ($Remove) {
     return
 }
 
-$exe = (Resolve-Path -LiteralPath $exeCandidate).Path
+# UNC Resolve-Path.Path may contain Microsoft.PowerShell.Core\FileSystem::,
+# which System.IO cannot open. ProviderPath is the native filesystem path.
+$exe = (Resolve-Path -LiteralPath $exeCandidate).ProviderPath
 $onlineExeCandidate = Join-Path $PSScriptRoot 'online-bin\TiaPortalSourceBridge.exe'
 $targets = @(
     @{ SubKey = 'Entry'; Path = $exe },
     @{ SubKey = 'SourceBridgeManaged'; Path = $exe }
 )
 if (Test-Path -LiteralPath $onlineExeCandidate) {
-    $targets += @{ SubKey = 'OnlineBin'; Path = (Resolve-Path -LiteralPath $onlineExeCandidate).Path }
+    $targets += @{ SubKey = 'OnlineBin'; Path = (Resolve-Path -LiteralPath $onlineExeCandidate).ProviderPath }
 }
 
 $updatedAny = $false

@@ -4,7 +4,8 @@
     [string]$Config = '',
     [switch]$OpenBrowser,
     [switch]$SetupSsh,
-    [switch]$CheckOnly
+    [switch]$CheckOnly,
+    [switch]$InitializeAccessOnly
 )
 $ErrorActionPreference = 'Stop'
 $utf8Out = [Text.UTF8Encoding]::new($false)
@@ -14,6 +15,7 @@ try {
 } catch {}
 
 $toolRoot = Split-Path -Parent $PSScriptRoot
+. (Join-Path $PSScriptRoot 'VmAutoConnect.ps1')
 if ([string]::IsNullOrWhiteSpace($Config)) {
     $Config = Join-Path $toolRoot 'config.json'
 }
@@ -127,12 +129,69 @@ function Enable-VmOpenSsh {
     Write-Host '[SSH] OpenSSH Server (sshd) 已启动，防火墙 TCP 22 已放行。'
 }
 
+function Get-VmTiaAccess {
+    $group = Get-LocalGroup -Name 'Siemens TIA Openness' -ErrorAction SilentlyContinue
+    if ($null -eq $group) { return @{ installed=$false; member=$false; tokenReady=$false } }
+    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = [Security.Principal.WindowsPrincipal]$identity
+    $tokenReady = $principal.IsInRole($group.SID)
+    $members = @(Get-LocalGroupMember -Group $group.Name -ErrorAction Stop)
+    return @{ installed=$true; member=($tokenReady -or $identity.User.Value -in @($members | ForEach-Object { $_.SID.Value })); tokenReady=$tokenReady }
+}
+
+function Initialize-VmTiaAccess {
+    $access = Get-VmTiaAccess
+    if (-not $access.installed) { return }
+    if (-not $access.member) {
+        Add-LocalGroupMember -Group 'Siemens TIA Openness' -Member ([Security.Principal.WindowsIdentity]::GetCurrent().User.Value)
+        Write-Host '[VM] 已加入 Siemens TIA Openness 用户组；请保存工程后注销并重新登录虚拟机一次。'
+    }
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $toolRoot 'TrustThisTool.ps1')
+    if ($LASTEXITCODE -ne 0) { throw 'TIA Openness 程序白名单注册失败。' }
+}
+
 if ($Port -lt 1 -or $Port -gt 65535) {
     throw "无效端口号: $Port"
 }
 
 if ($SetupSsh) {
     Enable-VmOpenSsh
+}
+
+if ($InitializeAccessOnly -or -not $CheckOnly) {
+    $enrollmentPath = Join-Path $toolRoot 'vm-access\enrollment.json'
+    if (-not (Test-Path -LiteralPath $enrollmentPath)) {
+        throw '请先在宿主机双击一次“连接虚拟机看板.bat”准备连接，再启动虚拟机看板。无需填写参数。'
+    }
+    $enrollment = Get-Content -LiteralPath $enrollmentPath -Raw | ConvertFrom-Json
+    if ($enrollment.hostComputer -eq $env:COMPUTERNAME) { throw '请在虚拟机里面运行“虚拟机启动看板.bat”；宿主机请用“连接虚拟机看板.bat”。' }
+    $endpointPath = Join-Path $toolRoot 'vm-access\vm-endpoint.json'
+    $previous = if (Test-Path -LiteralPath $endpointPath) { Get-Content -LiteralPath $endpointPath -Raw | ConvertFrom-Json } else { $null }
+    $service = Get-Service sshd -ErrorAction SilentlyContinue
+    $tiaAccess = Get-VmTiaAccess
+    $needsSetup = $InitializeAccessOnly -or $null -eq $service -or $service.Status -ne 'Running' -or
+        $null -eq $previous -or $previous.vmComputer -ne $env:COMPUTERNAME -or
+        $previous.user -ne $env:USERNAME -or $previous.pairedFingerprint -ne $enrollment.fingerprint -or
+        ($tiaAccess.installed -and -not $tiaAccess.member)
+    if ($needsSetup) {
+        $principal = [Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
+        if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+            Write-Host '[VM] 首次准备 SSH 和宿主机授权，请确认管理员提示；以后无需填写连接参数。'
+            $argsText = '-NoProfile -ExecutionPolicy Bypass -File "' + $PSCommandPath + '" -InitializeAccessOnly -CheckOnly'
+            $setup = Start-Process powershell.exe -ArgumentList $argsText -Verb RunAs -WindowStyle Hidden -Wait -PassThru
+            if ($setup.ExitCode -ne 0) { throw '首次 SSH 准备未完成。请在虚拟机内右键“虚拟机启动看板.bat”，以管理员身份运行查看原因。' }
+        } else {
+            Enable-VmOpenSsh
+            & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Install-VmHostKey.ps1')
+            if ($LASTEXITCODE -ne 0) { throw '宿主机公钥安装失败。' }
+            Initialize-VmTiaAccess
+        }
+    }
+    if ($InitializeAccessOnly) { exit 0 }
+    $tiaAccess = Get-VmTiaAccess
+    if ($tiaAccess.installed -and -not $tiaAccess.tokenReady) {
+        throw 'TIA Openness 权限已配置，但当前 Windows 登录会话尚未刷新。请先保存工程，再注销并重新登录虚拟机一次，随后双击启动看板。无需重装或重填连接参数。'
+    }
 }
 
 $exe = Find-BridgeExecutable
@@ -172,20 +231,26 @@ if ($ips.Count -gt 0) {
 }
 
 Write-Host ''
-Write-Host '宿主机一键连接看板命令:'
-if ($Port -eq 18980) {
-    Write-Host ("  连接虚拟机看板.bat -Target `"{0}@{1}`"" -f $user, $displayIp)
-} else {
-    Write-Host ("  连接虚拟机看板.bat -Target `"{0}@{1}`" -RemotePort {2}" -f $user, $displayIp, $Port)
-}
-Write-Host ''
-Write-Host '宿主机 AI MCP 连接命令 (路线 1):'
-Write-Host ("  ssh -T {0}@{1} `"`"{2}`" mcp-client`"" -f $user, $displayIp, $exe)
+Write-Host '宿主机：直接双击“连接虚拟机看板.bat”。'
+Write-Host '用户名、地址、端口和公钥由共享目录自动传递，无需手动填写。'
 Write-Host ''
 
 if ($CheckOnly) {
     exit 0
 }
+
+Publish-VmEndpoint $toolRoot $exe $Port $ips
+Write-Host '[VM] 已自动发布连接信息；宿主机直接双击“连接虚拟机看板.bat”即可，无需输入 IP、用户名或密码。'
+try {
+    $request = [Net.HttpWebRequest]::Create(('http://localhost:{0}/api/build' -f $Port))
+    $request.Proxy = $null
+    $request.Timeout = 1000
+    $response = $request.GetResponse()
+    $response.Close()
+    Write-Host '[VM] 看板已经运行，已更新连接信息。'
+    if ($OpenBrowser) { Start-Process ('http://localhost:{0}/' -f $Port) | Out-Null }
+    exit 0
+} catch {}
 
 $bridgeArgs = @('web', '--config', $Config, '--port', "$Port")
 if (-not $OpenBrowser) {

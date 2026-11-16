@@ -48,3 +48,5 @@ simulation-sessions/
 
 hmi-companion-backups/
 vm-connection.json
+vm-connection.before-key-*.json
+vm-access/

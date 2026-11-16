@@ -1,8 +1,9 @@
 @echo off
 setlocal
-cd /d "%~dp0"
+pushd "%~dp0" || exit /b 1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0scripts\Start-VmDashboard.ps1" -SetupSsh -CheckOnly %*
 set "code=%errorlevel%"
+popd
 echo.
 pause
 exit /b %code%

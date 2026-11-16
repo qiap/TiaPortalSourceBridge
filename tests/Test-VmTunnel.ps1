@@ -31,7 +31,7 @@ try {
         -ConnectionFile $connFile -DryRun 2>&1 | Out-String
     Check ($LASTEXITCODE -eq 0) 'Connect-VmDashboard DryRun exited 0'
     Check ($dryOut.Contains('-L 127.0.0.1:18985:127.0.0.1:18985')) 'Default LocalPort matches RemotePort in SSH args'
-    Check ($dryOut.Contains('http://localhost:18985/')) 'Dashboard URL uses matching localhost port'
+    Check ($dryOut.Contains('http://127.0.0.1:18985/')) 'Dashboard URL uses the IPv4 address bound by the SSH tunnel'
     Check ($dryOut.Contains('mcp-client') -and $dryOut.Contains('tia-portal-vm')) 'MCP snippet includes ssh mcp-client entry'
 
     $savedJson = '{"target":"saveduser@10.0.2.15","sshPort":2222,"remotePort":18990,"localPort":18990,"vmToolDir":"C:\\Tools\\Tia"}'
