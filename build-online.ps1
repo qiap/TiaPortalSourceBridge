@@ -17,6 +17,7 @@ $workerSources=@((Join-Path $PSScriptRoot 'online-helper\Program.cs')) + @(Get-C
 & $compiler /nologo /utf8output /codepage:65001 /target:exe /platform:x86 /optimize+ ('/out:'+ (Join-Path $outputDir 'S7OnlineWorker.exe')) /r:System.Windows.Forms.dll /r:System.Web.Extensions.dll /r:System.Management.dll @workerSources
 if($LASTEXITCODE -ne 0){throw 'S7ONLINE worker build failed'}
 Copy-Item (Join-Path $PSScriptRoot 'templates') $outputDir -Recurse -Force
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'web') -Destination $outputDir -Recurse -Force
 $releaseDir=Join-Path $PSScriptRoot 'src\TiaPortalSourceBridge\bin\Release\net48'
 if(-not $NoSync -and ([IO.Path]::GetFullPath($releaseDir)) -ne $outputDir){
     New-Item -ItemType Directory -Path $releaseDir -Force|Out-Null
@@ -24,5 +25,6 @@ if(-not $NoSync -and ([IO.Path]::GetFullPath($releaseDir)) -ne $outputDir){
     Copy-Item (Join-Path $outputDir 'S7OnlineWorker.exe') (Join-Path $releaseDir 'S7OnlineWorker.exe') -Force
     Copy-Item (Join-Path $outputDir 'TiaPortalDashboard.exe') (Join-Path $releaseDir 'TiaPortalDashboard.exe') -Force
     Copy-Item (Join-Path $PSScriptRoot 'templates') $releaseDir -Recurse -Force
+    Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'web') -Destination $releaseDir -Recurse -Force
 }
 Write-Output ('Build complete: '+$outputDir)

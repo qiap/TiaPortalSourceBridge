@@ -1,4 +1,4 @@
-param([string]$MainExecutable)
+﻿param([string]$MainExecutable)
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $checks = 0
@@ -108,6 +108,23 @@ try {
                 Start-Sleep -Milliseconds 200
             }
             Check $up 'Headless dashboard starts without TIA Portal'
+            # Exercise the actual HTTP listener with Host preserved by an SSH tunnel.
+            $forwardPort = if ($webPort -eq 65535) { 18981 } else { $webPort + 1 }
+            foreach ($route in @('/api/io/nonexistent', '/api/backups')) {
+                foreach ($sameOrigin in @($true,$false)) {
+                    $req=[Net.HttpWebRequest]::Create($base + $route)
+                    $req.Proxy=$null; $req.Timeout=5000; $req.Host='localhost:'+$forwardPort
+                    $req.Headers['Origin']=if($sameOrigin){'http://localhost:'+$forwardPort}else{$base}
+                    $response=$null
+                    try { $response=$req.GetResponse() } catch [Net.WebException] { $response=$_.Exception.Response }
+                    if (-not $response) { throw 'Forwarded origin test returned no HTTP response.' }
+                    try {
+                        $expected=if(-not $sameOrigin){403}elseif($route -eq '/api/backups'){409}else{404}
+                        Check ([int]$response.StatusCode -eq $expected) "Forwarded origin boundary: $route same=$sameOrigin expected=$expected actual=$([int]$response.StatusCode)"
+                    } finally { $response.Close() }
+                }
+            }
+
             # Discovery runs in the background; status must report pending without waiting for Openness.
             $statusClock = [Diagnostics.Stopwatch]::StartNew()
             $status = Invoke-RestMethod "$base/api/status" -TimeoutSec 5

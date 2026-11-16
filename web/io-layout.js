@@ -37,7 +37,7 @@
   function clearFilters(){for(const id of ['ioSearch','ioGroupFilter','ioTableFilter'])$(id).value='';$('ioArea').value='ALL';window.ioFilter();}
   function time(value){const date=new Date(value);return Number.isNaN(+date)?'未提供':date.toLocaleString();}
   function layoutMode(){const active=$('tab-io').classList.contains('active')&&!card.hidden;document.body.classList.toggle('io-workspace',active);split.classList.toggle('has-references',!references.hidden);}
-  function update(state){current=state;const data=state.data,ready=state.ready&&state.current,hasRows=ready&&data?.rows?.length>0;const target=state.selected;
+  function update(state){if(current?.phase!==state.phase)copyNotice.textContent='';current=state;const data=state.data,ready=state.ready&&state.current,hasRows=ready&&data?.rows?.length>0;const target=state.selected;
     const status=window.currentStatus||{},key=JSON.stringify([target.project_path,target.plc_name,status.active_project_pid,status.detected_version]);if(key!==targetKey){targetKey=key;const project=(status.active_project_name||target.project_path.split(/[\\/]/).pop()||'未选择工程').replace(/\.ap\d+$/i,'');const plc=target.plc_name.split(/\s*\/\s*/).filter(Boolean).pop()||'未选择 PLC';targetLine.textContent='当前 PLC：'+plc+'　｜　'+(status.detected_version||status.tia_portal_version||'');const inner=targetDetails.querySelector('div');inner.replaceChildren(table(['目标','完整身份'],[['工程文件',target.project_path],['设备层级（显示去重）',displayPath(target.plc_name)],['原始 PLC 标识',target.plc_name],['进程 PID',status.active_project_pid||'—']]));inner.append(copyButton(target.project_path,'工程路径'),copyButton(target.plc_name,'原始 PLC 标识'));}
     filters.hidden=!ready;controls.hidden=!ready;$('ioPager').hidden=!hasRows;tableWrap.hidden=!hasRows;split.hidden=!hasRows;empty.hidden=!!hasRows;
     actions.hidden=!ready;clearEmpty.hidden=true;$('ioEmptyLive').hidden=$('ioEmptyCache').hidden=false;empty.dataset.state=state.phase;
@@ -49,5 +49,6 @@
     $('ioMessage').hidden=true;source.classList.toggle('snapshot-cached',ready&&state.mode==='source');layoutMode();
   }
   new MutationObserver(layoutMode).observe(references,{attributes:true,attributeFilter:['hidden']});new MutationObserver(layoutMode).observe(card,{attributes:true,attributeFilter:['hidden']});window.addEventListener('bridge-tab-change',layoutMode);
-  window.IoLayout={update,progress:value=>{if(current?.busy)emptyNote.textContent=value||'正在读取变量表、整理引用…';else if(current?.ready)copyNotice.textContent=value;},displayPath};applyColumns();window.ioTargetChanged();
+  emptyNote.setAttribute('role','status');
+  window.IoLayout={update,progress:value=>{if(current?.busy)emptyNote.textContent=value||'正在读取变量表、整理引用…';else if(current?.ready)copyNotice.textContent=value;else if(value)emptyNote.textContent=value;},displayPath};applyColumns();window.ioTargetChanged();
 })();

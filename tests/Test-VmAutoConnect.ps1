@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 . (Join-Path $root 'scripts\VmAutoConnect.ps1')
 $checks = 0
@@ -64,4 +64,20 @@ Check ($published.addresses[0] -eq '192.0.2.11') 'Repeated normal-user restart r
 $rejected=$false
 try { Get-VmHostPublicKeys $restartRoot 'SHA256:wrong-pair' | Out-Null } catch { $rejected=$true }
 Check $rejected 'A public key cache from a different pairing must not be reused'
+Check ((Resolve-VmLocalPort 19980 18980) -eq 19980) 'Explicit local port must survive discovery'
+Check ((Resolve-VmLocalPort 0 18980) -eq 18980) 'Unset local port follows discovered port'
+$otherIdentity=[pscustomobject]@{fingerprint='SHA256:another-vm';identityFile=$identity.identityFile}
+Check ((Get-VmPairId $identity) -ne (Get-VmPairId $otherIdentity)) 'VM pair storage IDs must be isolated'
+$endpoint.pairedFingerprint=$identity.fingerprint; $endpoint.hostKeys=@('ssh-ed25519 AAAATEST')
+Write-VmJson (Join-Path $access 'vm-endpoint.json') $endpoint
+$first=Resolve-VmEndpoint $testRoot $identity
+$firstText=[IO.File]::ReadAllText($first.knownHosts)
+$endpoint.pairedFingerprint=$otherIdentity.fingerprint; $endpoint.hostKeys=@('ssh-ed25519 AAAAOTHER')
+Write-VmJson (Join-Path $access 'vm-endpoint.json') $endpoint
+$second=Resolve-VmEndpoint $testRoot $otherIdentity
+Check ($first.knownHosts -ne $second.knownHosts) 'Two VM records must not overwrite known_hosts'
+Check ([IO.File]::ReadAllText($first.knownHosts) -eq $firstText) 'Connecting another VM preserves first host keys'
+$startup=Get-Content (Join-Path $root 'scripts\Start-VmDashboard.ps1') -Raw
+Check ($startup.Contains('if (-not $LocalOnly -and ($InitializeAccessOnly -or -not $CheckOnly))')) 'Local-only launch skips pairing prerequisites'
+Check ($startup.Contains('if (-not $LocalOnly) { Publish-VmEndpoint')) 'Local-only launch does not publish pairing'
 Write-Output "PASS: $checks automatic VM connection checks. Fixtures: $testRoot"

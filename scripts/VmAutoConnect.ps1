@@ -1,4 +1,15 @@
 ﻿# Shared-folder discovery. Public records only; private keys stay on the host.
+function Get-VmPairId($Identity) {
+    $sha = [Security.Cryptography.SHA256]::Create()
+    try { return ([BitConverter]::ToString($sha.ComputeHash([Text.Encoding]::UTF8.GetBytes([string]$Identity.fingerprint)))).Replace('-', '').ToLowerInvariant() }
+    finally { $sha.Dispose() }
+}
+
+function Resolve-VmLocalPort([int]$Requested, [int]$Discovered) {
+    if ($Requested -ne 0) { return $Requested }
+    return $Discovered
+}
+
 function Write-VmJson([string]$Path, $Value) {
     $dir = Split-Path -Parent $Path
     [IO.Directory]::CreateDirectory($dir) | Out-Null
@@ -123,7 +134,7 @@ function Resolve-VmEndpoint([string]$Root, $Identity) {
     })
     $reachable = @($addresses | Where-Object { Test-VmTcp $_ ([int]$record.sshPort) })
     if (-not $reachable.Count) { throw 'VM SSH is not reachable. Keep the VM running and start its dashboard; its current IP will be discovered automatically.' }
-    $known = Join-Path (Split-Path -Parent $Identity.identityFile) 'tia_vm_known_hosts'
+    $known = Join-Path (Split-Path -Parent $Identity.identityFile) ('tia_vm_' + (Get-VmPairId $Identity) + '_known_hosts')
     $lines = @(foreach ($address in $addresses) {
         $hostName = if ($record.sshPort -eq 22) { $address } else { '[' + $address + ']:' + $record.sshPort }
         foreach ($key in $record.hostKeys) {

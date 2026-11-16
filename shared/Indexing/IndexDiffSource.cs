@@ -24,7 +24,7 @@ namespace TiaPortalSourceBridge.Indexing
                 if (stream.Length > 8 * 1024 * 1024) throw new IOException("索引源码超过 8 MiB。");
                 using (var reader = new StreamReader(stream)) source = reader.ReadToEnd();
             }
-            if (!string.Equals(IndexJson.Hash(source), entry.content_hash, StringComparison.OrdinalIgnoreCase)) throw new IOException("索引源码与指纹不一致，请重新读取。");
+            ValidateIndexedSource(source, entry);
             if (stamp != File.GetLastWriteTimeUtc(CatalogFile).Ticks || dirty != DirtyRevision()) throw new IOException("对比期间源码快照发生变化，请重试。");
             return source;
         }

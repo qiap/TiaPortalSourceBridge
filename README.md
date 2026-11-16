@@ -33,16 +33,18 @@
 
 普通用户无需下载源码或自行编译，选择一种方式即可：
 
-v4.15.1 提供 Windows 便携包。安装版可在历史版本中选择，功能以对应版本的发布说明为准。
+v4.15.2 同时提供 Windows 便携 ZIP 与 EXE 安装包。
+
+v4.15.2 合并虚拟机自动连接与本地稳定性修复：修复 I/O 窄屏布局、读取和导出超时、过期错误提示，以及源码索引与完整 XML 指纹混用；同步构建页面资源，成功打包后自动清理暂存目录。虚拟机连接尊重本地端口设置，并按配对隔离主机密钥、隧道记录和日志。
 
 | 方式 | 下载 | 使用方法 |
 | --- | --- | --- |
-| ZIP 免安装版 | [下载 v4.15.1 Portable.zip](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.15.1/TiaPortalSourceBridge-4.15.1-Portable.zip) | 完整解压后双击 `WebDashboard.cmd` 或 `LaunchWeb.vbs` |
-| EXE 安装版 | [在 Releases 中选择 Setup.exe](https://github.com/qiap/TiaPortalSourceBridge/releases) | 运行安装程序，通过桌面或开始菜单打开 |
+| ZIP 免安装版 | [下载 v4.15.2 Portable.zip](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.15.2/TiaPortalSourceBridge-4.15.2-Portable.zip) | 完整解压后双击 `WebDashboard.cmd` 或 `LaunchWeb.vbs` |
+| EXE 安装版 | [下载 v4.15.2 Setup.exe](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.15.2/TiaPortalSourceBridge-4.15.2-Setup.exe) | 运行安装程序，通过桌面或开始菜单打开 |
 
 两种方式均包含 V17/V21 引擎、默认配置和运行模板。先在 TIA Portal 中打开工程，再在看板选择工程和 PLC；目标电脑需满足下面的运行环境要求。
 
-[全部版本与发布说明](https://github.com/qiap/TiaPortalSourceBridge/releases) · v4.15.1 便携包的 SHA-256 在发布说明中。
+[全部版本与发布说明](https://github.com/qiap/TiaPortalSourceBridge/releases) · v4.15.2 的 ZIP / EXE 校验值见发布附件 `SHA256SUMS.txt`。
 
 GitHub 的 **Code → Download ZIP** 和 Release 中自动生成的 **Source code** 是源码压缩包；需要解压即用，请选择上面的 **Portable.zip**。EXE 安装包目前未做代码签名。
 
@@ -424,3 +426,12 @@ I/O 页区分尚未读取、读取中、读取失败、读取为空和筛选无�
 筛选采用固定标签与紧凑 Flex 布局，搜索框优先获得剩余宽度。表格填充剩余视口空间并内部滚动，固定列标题；可调整列宽、隐藏类型/来源列，复制变量名和地址。完整设备层级收进目标详情，相邻重名仅在展示时去重，复制与所有 API 参数保留原始身份。引用详情在宽屏侧边展开，窄屏放在表格下方；零显式引用显示“未发现引用”，不推断未使用。所有业务 API、读取范围和工程写入流程保持原有逻辑。
 
 看板的博途工程检测改为后台执行，首次状态查询不再等待 Openness 检测完成。检测期间明确显示“检测中”，失败时保留上次列表并显示错误，不将失败当成工程已关闭。
+
+## v4.15.2 连接与构建维护
+
+- 同时运行宿主机看板和虚拟机看板：`连接虚拟机看板.bat -LocalPort 18981`。本地端口不会再被自动发现覆盖，虚拟机端口保持不变。
+- 只在虚拟机内使用：`虚拟机启动看板.bat -LocalOnly -OpenBrowser`，无需宿主机配对，也不会配置 SSH。普通 `WebDashboard.cmd` 入口仍可使用。
+- 多台虚拟机仍各用独立共享工具目录；宿主机按配对保存 known_hosts、隧道状态和日志，避免相互覆盖。
+- 源码仓库清理：`powershell -ExecutionPolicy Bypass -File scripts/Clear-BuildCache.ps1` 默认只预览；加 `-Apply` 才删除超过 7 天的指定可再生成目录。可用 `-MinAgeDays` 调整保留天数。不会清理源码、配置、工程、恢复记录或发布安装包；链接目录和使用中的输出会跳过。
+- `scripts/Build-Installer.ps1` 成功后默认删除本次暂存目录；需要排查打包内容时使用 `-KeepStaging`。
+- 验证范围为双引擎离线回归、浏览器测试、ZIP 完整性及安装升级卸载测试；不代表已在每一种虚拟机账户、网卡或现场 PLC 环境完成联调。

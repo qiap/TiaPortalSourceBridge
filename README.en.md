@@ -31,16 +31,18 @@ For the current tool list and parameters, use the dashboard's **MCP tool diction
 
 You do not need to download the source or compile the application. Choose either package:
 
-v4.15.1 is available as a portable Windows package. For an installer, choose an earlier release and check its release notes for included features.
+v4.15.2 provides both a portable Windows ZIP and an EXE installer.
+
+v4.15.2 combines VM automatic pairing with I/O layout, request/export timeout, stale-response and index-hash fixes. It synchronizes build assets, cleans successful packaging stages, preserves explicit local ports and isolates SSH host keys, tunnel records and logs per VM pairing.
 
 | Package | Download | How to run |
 | --- | --- | --- |
-| Portable ZIP | [Download v4.15.1 Portable.zip](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.15.1/TiaPortalSourceBridge-4.15.1-Portable.zip) | Extract the entire archive, then double-click `WebDashboard.cmd` or `LaunchWeb.vbs` |
-| Windows installer | [Choose Setup.exe in Releases](https://github.com/qiap/TiaPortalSourceBridge/releases) | Run the installer, then open the application from the desktop or Start menu |
+| Portable ZIP | [Download v4.15.2 Portable.zip](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.15.2/TiaPortalSourceBridge-4.15.2-Portable.zip) | Extract the entire archive, then double-click `WebDashboard.cmd` or `LaunchWeb.vbs` |
+| Windows installer | [Download v4.15.2 Setup.exe](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.15.2/TiaPortalSourceBridge-4.15.2-Setup.exe) | Run the installer, then open the application from the desktop or Start menu |
 
 Both packages include the V17/V21 engines, default configuration, and runtime templates. Open your project in TIA Portal first, then select the project and PLC in the dashboard. The target computer must meet the requirements below.
 
-[All releases and release notes](https://github.com/qiap/TiaPortalSourceBridge/releases) · The v4.15.1 release notes include the portable ZIP's SHA-256.
+[All releases and release notes](https://github.com/qiap/TiaPortalSourceBridge/releases) · See the release attachment `SHA256SUMS.txt` for ZIP and EXE hashes.
 
 GitHub's **Code → Download ZIP** and the automatically generated **Source code** release archives contain source code, not a ready-to-run application. For portable use, download **Portable.zip** above. The EXE installer is currently unsigned.
 
@@ -405,3 +407,12 @@ I/O distinguishes initial, loading, failed, empty-source and empty-filter states
 Compact labeled Flex filters leave space for search. The table fills remaining viewport height with internal scrolling and sticky headers. Column widths and optional columns are configurable; names and addresses can be copied. Target details retain full raw identities, while repeated adjacent device names are deduplicated only for display. References open beside the table on wide screens and below it on narrow screens. Zero explicit references do not imply unused variables. Business APIs and engineering workflows are unchanged.
 
 Dashboard project discovery now runs in the background. Initial status requests report pending discovery instead of waiting for Openness; failures retain the previous list and report the error rather than implying projects were closed.
+
+## v4.15.2 connection and build maintenance
+
+- Use `scripts/Connect-VmDashboard.ps1 -LocalPort 18981` to keep a host dashboard and a VM tunnel running on separate ports; discovery respects the local port.
+- Use `scripts/Start-VmDashboard.ps1 -LocalOnly -OpenBrowser` inside the VM without host pairing or SSH setup. The regular `WebDashboard.cmd` also remains available.
+- Keep a separate shared tool directory for each VM. Host keys, tunnel state and logs are isolated per pairing.
+- In a source checkout, `powershell -ExecutionPolicy Bypass -File scripts/Clear-BuildCache.ps1` previews eligible reproducible outputs. Add `-Apply` to remove outputs older than seven days; change retention with `-MinAgeDays`. Source, configuration, engineering data, recovery records and release packages are excluded. Linked or active outputs are skipped.
+- Successful installer builds discard their staging directory; use `-KeepStaging` for inspection.
+- Validation covers offline dual-engine regressions, browser tests, ZIP integrity and install/upgrade/uninstall tests. It does not certify every VM account, network adapter or physical PLC setup.

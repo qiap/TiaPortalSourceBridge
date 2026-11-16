@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -126,8 +126,7 @@ namespace TiaPortalSourceBridge.Web
             var request = context.Request; var response = context.Response;
             // New endpoints are local same-origin only; no arbitrary file paths are accepted.
             response.Headers.Remove("Access-Control-Allow-Origin");
-            Uri origin; string originText = request.Headers["Origin"];
-            if (request.Headers["Sec-Fetch-Site"] == "cross-site" || (!string.IsNullOrEmpty(originText) && (!Uri.TryCreate(originText, UriKind.Absolute, out origin) || origin.Scheme != request.Url.Scheme || origin.Host != request.Url.Host || origin.Port != request.Url.Port))) {
+            if (!IsDashboardOrigin(request)) {
                 SendJson(response, 403, new { error = "仅允许本地看板访问" }); return true;
             }
             if (HandleWorkbench(context, path) || HandleHmiEditor(context, path) || HandleTaskCatalog(context, path) || HandleHmiCompanion(context, path) || HandlePeripheral(context, path) || HandleSourceWrite(context, path) || HandleOnlineMonitor(context, path) || HandleSourceReview(context, path) || HandleTagReview(context, path) || HandleIoReconcile(context, path) || HandleAudit(context, path) || HandleCylinderHistory(context, path) || HandleCylinderRecovery(context, path) || HandleCylinderTemplates(context, path) || HandleCylinderBatchPreview(context, path) || HandleCylinderApply(context, path)) return true;

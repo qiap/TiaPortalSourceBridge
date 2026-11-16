@@ -1,6 +1,7 @@
 /* I/O snapshots are bound to the project/PLC selected when a read starts. */
 (() => {
   const state = { id: '', target: null, busy: false, ready: false, phase: 'initial', error: '', data: null, page: 1, pages: 1, sequence: 0, refSequence: 0, mode: '' };
+  let exporting = false;
   const el = id => document.getElementById(id);
   const text = (id, value) => { el(id).textContent = value || ''; };
   const normalize = s => (s || '').replace(/\\/g, '/').toLowerCase();
@@ -20,10 +21,17 @@
   const filters = () => ({ area: el('ioArea').value, q: el('ioSearch').value, table: el('ioTableFilter').value, group: el('ioGroupFilter').value, view: el('ioView').value });
   const url = (path, extra = {}) => '/api/io/' + path + '?' + new URLSearchParams({ id: state.id, ...filters(), ...extra });
   async function json(path, options) {
-    const response = await fetch(path, { cache: 'no-store', ...options });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || '请求失败：' + response.status);
-    return data;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 30000);
+    try {
+      const response = await fetch(path, { cache: 'no-store', ...options, signal: controller.signal });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.error || '请求失败：' + response.status);
+      return data;
+    } catch (error) {
+      if (controller.signal.aborted) throw new Error('请求超时，请检查看板连接。后台读取可能仍在继续。');
+      throw error;
+    } finally { clearTimeout(timer); }
   }
   function controls() {
     const t = target();
@@ -34,7 +42,7 @@
     if(el('ioSourceBadge')&&!state.ready)el('ioSourceBadge').textContent=state.busy?'读取中…':'尚未读取';
     el('ioReadButton').disabled = state.busy || !t.target_token || !t.plc_name;
     el('ioReadButton').textContent = state.busy ? '读取中…' : '从博途重新读取';
-    el('ioExportButton').disabled = state.busy || !state.ready || !current() || !state.data?.total;
+    el('ioExportButton').disabled = exporting || state.busy || !state.ready || !current() || !state.data?.total;
     el('ioPrev').disabled = !state.ready || !current() || state.page <= 1;
     el('ioNext').disabled = !state.ready || !current() || state.page >= state.pages;
     if (window.cylinderSync) window.cylinderSync();
@@ -62,9 +70,11 @@
     empty('ioRows', '正在读取新的数据快照…'); message('正在启动读取…'); controls();
     try {
       const started = await json('/api/io/read', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...selected, mode }) });
+      if (!started || typeof started.id !== 'string' || !started.id.trim()) throw new Error('看板未返回有效读取任务，请刷新页面后重试。');
       state.id = started.id;
       while (true) {
         const status = await json(url('status'));
+        if (!status || !['reading', 'running', 'completed', 'failed'].includes(status.state)) throw new Error('看板返回了无法识别的读取状态，请刷新页面后重试。');
         if (current()) message(status.message);
         if (status.state === 'failed') throw new Error(status.error || '读取失败');
         if (status.state === 'completed') break;
@@ -128,22 +138,26 @@
       el('ioReferencesRows').replaceChildren(fragment);
       if (!data.total) empty('ioReferencesRows', '当前读取范围内未匹配到引用；不代表该变量未使用。');
       if(!window.matchMedia||!window.matchMedia('(min-width: 1500px)').matches)el('ioReferencesPanel').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    } catch (error) { message('引用读取失败：' + error.message); }
+    } catch (error) { if (id === state.id && current() && sequence === state.refSequence) message('引用读取失败：' + error.message); }
   }
   window.ioExport = async () => {
-    if (!state.ready || !current()) return;
+    if (exporting || !state.ready || !current()) return;
     const id = state.id, selected = state.target;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 30000);
+    exporting = true;
     el('ioExportButton').disabled = true;
     try {
-      const response = await fetch(url('export'), { cache: 'no-store' });
+      const response = await fetch(url('export'), { cache: 'no-store', signal: controller.signal });
       if (!response.ok) { const data = await response.json(); throw new Error(data.error || '导出失败'); }
       const blob = await response.blob();
       if (id !== state.id || !same(selected, target())) throw new Error('导出期间目标已切换，请重新读取后导出。');
       const objectUrl = URL.createObjectURL(blob), a = document.createElement('a');
       a.href = objectUrl; a.download = 'TIA-IO-' + new Date().toISOString().slice(0, 10) + '.xlsx'; a.click(); setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
       message('Excel 已导出，包含当前筛选的全部分页、引用明细和读取说明。');
-    } catch (error) { message('导出失败：' + error.message); }
-    finally { controls(); }
+    } catch (error) {
+      if (id === state.id && same(selected, target())) message('导出失败：' + (controller.signal.aborted ? '请求超时，请重试导出。' : error.message));
+    } finally { clearTimeout(timer); exporting = false; controls(); }
   };
   ioTargetChanged();
 })();

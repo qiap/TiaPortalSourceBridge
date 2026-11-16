@@ -83,7 +83,7 @@ namespace TiaPortalSourceBridge.Web
             var result = DiffHelper.CompareText(oldText, current, meta.Name);
             if (result.error != null) throw new IOException(result.error);
             result.evidence = new { project_path = project, plc_name = plc, group = meta.GroupPath, backup_created_utc = meta.CreatedAtUtc,
-                backup_sha256 = meta.Sha256, snapshot_indexed_utc = entry.indexed_utc, snapshot_sha256 = entry.content_hash,
+                backup_sha256 = meta.Sha256, snapshot_indexed_utc = entry.indexed_utc, snapshot_sha256 = IndexJson.Hash(current), snapshot_content_hash = entry.content_hash,
                 note = "比较历史备份与已读取的索引源码快照，不代表博途实时内容。需要最新状态时，请先从博途重新读取。" };
             return result;
         }

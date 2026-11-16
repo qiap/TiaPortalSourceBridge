@@ -57,7 +57,7 @@ if (-not $Configure -and -not $DryRun -and -not $NoSave -and
     $Target = $discovered.target
     $SshPort = [int]$discovered.record.sshPort
     $RemotePort = [int]$discovered.record.remotePort
-    $LocalPort = $RemotePort
+    $LocalPort = Resolve-VmLocalPort $LocalPort $RemotePort
     $VmToolDir = $discovered.record.toolDir
     $IdentityFile = $identity.identityFile
     $knownHosts = $discovered.knownHosts
@@ -105,9 +105,7 @@ foreach ($p in @(@('SshPort', $SshPort), @('RemotePort', $RemotePort), @('LocalP
     }
 }
 
-if ($LocalPort -ne $RemotePort) {
-    Write-Warning ("本地端口 ({0}) 与虚拟机看板端口 ({1}) 不一致：VM 的 HttpListener 仅接受 Host=localhost:{1}，强烈建议保持两端口一致。" -f $LocalPort, $RemotePort)
-}
+
 
 if ($shouldSave -and $useSavedFile) {
     $payload = [ordered]@{
@@ -149,7 +147,7 @@ function Build-SshTunnelArgs {
     if ($automatic) {
         $logDir = Join-Path $env:LOCALAPPDATA 'TiaPortalSourceBridge'
         [IO.Directory]::CreateDirectory($logDir) | Out-Null
-        $list.Add('-E'); $list.Add((Join-Path $logDir 'vm-ssh.log'))
+        $list.Add('-E'); $list.Add((Join-Path $logDir ('vm-ssh-' + (Get-VmPairId $identity) + '.log')))
         foreach ($option in @('BatchMode=yes','IdentitiesOnly=yes','StrictHostKeyChecking=yes',('UserKnownHostsFile=' + $knownHosts),'ConnectTimeout=8')) {
             $list.Add('-o'); $list.Add($option)
         }
@@ -248,13 +246,14 @@ $dashboardUrl = "http://127.0.0.1:$LocalPort/"
 $mcpSnippet = Build-McpRemoteSnippet
 $tunnelStateFile = Join-Path $env:LOCALAPPDATA 'TiaPortalSourceBridge\vm-tunnel.json'
 if ($automatic) {
+    $tunnelStateFile = Join-Path $env:LOCALAPPDATA ('TiaPortalSourceBridge\vm-tunnel-' + (Get-VmPairId $identity) + '-' + $LocalPort + '.json')
     [IO.File]::WriteAllText((Join-Path $toolRoot 'vm-access\tia-portal-vm.mcp.json'), $mcpSnippet, [Text.UTF8Encoding]::new($false))
     if (Test-Path -LiteralPath $tunnelStateFile) {
         try {
             $state = Get-Content -LiteralPath $tunnelStateFile -Raw | ConvertFrom-Json
             $running = Get-Process -Id $state.pid -ErrorAction Stop
             if ($running.ProcessName -eq 'ssh' -and $running.StartTime.ToUniversalTime().Ticks.ToString() -eq $state.started -and
-                $state.target -eq $Target -and $state.port -eq $LocalPort -and (Test-DashboardBuildEndpoint $LocalPort)) {
+                $state.target -eq $Target -and $state.port -eq $LocalPort -and $state.remotePort -eq $RemotePort -and $state.sshPort -eq $SshPort -and (Test-DashboardBuildEndpoint $LocalPort)) {
                 Write-Host '[VM] 连接已经运行，直接打开看板。'
                 if (-not $NoBrowser) { Start-Process $dashboardUrl | Out-Null }
                 exit 0
@@ -287,7 +286,7 @@ if ($null -eq $sshCmd) {
 }
 
 if (Test-LoopbackPortBusy $LocalPort) {
-    throw ("宿主机本地端口 {0} 已被占用（可能是宿主机自己打开了看板）。请先退出宿主机看板，或让虚拟机与宿主机同时换用备用端口，例如 -RemotePort {1}。" -f $LocalPort, ($LocalPort + 1))
+    throw ("宿主机本地端口 {0} 已被占用（可能是宿主机自己打开了看板）。请指定空闲本地端口，例如 -LocalPort {1}；无需更改虚拟机端口。" -f $LocalPort, ($LocalPort + 1))
 }
 
 Write-Host ("正在建立 SSH 隧道到 {0} (localhost:{1} -> 虚拟机 127.0.0.1:{2})..." -f $Target, $LocalPort, $RemotePort)
@@ -298,7 +297,7 @@ $argString = ($sshArgs | ForEach-Object { Format-SshCliArg $_ }) -join ' '
 if ($automatic) { $sshProc = Start-Process -FilePath $sshCmd.Source -ArgumentList $argString -WindowStyle Hidden -PassThru }
 else { $sshProc = Start-Process -FilePath $sshCmd.Source -ArgumentList $argString -NoNewWindow -PassThru }
 if ($automatic) {
-    Write-VmJson $tunnelStateFile @{ pid=$sshProc.Id; started=$sshProc.StartTime.ToUniversalTime().Ticks.ToString(); target=$Target; port=$LocalPort }
+    Write-VmJson $tunnelStateFile @{ pid=$sshProc.Id; started=$sshProc.StartTime.ToUniversalTime().Ticks.ToString(); target=$Target; port=$LocalPort; remotePort=$RemotePort; sshPort=$SshPort }
 }
 $waitingVmMessageShown = $false
 $tunnelBoundAt = $null

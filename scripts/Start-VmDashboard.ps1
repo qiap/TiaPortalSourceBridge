@@ -5,7 +5,8 @@
     [switch]$OpenBrowser,
     [switch]$SetupSsh,
     [switch]$CheckOnly,
-    [switch]$InitializeAccessOnly
+    [switch]$InitializeAccessOnly,
+    [switch]$LocalOnly
 )
 $ErrorActionPreference = 'Stop'
 $utf8Out = [Text.UTF8Encoding]::new($false)
@@ -154,14 +155,15 @@ if ($Port -lt 1 -or $Port -gt 65535) {
     throw "无效端口号: $Port"
 }
 
+if ($LocalOnly -and ($SetupSsh -or $InitializeAccessOnly)) { throw 'LocalOnly cannot be combined with SSH setup.' }
 if ($SetupSsh) {
     Enable-VmOpenSsh
 }
 
-if ($InitializeAccessOnly -or -not $CheckOnly) {
+if (-not $LocalOnly -and ($InitializeAccessOnly -or -not $CheckOnly)) {
     $enrollmentPath = Join-Path $toolRoot 'vm-access\enrollment.json'
     if (-not (Test-Path -LiteralPath $enrollmentPath)) {
-        throw '请先在宿主机双击一次“连接虚拟机看板.bat”准备连接，再启动虚拟机看板。无需填写参数。'
+        throw '请先在宿主机双击“连接虚拟机看板.bat”准备连接；若仅在虚拟机内使用，请添加 -LocalOnly -OpenBrowser。'
     }
     $enrollment = Get-Content -LiteralPath $enrollmentPath -Raw | ConvertFrom-Json
     if ($enrollment.hostComputer -eq $env:COMPUTERNAME) { throw '请在虚拟机里面运行“虚拟机启动看板.bat”；宿主机请用“连接虚拟机看板.bat”。' }
@@ -231,16 +233,19 @@ if ($ips.Count -gt 0) {
 }
 
 Write-Host ''
-Write-Host '宿主机：直接双击“连接虚拟机看板.bat”。'
-Write-Host '用户名、地址、端口和公钥由共享目录自动传递，无需手动填写。'
+if (-not $LocalOnly) {
+    Write-Host '宿主机：直接双击“连接虚拟机看板.bat”。'
+    Write-Host '用户名、地址、端口和公钥由共享目录自动传递，无需手动填写。'
+}
 Write-Host ''
 
 if ($CheckOnly) {
     exit 0
 }
 
-Publish-VmEndpoint $toolRoot $exe $Port $ips
-Write-Host '[VM] 已自动发布连接信息；宿主机直接双击“连接虚拟机看板.bat”即可，无需输入 IP、用户名或密码。'
+if (-not $LocalOnly) { Publish-VmEndpoint $toolRoot $exe $Port $ips }
+if ($LocalOnly) { Write-Host '[VM] 仅启动本地看板，不配置 SSH 或发布配对信息。' }
+else { Write-Host '[VM] 已自动发布连接信息；宿主机双击连接入口即可。' }
 try {
     $request = [Net.HttpWebRequest]::Create(('http://localhost:{0}/api/build' -f $Port))
     $request.Proxy = $null

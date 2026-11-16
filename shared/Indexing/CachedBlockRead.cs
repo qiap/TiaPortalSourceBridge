@@ -7,6 +7,17 @@ namespace TiaPortalSourceBridge.Indexing
 {
     internal sealed partial class ProjectIndexStore
     {
+        // Index hashes cover the parsed object, while archive/backup hashes cover the full export.
+        private void ValidateIndexedSource(string source, IndexEntry entry)
+        {
+            using(var reader=System.Xml.XmlReader.Create(new StringReader(source),new System.Xml.XmlReaderSettings { DtdProcessing=System.Xml.DtdProcessing.Prohibit,XmlResolver=null,MaxCharactersInDocument=8*1024*1024 }))
+                while(reader.Read())if(reader.Depth>80)throw new IOException("缓存 XML 深度超限。");
+            var parsed=ContentIndexer.Parse(source);
+            if(!string.Equals(parsed.hash,entry.content_hash,StringComparison.OrdinalIgnoreCase)
+                || parsed.object_name!=entry.name || !string.Equals(parsed.source_version,version,StringComparison.OrdinalIgnoreCase))
+                throw new IOException("缓存源码指纹或对象身份不一致："+entry.name);
+        }
+
         // Analysis only: no hydration, catalog rebuild, dirty consumption or engineering connection.
         internal Dictionary<string,object>[] CachedBlocks(string owner, string unit, string group, string[] names)
         {
@@ -37,12 +48,7 @@ namespace TiaPortalSourceBridge.Indexing
                         if(stream.Length>8*1024*1024 || total+stream.Length>16*1024*1024)throw new IOException("缓存读取超过单块 8 MiB / 批次 16 MiB 限制，请缩小范围。");
                         total+=stream.Length;using(var reader=new StreamReader(stream))source=reader.ReadToEnd();
                     }
-                    // Catalog hashes identify the parsed object, not the XML export envelope.
-                    using(var reader=System.Xml.XmlReader.Create(new StringReader(source),new System.Xml.XmlReaderSettings { DtdProcessing=System.Xml.DtdProcessing.Prohibit,XmlResolver=null,MaxCharactersInDocument=8*1024*1024 }))
-                        while(reader.Read())if(reader.Depth>80)throw new IOException("缓存 XML 深度超限。");
-                    var parsed=ContentIndexer.Parse(source);
-                    if(!string.Equals(parsed.hash,entry.content_hash,StringComparison.OrdinalIgnoreCase)
-                        || parsed.object_name!=entry.name || !string.Equals(parsed.source_version,version,StringComparison.OrdinalIgnoreCase))throw new IOException("缓存源码指纹或对象身份不一致。");
+                    ValidateIndexedSource(source,entry);
                     row["payload"]=source;row["ok"]=true;row["payload_complete"]=true;
                 } catch(IOException ex) { row["code"]="CACHE_SOURCE_UNAVAILABLE";row["error"]=ex.Message;row["payload_complete"]=false; }
                 catch(System.Xml.XmlException ex) { row["code"]="CACHE_SOURCE_INVALID";row["error"]=ex.Message;row["payload_complete"]=false; }

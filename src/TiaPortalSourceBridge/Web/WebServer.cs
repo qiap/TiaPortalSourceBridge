@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -1297,9 +1297,7 @@ namespace TiaPortalSourceBridge.Web
             {
                 response.Headers.Remove("Access-Control-Allow-Origin");
                 response.Headers["Cache-Control"] = "no-store";
-                Uri origin; string originText = request.Headers["Origin"];
-                if (request.Headers["Sec-Fetch-Site"] == "cross-site" || (!string.IsNullOrEmpty(originText) &&
-                    (!Uri.TryCreate(originText, UriKind.Absolute, out origin) || origin.Scheme != request.Url.Scheme || origin.Host != request.Url.Host || origin.Port != request.Url.Port)))
+                if (!IsDashboardOrigin(request))
                 { SendJson(response, 403, new { error = "仅允许本地看板访问" }); return; }
                 if (request.HttpMethod != "GET") { SendJson(response, 405, new { error = "仅支持读取" }); return; }
                 string project = GetQueryParam(request, "project_path"), plc = GetQueryParam(request, "plc_name");

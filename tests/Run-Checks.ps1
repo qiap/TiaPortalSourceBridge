@@ -1,4 +1,4 @@
-param([string]$MainExecutable, [string]$V21Executable)
+﻿param([string]$MainExecutable, [string]$V21Executable)
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 if (-not $MainExecutable -or -not $V21Executable) {
@@ -11,6 +11,10 @@ if (-not $MainExecutable -or -not $V21Executable) {
     $V21Executable = Join-Path $stage 'v21\TiaPortalSourceBridge.exe'
 }
 # Shared components must never acquire a second independently maintained copy.
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-BuildAssets.ps1')
+if ($LASTEXITCODE -ne 0) { throw 'Repeated build asset checks failed' }
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-BuildCache.ps1')
+if ($LASTEXITCODE -ne 0) { throw 'Build cache checks failed' }
 $shared = Join-Path $root 'shared'
 foreach ($file in Get-ChildItem $shared -Recurse -Filter '*.cs') {
     $relative = $file.FullName.Substring($shared.Length + 1)

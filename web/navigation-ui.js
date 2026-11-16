@@ -7,5 +7,6 @@
   const menu=document.querySelector('.workspace-menu');function menuHint(){menu.title=document.body.classList.contains('nav-collapsed')?'展开导航':'收起导航';}menu.addEventListener('click',menuHint);menuHint();
   const exit=document.querySelector('button[onclick="shutdownServer()"]'),service=n('details',null,'service-menu'),summary=n('summary','服务控制','btn btn-sm');summary.setAttribute('aria-label','服务控制');service.append(summary,exit);document.querySelector('.header-actions').append(service);
   if(!window.IoLayout)document.getElementById('ioView').parentElement.classList.add('filter-grid');
-  window.addEventListener('bridge-status',e=>{const banner=document.getElementById('workspaceConnection');if(e.detail.ok)banner.textContent='已连接看板 · 更新于 '+new Date().toLocaleTimeString()+' · 源码需在对应页面重新读取。';});
+  function compactConnection(){const banner=document.getElementById('workspaceConnection');if(banner.textContent.startsWith('已连接看板'))banner.textContent='已连接看板 · 更新于 '+new Date().toLocaleTimeString()+' · 源码需在对应页面重新读取。';}
+  window.addEventListener('bridge-status',e=>{if(e.detail.ok)compactConnection();});compactConnection();
 })();

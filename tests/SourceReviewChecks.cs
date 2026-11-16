@@ -13,7 +13,7 @@ internal static class SourceReviewChecks
     static void Reject(Action action,string message){bool failed=false;try{action();}catch(Exception){failed=true;}Check(failed,message);}
     static string Block(string kind,string name,string call="",string extra="")
     {
-        return "<Document><SW.Blocks."+kind+"><AttributeList><Name>"+name+"</Name><ProgrammingLanguage>LAD</ProgrammingLanguage>"+extra+"</AttributeList><ObjectList>"+(call.Length==0?"":"<SW.Blocks.CompileUnit><AttributeList><NetworkSource><FlgNet><Parts><Call UId='1'><CallInfo Name='"+call+"' BlockType='FC'/></Call></Parts><Wires/></FlgNet></NetworkSource></AttributeList></SW.Blocks.CompileUnit>")+"</ObjectList></SW.Blocks."+kind+"></Document>";
+        return "<Document><Engineering version='V17'/><SW.Blocks."+kind+"><AttributeList><Name>"+name+"</Name><ProgrammingLanguage>LAD</ProgrammingLanguage>"+extra+"</AttributeList><ObjectList>"+(call.Length==0?"":"<SW.Blocks.CompileUnit><AttributeList><NetworkSource><FlgNet><Parts><Call UId='1'><CallInfo Name='"+call+"' BlockType='FC'/></Call></Parts><Wires/></FlgNet></NetworkSource></AttributeList></SW.Blocks.CompileUnit>")+"</ObjectList></SW.Blocks."+kind+"></Document>";
     }
     static void Main(string[] args)
     {
@@ -21,9 +21,13 @@ internal static class SourceReviewChecks
         var store=new ProjectIndexStore(project,"V17");Directory.CreateDirectory(store.Root);Directory.CreateDirectory(Path.Combine(store.Root,"source"));Directory.CreateDirectory(Path.Combine(store.Root,"content"));
         var sources=new Dictionary<string,string>{{"Main",Block("OB","Main","Middle")},{"Middle",Block("FC","Middle","Leaf")},{"Leaf",Block("FC","Leaf","","<Number>1</Number>")}};
         var entries=sources.Keys.Select(name=>IndexEntry.Create("plc.block","PLC","Group",name,"LAD")).ToList();
-        Action save=()=>{foreach(var e in entries){e.content_hash=IndexJson.Hash(sources[e.name]);e.state="ready";File.WriteAllText(Path.Combine(store.Root,"source",e.content_hash+".xml"),sources[e.name]);File.WriteAllText(Path.Combine(store.Root,"content",e.content_hash+".json"),"{}");}File.WriteAllText(Path.Combine(store.Root,"catalog.json"),IndexJson.Serializer().Serialize(new IndexCatalog{project_file="Fixture.ap17",portal_version="V17",objects=entries}));};save();
+        Action save=()=>{store.BuildCatalog(w=>entries.Select(e=>IndexEntry.Create(e.kind,e.owner,e.group,e.name,e.language)).ToList());store.Hydrate(store.Load().objects,e=>sources[e.name],100,true);};save();
+        string catalogBefore=File.ReadAllText(Path.Combine(store.Root,"catalog.json"));
         var before=SourceReview.Capture(root,project,"PLC","V17","Baseline");
         Check(before.entries.Count==3,"capture all ready blocks");
+        Check(store.Load().objects.All(e=>e.content_hash==ContentIndexer.Parse(sources[e.name]).hash&&e.content_hash!=IndexJson.Hash(sources[e.name])),"real hydration uses object hashes");
+        Check(before.entries.All(e=>e.content_hash==IndexJson.Hash(sources[e.name])),"archive uses exact full-export hashes");
+        Check(File.ReadAllText(Path.Combine(store.Root,"catalog.json"))==catalogBefore,"capture leaves index hashes unchanged");
         Check(SourceReview.List(root,project,"PLC").Length==1,"persisted snapshot listed");
         Check(SourceReview.List(root,project,"Other").Length==0,"foreign PLC excluded");
         var loaded=SourceReview.Load(root,before.id,project,"PLC");Check(loaded.Sources.Count==3,"reopen durable source evidence");
@@ -47,7 +51,12 @@ internal static class SourceReviewChecks
         Check(SourceReview.Compare(before,partial).objects.Single(o=>o.name=="Leaf").type=="only_before","missing read is not deletion");
         File.Delete(Path.Combine(store.Root,"dirty.json"));
         sources["Middle"]=Block("FC","Middle","Leaf");sources["Leaf"]=sources["Leaf"].Replace("<Document>","<Document><DocumentInfo><Created>today</Created></DocumentInfo>");save();
+        // The index deduplicates equivalent objects; simulate an exporter rewriting only the envelope.
+        var leaf=store.Load().objects.Single(e=>e.name=="Leaf");string leafSource=Path.Combine(store.Root,"source",leaf.content_hash+".xml");File.WriteAllText(leafSource,sources["Leaf"]);
         var noise=SourceReview.Capture(root,project,"PLC","V17","Noise");Check(SourceReview.Compare(cycle,noise).export_noise_only==1,"export envelope noise counted separately");
+        File.WriteAllText(leafSource,sources["Leaf"].Replace("Name='Middle'","Name='Unexpected'"));Reject(()=>SourceReview.Capture(root,project,"PLC","V17","Corrupt"),"changed cached logic rejected");
+        File.WriteAllText(leafSource,sources["Leaf"].Replace("version='V17'","version='V21'"));Reject(()=>SourceReview.Capture(root,project,"PLC","V17","Wrong version"),"wrong envelope version rejected");
+        File.WriteAllText(leafSource,sources["Leaf"]);
         Reject(()=>SourceReview.Load(root,"../outside",project,"PLC"),"path guard");
         Reject(()=>SourceReview.Load(root,before.id,project,"Other"),"foreign target guard");
         Reject(()=>SourceReview.Capture(root,project,"PLC","V17",""),"missing label");

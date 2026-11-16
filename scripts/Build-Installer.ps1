@@ -1,6 +1,7 @@
 ﻿param(
     [string]$CompilerPath,
-    [ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version
+    [ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version,
+    [switch]$KeepStaging
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -131,4 +132,6 @@ try {
 if ($LASTEXITCODE -ne 0) { throw 'Portable shortcut launch test failed' }
 $zipHash = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash
 [IO.File]::WriteAllText((Join-Path $output 'SHA256SUMS.txt'), "$hash  $([IO.Path]::GetFileName($exe))`r`n$zipHash  $([IO.Path]::GetFileName($zip))`r`n", $utf8)
-[pscustomobject]@{installer=$exe;sha256=$hash;portable=$zip;portable_sha256=$zipHash;payload=$payload} | ConvertTo-Json
+# Keep failed builds for diagnosis; successful packages no longer retain another full payload by default.
+if (-not $KeepStaging) { & (Join-Path $PSScriptRoot 'Clear-InstallerStage.ps1') -Stage $stage }
+[pscustomobject]@{installer=$exe;sha256=$hash;portable=$zip;portable_sha256=$zipHash;payload=$(if ($KeepStaging) { $payload } else { $null })} | ConvertTo-Json

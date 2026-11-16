@@ -18,4 +18,5 @@ if ($GraphFixture) {
     & "$outDir\PerformanceChecks.exe" $mode | Tee-Object -FilePath "$outDir\results.json"
 }
 if ($LASTEXITCODE -ne 0) { throw 'Regression checks failed' }
-Copy-Item "$PSScriptRoot\..\templates" "$outDir\templates" -Recurse -Force
+# Copy into the output parent: targeting an existing templates directory nests it on repeat runs.
+Copy-Item -LiteralPath "$PSScriptRoot\..\templates" -Destination $outDir -Recurse -Force
