@@ -43,9 +43,10 @@ namespace TiaPortalSourceBridge.Configuration
             ConfigFilePath = Path.GetFullPath(configFilePath);
             string baseDirectory = Path.GetDirectoryName(ConfigFilePath);
 
-            if (string.IsNullOrWhiteSpace(TiaPortalVersion))
+            TiaPortalVersion = PortalVersions.Normalize(TiaPortalVersion);
+            if (TiaPortalVersion == null)
             {
-                throw new InvalidOperationException("config.json 中必须设置 tiaPortalVersion，例如 V20。");
+                throw new InvalidOperationException("config.json 的 tiaPortalVersion 需要使用 V16 至 V21。");
             }
             if (string.IsNullOrWhiteSpace(ProjectPath))
             {
@@ -53,7 +54,7 @@ namespace TiaPortalSourceBridge.Configuration
             }
 
             ProjectPath = MakeAbsolute(baseDirectory, Environment.ExpandEnvironmentVariables(ProjectPath));
-            ProjectFileVersion = DetectProjectVersion(ProjectPath);
+            ProjectFileVersion = RequireProjectVersion(ProjectPath);
             SourceDirectory = MakeAbsolute(baseDirectory, Environment.ExpandEnvironmentVariables(SourceDirectory));
             if (!string.IsNullOrWhiteSpace(SiemensEngineeringDll))
             {
@@ -61,17 +62,26 @@ namespace TiaPortalSourceBridge.Configuration
             }
         }
 
+        internal void SelectPortalVersion(string version)
+        {
+            string target = PortalVersions.Normalize(version);
+            if (target == null) throw new ArgumentException("请选择 V16 至 V21。", "version");
+            if (target != PortalVersions.Normalize(TiaPortalVersion)) SiemensEngineeringDll = "";
+            TiaPortalVersion = target;
+        }
+
         public void OverrideProject(string projectPath, bool allowNonExistent = false)
         {
             string fullPath = Path.GetFullPath(Environment.ExpandEnvironmentVariables(projectPath));
-            ProjectPath = fullPath;
-            ProjectFileVersion = DetectProjectVersion(fullPath);
-            TiaPortalVersion = ProjectFileVersion;
-
+            string version = RequireProjectVersion(fullPath);
             if (!allowNonExistent && !File.Exists(fullPath))
             {
                 throw new FileNotFoundException("找不到指定的项目文件: " + fullPath, fullPath);
             }
+            // An explicitly authorized upgrade keeps the selected engine for older source projects.
+            SelectPortalVersion(PortalVersions.Normalize(version) ?? TiaPortalVersion);
+            ProjectPath = fullPath;
+            ProjectFileVersion = version;
         }
 
         private static string MakeAbsolute(string baseDirectory, string path)
@@ -85,14 +95,19 @@ namespace TiaPortalSourceBridge.Configuration
 
         public static string DetectProjectVersion(string path)
         {
-            if (string.IsNullOrWhiteSpace(path)) return "V17";
-            string extension = Path.GetExtension(path);
-            Match match = Regex.Match(extension, "^\\.(?:ap|als)(?<version>[0-9]+(?:_[0-9]+)?)$", RegexOptions.IgnoreCase);
-            if (!match.Success)
+            return PortalVersions.FromProjectPath(path);
+        }
+
+        private string RequireProjectVersion(string path)
+        {
+            string version = DetectProjectVersion(path);
+            if (version == null && AllowProjectUpgrade)
             {
-                return "V17";
+                Match legacy = Regex.Match(Path.GetExtension(path), @"^\.ap(1[0-5])(?:_([0-9]+))?$", RegexOptions.IgnoreCase);
+                if (legacy.Success) return "V" + legacy.Groups[1].Value + (legacy.Groups[2].Success ? "." + legacy.Groups[2].Value : "");
             }
-            return "V" + match.Groups["version"].Value.Replace('_', '.');
+            if (version == null) throw new ArgumentException("请选择 V16 至 V21 的 .ap 或 .als 工程文件。", "projectPath");
+            return version;
         }
     }
 }

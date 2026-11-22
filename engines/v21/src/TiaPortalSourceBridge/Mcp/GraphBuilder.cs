@@ -29,28 +29,33 @@ namespace TiaPortalSourceBridge.Mcp
 
         internal static XmlDocument GenerateDocument(string modelJson, string baseXml, string version, string toolRoot)
         {
-            if (string.IsNullOrWhiteSpace(version)) version = "V21";
+            version = Configuration.PortalVersions.Normalize(version);
+            if (version == null) throw new ArgumentException("GRAPH 生成需要 V16 至 V21 的目标版本。");
             var model = Map(Json().DeserializeObject(modelJson));
             bool usingTemplate = string.IsNullOrWhiteSpace(baseXml);
             if (usingTemplate)
             {
                 string path = Path.Combine(toolRoot, "templates", "graph", version.ToLowerInvariant() + ".xml");
                 if (!File.Exists(path)) path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "templates", "graph", version.ToLowerInvariant() + ".xml");
-                if (!File.Exists(path)) throw new InvalidOperationException("当前 TIA V21 工具仅内置 V21 GRAPH 模板，请使用 V21 或提供同版本 base_xml。版本：" + version);
+                if (!File.Exists(path)) throw new InvalidOperationException(version + " 缺少 GRAPH 模板。请调用 tia_read_graph_model(include_base_xml=true) 读取同版本样板，并将 base_xml 传入生成工具。");
                 baseXml = File.ReadAllText(path);
             }
             XmlDocument doc = GraphEditor.Parse(baseXml, !usingTemplate);
             XmlNode engineering = doc.SelectSingleNode("/Document/Engineering/@version");
             if (engineering == null || !string.Equals(engineering.Value, version, StringComparison.OrdinalIgnoreCase))
-                throw new InvalidOperationException("GRAPH 模板必须与目标 TIA 版本一致。");
+                throw new InvalidOperationException("GRAPH 模板的 Engineering 版本必须是 " + version + "，实际为 " + (engineering == null ? "缺失" : engineering.Value) + "。");
             GraphEditor.ValidateDocument(doc);
             XmlNode block = doc.SelectSingleNode("/Document/SW.Blocks.FB/AttributeList");
             string name = Text(model, "block_name").Trim();
             if (name.Length == 0) throw new ArgumentException("block_name 不能为空。");
             block.SelectSingleNode("Name").InnerText = name;
             string nsValue = Text(model, "namespace").Trim();
-            if (nsValue.Length > 0 && block.SelectSingleNode("Namespace") != null)
-                block.SelectSingleNode("Namespace").InnerText = nsValue;
+            if (nsValue.Length > 0)
+            {
+                var blockNamespace = block.SelectSingleNode("Namespace");
+                if (blockNamespace == null) throw new ArgumentException(version + " 的 GRAPH 样板没有 Namespace 属性。");
+                blockNamespace.InnerText = nsValue;
+            }
             block.SelectSingleNode("Number").InnerText = Number(model, "block_number").ToString();
             if (block.SelectSingleNode("AutoNumber") != null) block.SelectSingleNode("AutoNumber").InnerText = "false";
             if (!string.IsNullOrWhiteSpace(Text(model, "interface_xml")))
@@ -58,6 +63,10 @@ namespace TiaPortalSourceBridge.Mcp
                 var interfaceDoc = new XmlDocument { XmlResolver = null };
                 using (XmlReader reader = XmlReader.Create(new StringReader(Text(model, "interface_xml")), new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null })) interfaceDoc.Load(reader);
                 if (interfaceDoc.DocumentElement.Name != "Interface") throw new ArgumentException("interface_xml 必须是 Interface 元素。");
+                var original = block.SelectSingleNode("Interface/*[local-name()='Sections']");
+                var replacement = interfaceDoc.DocumentElement.SelectSingleNode("*[local-name()='Sections']");
+                if (original == null || replacement == null || original.NamespaceURI != replacement.NamespaceURI)
+                    throw new ArgumentException("interface_xml 的 Sections 命名空间必须与目标版本的 GRAPH 样板一致。");
                 block.ReplaceChild(doc.ImportNode(interfaceDoc.DocumentElement, true), block.SelectSingleNode("Interface"));
             }
             var settings = Val(model, "block_attributes") as Dictionary<string, object>;
@@ -221,7 +230,7 @@ namespace TiaPortalSourceBridge.Mcp
             if (!(condition is bool)) branches = Val(Map(condition), "branches") ?? throwMap();
             var args = new Dictionary<string, object> { { "block_name", "GraphCondition" }, { "block_number", 1 },
                 { "networks_json", Json().Serialize(new[] { new Dictionary<string, object> { { "coil", "__GraphResult" }, { "branches", branches } } }) } };
-            var ladder = new XmlDocument(); ladder.LoadXml(LadBuilder.Generate(args, "V21"));
+            var ladder = new XmlDocument(); ladder.LoadXml(LadBuilder.Generate(args, ((XmlElement)doc.SelectSingleNode("/Document/Engineering")).GetAttribute("version")));
             XmlNode net = ladder.SelectSingleNode("//*[local-name()='FlgNet']");
             XmlElement coil = (XmlElement)net.SelectSingleNode("*[local-name()='Parts']/*[local-name()='Part' and @Name='Coil']");
             XmlNode access = net.SelectSingleNode("*[local-name()='Parts']/*[local-name()='Access'][*[local-name()='Symbol']/*[@Name='__GraphResult']]");

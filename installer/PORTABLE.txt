@@ -5,7 +5,7 @@ TIA Portal Source Bridge — 免安装版
 3. 在 TIA Portal 中打开目标工程，然后在看板中选择工程与 PLC。
 4. 如需桌面快捷方式，双击“创建快捷方式.bat”，即可在桌面和解压目录生成快捷方式。也可双击 CreateShortcuts.vbs。
 
-运行包已包含 V17/V21 引擎、默认配置及模板，无需编译或安装开发工具。
+运行包已包含 V16–V20 共用引擎和 V21 专用引擎、默认配置及模板，无需编译或安装开发工具。
 目标电脑仍需 Windows 10/11 x64、.NET Framework 4.8、对应 TIA Portal 和 Openness。
 首次连接按 TIA 授权提示操作；用户组及白名单要求见 INSTALL.txt。
 不要单独移动 EXE 或删除 engines、templates、web 目录。
@@ -21,3 +21,5 @@ TIA Portal Source Bridge — 免安装版
 2. 在虚拟机内双击“虚拟机启动看板.bat”，首次管理员提示选择“是”。若提示 TIA Openness 用户组权限尚未刷新，请保存工程后注销并重新登录虚拟机一次。
 3. 在宿主机双击“连接虚拟机看板.bat”，自动识别 IP、用户名、端口和公钥并打开页面。
 以后按第 2、3 步启动即可；SSH 私钥只保存在宿主机用户目录，运行包不携带任何人的配对信息。
+
+各版本的实测范围和功能限制见 README.md 中的版本验证表。

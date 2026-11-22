@@ -138,6 +138,7 @@ namespace TiaPortalSourceBridge.Mcp
         {
             string after = Patch(before,edit);
             var doc = BlockReadable.Parse(before);
+            XmlBatch.CheckReviewedVersion(doc, project);
             if (doc.SelectSingleNode("/Document/*/AttributeList/Name").InnerText != name) throw new InvalidOperationException("实时块身份不一致。");
             if (XmlBatch.RecoverySignature(before) == XmlBatch.RecoverySignature(after)) throw new ArgumentException("修改后与原逻辑相同，无需写入。");
             var plan = new LogicPlan { id=Guid.NewGuid().ToString("N"), project_path=Path.GetFullPath(project), plc_name=plc, block_name=name,group_path=group,created_utc=DateTime.UtcNow.ToString("o"),before_xml=before,after_xml=after,before_signature=XmlBatch.RecoverySignature(before),after_signature=XmlBatch.RecoverySignature(after),edit=edit };

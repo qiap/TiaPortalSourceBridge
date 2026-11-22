@@ -11,18 +11,20 @@ namespace TiaPortalSourceBridge.Openness
         private readonly AppConfig _config;
         private readonly object _portal;
         private readonly object _project;
+        private readonly object _localSession;
         private readonly List<PlcContext> _plcs;
         private readonly List<HmiContext> _hmis;
 
         public ReflectionApi Api { get; private set; }
         public object Project { get { return _project; } }
 
-        private OpennessSession(AppConfig config, ReflectionApi api, object portal, object project)
+        private OpennessSession(AppConfig config, ReflectionApi api, object portal, object project, object localSession)
         {
             _config = config;
             Api = api;
             _portal = portal;
             _project = project;
+            _localSession = localSession;
             _plcs = new List<PlcContext>();
             _hmis = new List<HmiContext>();
             DiscoverSoftware(project, _plcs, _hmis);
@@ -35,10 +37,13 @@ namespace TiaPortalSourceBridge.Openness
                 throw new FileNotFoundException("找不到 TIA Portal 项目文件。", config.ProjectPath);
             }
 
-            ValidateProjectFiles(config.ProjectPath);
+            bool isLocalSession = Path.GetExtension(config.ProjectPath).StartsWith(".als", StringComparison.OrdinalIgnoreCase);
+            if (!isLocalSession) ValidateProjectFiles(config.ProjectPath);
 
             ReflectionApi api = new ReflectionApi(config);
             Type portalType = api.RequireType("Siemens.Engineering.TiaPortal");
+            if (isLocalSession && portalType.GetProperty("LocalSessions") == null)
+                throw new NotSupportedException(api.LoadedPortalVersion + " 的 Openness 接口未提供多用户本地会话 LocalSessions。");
             object portal = null;
             string mode = (config.ConnectionMode ?? "AttachOrStart").Trim();
             bool needsUpgrade = !string.Equals(config.ProjectFileVersion, api.LoadedPortalVersion,
@@ -46,6 +51,7 @@ namespace TiaPortalSourceBridge.Openness
 
             if (needsUpgrade)
             {
+                if (isLocalSession) throw new InvalidOperationException("多用户本地会话需要相同版本的 Openness。");
                 if (!config.AllowProjectUpgrade)
                     throw new InvalidOperationException("当前模式禁止自动升级工程（项目版本 " + config.ProjectFileVersion
                         + "，已加载 API 版本 " + api.LoadedPortalVersion + "）；请使用与项目一致的 TIA Portal 版本配置。");
@@ -64,7 +70,9 @@ namespace TiaPortalSourceBridge.Openness
 
             if (!string.Equals(mode, "StartNew", StringComparison.OrdinalIgnoreCase))
             {
-                List<object> processList = api.Items(api.InvokeStatic(portalType, "GetProcesses")).ToList();
+                List<object> processList = api.Items(api.InvokeStatic(portalType, "GetProcesses"))
+                    .Where(p => OpennessSdk.MatchesProcess(Convert.ToString(api.Get(p, "ProjectPath", false)),
+                        Convert.ToString(api.Get(p, "Path", false)), api.LoadedPortalVersion)).ToList();
                 object matching = processList.FirstOrDefault(p => ProcessMatches(api, p, config.ProjectPath));
                 if (matching == null && !string.Equals(mode, "AttachOnly", StringComparison.OrdinalIgnoreCase))
                 {
@@ -98,28 +106,35 @@ namespace TiaPortalSourceBridge.Openness
                 portal = Activator.CreateInstance(portalType, new object[] { portalMode });
             }
 
-            object projects = api.Get(portal, "Projects", true);
-            object project = api.Items(projects).FirstOrDefault(p => ProjectMatches(api, p, config.ProjectPath));
-            if (project == null)
+            try
             {
-                Console.WriteLine("打开项目: " + config.ProjectPath);
-                project = needsUpgrade
-                    ? api.Invoke(projects, "OpenWithUpgrade", new FileInfo(config.ProjectPath))
-                    : api.Invoke(projects, "Open", new FileInfo(config.ProjectPath));
-
-                FileInfo openedPath = api.Get(project, "Path", false) as FileInfo;
-                if (openedPath != null && !PathsEqual(openedPath.FullName, config.ProjectPath))
+                bool attachOnly = string.Equals(mode, "AttachOnly", StringComparison.OrdinalIgnoreCase);
+                object collection = api.Get(portal, isLocalSession ? "LocalSessions" : "Projects", true);
+                object target = api.Items(collection).FirstOrDefault(item =>
                 {
-                    config.ProjectPath = openedPath.FullName;
-                    Console.WriteLine("升级后的项目: " + config.ProjectPath);
+                    object project = isLocalSession ? api.Get(item, "Project", false) : item;
+                    return project != null && ProjectMatches(api, project, config.ProjectPath);
+                });
+                if (target == null)
+                {
+                    if (attachOnly) throw new InvalidOperationException("已连接的博途中无法确认指定工程仍然打开：" + config.ProjectPath);
+                    Console.WriteLine("打开工程: " + config.ProjectPath);
+                    target = api.Invoke(collection, needsUpgrade ? "OpenWithUpgrade" : "Open", new FileInfo(config.ProjectPath));
                 }
+                object opened = isLocalSession ? api.Get(target, "Project", true) : target;
+                if (needsUpgrade)
+                {
+                    var openedPath = api.Get(opened, "Path", false) as FileInfo;
+                    if (openedPath != null) config.ProjectPath = openedPath.FullName;
+                }
+                return new OpennessSession(config, api, portal, opened, isLocalSession ? target : null);
             }
-            else
+            catch
             {
-                Console.WriteLine("使用已打开的项目: " + config.ProjectPath);
+                IDisposable connection = portal as IDisposable;
+                if (connection != null) connection.Dispose();
+                throw;
             }
-
-            return new OpennessSession(config, api, portal, project);
         }
 
         public PlcContext SelectPlc(string name)
@@ -357,7 +372,7 @@ namespace TiaPortalSourceBridge.Openness
 
         public void SaveProject()
         {
-            Api.Invoke(_project, "Save");
+            Api.Invoke(_localSession ?? _project, "Save");
         }
 
         public void ArchiveProject(string targetDirectory, string targetName)

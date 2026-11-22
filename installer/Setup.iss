@@ -12,6 +12,7 @@
 AppId={{E8D3650B-D8F2-4C73-B313-DB8677A664BA}
 AppName=TIA Portal Source Bridge
 AppVersion={#AppVersion}
+VersionInfoVersion={#AppVersion}.0
 DefaultDirName={localappdata}\Programs\TiaPortalSourceBridge
 DefaultGroupName=TIA Portal Source Bridge
 PrivilegesRequired=lowest

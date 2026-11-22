@@ -93,6 +93,11 @@ namespace TiaPortalSourceBridge
                     recent.Save();
                 }
 
+                PortalRoute.RequireMatch(PortalRoute.Exact(config.TiaPortalVersion), "V21");
+                if (args.Contains("--portal-version")) PortalRoute.RequireMatch(PortalRoute.Exact(GetOption(args, "--portal-version")), "V21");
+                if (!config.AllowProjectUpgrade || !string.IsNullOrWhiteSpace(projectOverride))
+                    PortalRoute.RequireMatch(PortalRoute.FromProject(config.ProjectPath), "V21");
+
                 Console.WriteLine("配置: " + config.ConfigFilePath);
                 Console.WriteLine("项目文件版本: " + config.ProjectFileVersion + " (TIA Openness: " + config.TiaPortalVersion + ")");
                 Console.WriteLine("项目: " + config.ProjectPath);
@@ -391,7 +396,7 @@ namespace TiaPortalSourceBridge
 
         private static void PrintUsage()
         {
-            Console.WriteLine("TIA Portal Source Bridge V21 Edition (v4.0.0)");
+            Console.WriteLine("TIA Portal Source Bridge V21 Edition (v" + ProductVersion.Release + ")");
             Console.WriteLine();
             Console.WriteLine("用法:");
             Console.WriteLine("  TiaPortalSourceBridge.exe interactive [--project <Project.ap21>] [--config <config.json>]");

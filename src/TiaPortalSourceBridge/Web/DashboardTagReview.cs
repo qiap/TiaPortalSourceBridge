@@ -79,7 +79,8 @@ namespace TiaPortalSourceBridge.Web
                 else{if(request.ContentLength64<0||request.ContentLength64>65536)throw new ArgumentException("写回请求过大。");map=CylinderWritePipeline.Json().Deserialize<Dictionary<string,object>>(ReadBody(request));}
                 if(map==null)throw new ArgumentException("缺少点表参数。");string project=Text(map,"project_path"),plc=Text(map,"plc_name"),root=Path.GetDirectoryName(_configPath);
                 if(!File.Exists(project)||string.IsNullOrEmpty(plc)||!actionTargets.Verify(project,plc,Text(map,"target_token")))throw new InvalidOperationException("工程或 PLC 已变化，请刷新。");
-                if(AppConfig.DetectProjectVersion(project)!="V17")throw new InvalidOperationException("点表写回目前仅支持 V17；其他版本仍可只读对账。");
+                string version=PortalVersions.FromProjectPath(project);
+                if(!PortalVersions.IsClassic(version))throw new InvalidOperationException("点表写回支持 V16–V20 的普通 PLC 变量表。");
                 lock(tagReviewGate){
                     if(action=="status"){SendJson(response,200,TagJobState(Text(map,"id"),project,plc));return true;}
                     if(action=="history"){
@@ -98,7 +99,7 @@ namespace TiaPortalSourceBridge.Web
                         var snapshot=ReconcileSnapshot(report.snapshot_id);if(!PathsEqual(snapshot.project,project)||snapshot.plc!=plc)throw new InvalidOperationException("对账目标不一致。");
                         object raw;if(!map.TryGetValue("rows",out raw))throw new ArgumentException("请选择差异行。");
                         var rows=CylinderWritePipeline.Json().Deserialize<int[]>(CylinderWritePipeline.Json().Serialize(raw));
-                        var archive=SourceReview.Capture(root,project,plc,"V17","点表写回前审查");
+                        var archive=SourceReview.Capture(root,project,plc,version,"点表写回前审查");
                         var plan=TagReconcilePlan.Build(report,archive,rows,Text(map,"culture"));WriteTagReview(plan.id,".plan.json",plan);SendJson(response,200,TagPlanPreview(plan));return true;
                     }
                     if(action=="restore-preview"){

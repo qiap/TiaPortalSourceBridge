@@ -17,6 +17,14 @@ internal static class SourceWriteChecks
     {
         string root=Path.GetFullPath(args[0]);Directory.CreateDirectory(root);string project=Path.Combine(root,"Fixture.ap17");File.WriteAllText(project,"fixture");string xml=Db("1");var entry=IndexEntry.Create("plc.block","PLC","","Process","DB");entry.content_hash=IndexJson.Hash(xml);
         var archive=new SourceArchive{id=Guid.NewGuid().ToString("N"),project_path=project,plc_name="PLC",entries=new List<IndexEntry>{entry},warnings=new List<string>(),Sources=new Dictionary<string,string>{{entry.id,xml}}};
+        foreach(string version in new[]{"V16","V17","V18","V19","V20"}) {
+            string target = Path.Combine(root,"Check.ap"+version.Substring(1));
+            string document = xml.Replace("<Document>","<Document><Engineering version='"+version+"'/>");
+            string batch = CylinderWritePipeline.Json().Serialize(new[]{D("xml",document)});
+            Check(XmlBatch.Parse(batch,target).Length==1,version+" reviewed batch accepts its own export");
+            Reject(()=>XmlBatch.Parse(batch,target.EndsWith("20")?project:Path.Combine(root,"Other.ap20")),version+" foreign XML refused");
+            if(version!="V17") Reject(()=>XmlBatch.Parse(CylinderWritePipeline.Json().Serialize(new[]{D("xml",xml)}),target),version+" missing export identity refused");
+        }
         var profile=new OnlineProfile{Tags=new[]{new OnlineTag{Name="Process.Value",Address="DB10.DBW0",Type="Int"}}};var value=D("value",42,"quality","good","address","DB10.DBW0");var snapshot=D("project_path",project,"plc_name","PLC","profile",profile,"sample",D("complete",true,"values",D("Process.Value",value)));
         var preview=ParameterMigration.Preview(archive,snapshot);Check(preview.patches.Count==1&&preview.matched.Count==1,"parameter mapped to one DB member");Check(preview.patches[0].after_xml.Contains("INT#42")&&preview.patches[0].after_xml.Contains("<StartValue>false</StartValue>"),"typed value restored and new unrelated field unchanged");Check(archive.Sources[entry.id]==xml,"preview does not modify baseline");
         value["quality"]="bad";Reject(()=>ParameterMigration.Preview(archive,snapshot),"bad quality rejected");value["quality"]="good";

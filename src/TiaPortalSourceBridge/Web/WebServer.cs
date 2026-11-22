@@ -450,13 +450,9 @@ namespace TiaPortalSourceBridge.Web
             return "";
         }
 
-        private static void DetectTiaInfo(string configuredProject, out string activeProject, out string detectedVersion, out string versionReason, out List<Dictionary<string, object>> procs)
+        private static List<Dictionary<string, object>> ReadPortalProcessDetails()
         {
-            procs = new List<Dictionary<string, object>>();
-            detectedVersion = "";
-            versionReason = "";
-            activeProject = configuredProject;
-
+            var procs = new List<Dictionary<string, object>>();
             foreach (var p in Process.GetProcessesByName("Siemens.Automation.Portal"))
             {
                 try
@@ -484,37 +480,12 @@ namespace TiaPortalSourceBridge.Web
                         { "version", ver }
                     });
 
-                    if (string.IsNullOrEmpty(detectedVersion) && !string.IsNullOrEmpty(ver))
-                    {
-                        detectedVersion = ver;
-                        versionReason = "运行中的博途进程 (PID: " + p.Id + ")";
-                    }
                 }
                 catch { }
                 finally { p.Dispose(); }
             }
 
-            // If active project is on disk, detect its version
-            if (File.Exists(activeProject))
-            {
-                string ext = Path.GetExtension(activeProject);
-                Match m = Regex.Match(ext, @"^\.ap(?<ver>\d+(?:_\d+)?)$", RegexOptions.IgnoreCase);
-                if (m.Success)
-                {
-                    string projVer = "V" + m.Groups["ver"].Value.Replace('_', '.');
-                    if (string.IsNullOrEmpty(detectedVersion))
-                    {
-                        detectedVersion = projVer;
-                        versionReason = "当前工程版本 (" + Path.GetFileName(activeProject) + ")";
-                    }
-                }
-            }
-
-            if (string.IsNullOrEmpty(detectedVersion))
-            {
-                detectedVersion = "V17";
-                versionReason = "默认版本";
-            }
+            return procs;
         }
 
         private static List<Dictionary<string, string>> GetPlcsOffline(string rootDir, string projectPath)
@@ -1008,24 +979,16 @@ namespace TiaPortalSourceBridge.Web
                     recent.AddRecentProject(activeProject);
                 }
 
-                string detectedVersion;
-                string versionReason;
-                List<Dictionary<string, object>> tiaProcs;
-                DetectTiaInfo(activeProject, out activeProject, out detectedVersion, out versionReason, out tiaProcs);
-                var osProcesses = tiaProcs;
-                tiaProcs = runningPortals.OrderByDescending(p => PathsEqual(p.ProjectPath, activeProject)).Select(p => {
+                var osProcesses = ReadPortalProcessDetails();
+                var tiaProcs = runningPortals.OrderByDescending(p => PathsEqual(p.ProjectPath, activeProject)).Select(p => {
                     var info = osProcesses.FirstOrDefault(row => Convert.ToInt32(row["pid"]) == p.ProcessId);
                     return info ?? new Dictionary<string, object> { { "pid", p.ProcessId }, { "version", p.PortalVersion }, { "memory_mb", 0 } };
                 }).ToList();
 
-                if (!string.IsNullOrWhiteSpace(activeProject))
-                {
-                    detectedVersion = AppConfig.DetectProjectVersion(activeProject);
-                    versionReason = openLiveProjects.Any(p => PathsEqual(p.ProjectPath, activeProject))
-                        ? "Openness 实时识别当前打开工程" : "本地工程文件版本（当前未打开）";
-                }
-
-                _config.TiaPortalVersion = detectedVersion;
+                var activePortal = openLiveProjects.FirstOrDefault(p => PathsEqual(p.ProjectPath, activeProject));
+                string detectedVersion = string.IsNullOrWhiteSpace(activeProject) ? "" : AppConfig.DetectProjectVersion(activeProject);
+                string versionReason = activePortal != null ? "Openness 实时识别当前打开工程" :
+                    string.IsNullOrEmpty(detectedVersion) ? "请选择可识别版本的工程" : "本地工程文件版本（当前未打开）";
 
                 // Build Available Projects List for Dropdown
                 var availableProjects = new List<Dictionary<string, object>>();

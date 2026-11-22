@@ -13,7 +13,7 @@ namespace TiaPortalSourceBridge.Mcp
         {
             string project=StringArg(args,"project_path"),plc=StringArg(args,"plc_name");
             if(string.IsNullOrWhiteSpace(project)||!Path.IsPathRooted(project)||string.IsNullOrWhiteSpace(plc))throw new ArgumentException("受限修改必须明确指定工程绝对路径与 PLC 完整路径。");
-            if(AppConfig.DetectProjectVersion(project)!="V17"||StringArg(args,"unit_name").Length>0)throw new ArgumentException("受限触点修改第一版仅支持 V17 普通 PLC 块；V21 保持原有能力。");
+            if(!PortalVersions.IsClassic(PortalVersions.FromProjectPath(project))||StringArg(args,"unit_name").Length>0)throw new ArgumentException("受限触点修改支持 V16–V20 普通 PLC 块中可识别的 LAD/GRAPH 网络。");
             if(StringArg(args,"read_mode").Length>0 && StringArg(args,"read_mode")!="live")throw new ArgumentException("修改预览与应用必须使用实时读取，不能使用缓存。");
         }
         private Dictionary<string,object> LogicPlanReply(LogicPlan p)
@@ -29,14 +29,14 @@ namespace TiaPortalSourceBridge.Mcp
         }
         private static Dictionary<string,object> LogicPreviewSchema()
         {
-            return ObjectSchema(new[]{"project_path","plc_name"},Property("project_path",StringProperty("V17 工程绝对路径")),Property("plc_name",StringProperty("PLC 完整路径")),
+            return ObjectSchema(new[]{"project_path","plc_name"},Property("project_path",StringProperty("V16–V20 工程绝对路径")),Property("plc_name",StringProperty("PLC 完整路径")),
                 Property("block_name",StringProperty("预览时必填：现有 LAD 块或 GRAPH FB")),Property("group_path",StringProperty("精确组路径，根组用 /")),
                 Property("edit_json",StringProperty("预览时必填：{compile_unit_id,contact_uid,scope,components:[成员名...],negated:true/false}。GRAPH 改用 {sequence_index:从0开始的序号,transition:转换编号,contact_uid,...}。components/scope 或 negated 至少提供一种；不支持数组、间接寻址和沿触点。")),
                 Property("plan_id",StringProperty("可选：查询已持久保存的方案与执行结果，此时不连接博途")));
         }
         private static Dictionary<string,object> LogicApplySchema()
         {
-            return ObjectSchema(new[]{"project_path","plc_name","plan_id","confirm"},Property("project_path",StringProperty("原方案的 V17 工程绝对路径")),Property("plc_name",StringProperty("原方案 PLC 完整路径")),
+            return ObjectSchema(new[]{"project_path","plc_name","plan_id","confirm"},Property("project_path",StringProperty("原方案的 V16–V20 工程绝对路径")),Property("plc_name",StringProperty("原方案 PLC 完整路径")),
                 Property("plan_id",StringProperty("已审查的预览方案编号；源码变化则拒绝应用，同一方案不重复执行")),Property("confirm",BooleanProperty("确认把所审查的修改写入离线工程；不保存、不下载")));
         }
     }

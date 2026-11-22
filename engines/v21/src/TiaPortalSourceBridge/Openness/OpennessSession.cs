@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -71,7 +71,9 @@ namespace TiaPortalSourceBridge.Openness
 
             if (!string.Equals(mode, "StartNew", StringComparison.OrdinalIgnoreCase))
             {
-                List<object> processList = api.Items(api.InvokeStatic(portalType, "GetProcesses")).ToList();
+                List<object> processList = api.Items(api.InvokeStatic(portalType, "GetProcesses"))
+                    .Where(p => OpennessSdk.MatchesProcess(Convert.ToString(api.Get(p, "ProjectPath", false)),
+                        Convert.ToString(api.Get(p, "Path", false)), api.LoadedPortalVersion)).ToList();
                 object matching = processList.FirstOrDefault(p => ProcessMatches(api, p, config.ProjectPath));
                 if (matching == null && !string.Equals(mode, "AttachOnly", StringComparison.OrdinalIgnoreCase))
                 {

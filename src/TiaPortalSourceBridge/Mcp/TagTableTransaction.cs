@@ -25,7 +25,9 @@ namespace TiaPortalSourceBridge.Mcp
         {
             Guid id;if(!Guid.TryParseExact(operationId,"N",out id))throw new ArgumentException("点表写回需要有效操作编号。");
             if(xml==null||Encoding.UTF8.GetByteCount(xml)>8*1024*1024||dependencies==null||dependencies.Length>1024*1024)throw new ArgumentException("写回方案过大。");
-            var doc=TagTableXml.Parse(xml);var objectNode=doc.SelectSingleNode("/Document/SW.Tags.PlcTagTable/AttributeList/Name");
+            var doc=TagTableXml.Parse(xml);
+            XmlBatch.CheckReviewedVersion(doc,project);
+            var objectNode=doc.SelectSingleNode("/Document/SW.Tags.PlcTagTable/AttributeList/Name");
             if(objectNode==null||objectNode.InnerText!=table)throw new ArgumentException("变量表身份与写回方案不一致。");
             var expected=Json().Deserialize<TagTableDependency[]>(dependencies);
             if(expected==null||expected.Length==0||expected.Length>1000||expected.Any(e=>e==null||string.IsNullOrEmpty(e.table_name)||e.signature==null||!System.Text.RegularExpressions.Regex.IsMatch(e.signature,"^[a-fA-F0-9]{64}$"))||expected.Select(e=>Key(e.group_path,e.table_name)).Distinct().Count()!=expected.Length)throw new ArgumentException("变量表依赖清单无效。");

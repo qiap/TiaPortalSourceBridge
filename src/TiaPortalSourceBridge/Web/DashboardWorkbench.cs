@@ -76,7 +76,10 @@ namespace TiaPortalSourceBridge.Web
                     if(Text(record,"state")=="download_intent")record["state"]="outcome_unknown";SendJson(response,200,record);return true;
                 }
                 if(!new[]{"logic-preview","logic-status","logic-apply","download-preflight","download-apply"}.Contains(operation)){SendJson(response,404,new{error="未知工作区接口。"});return true;}
-                if(AppConfig.DetectProjectVersion(project)!="V17")throw new InvalidOperationException("新的预览/写入向导仅支持 V17；V21 保持已有能力。");
+                string version = PortalVersions.FromProjectPath(project);
+                if (operation.StartsWith("logic-", StringComparison.Ordinal)) {
+                    if (!PortalVersions.IsClassic(version)) throw new InvalidOperationException("受限触点修改支持 V16–V20 的普通 PLC 块。");
+                } else if (version != "V17") throw new InvalidOperationException("仿真下载向导目前支持 V17。");
                 if(operation=="logic-status"){
                     args["plan_id"]=Text(map,"plan_id");SendJson(response,200,WorkbenchCall(operation,args));return true;
                 }

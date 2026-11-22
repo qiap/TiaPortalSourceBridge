@@ -39,12 +39,18 @@ namespace TiaPortalSourceBridge.Mcp
 
         public static HmiDocument[] Generate(string modelJson, string version, string root)
         {
+            version = Configuration.PortalVersions.Normalize(version);
+            if (version == null) throw new ArgumentException("HMI 生成需要 V16 至 V21 的目标版本。");
             var json = new JavaScriptSerializer { MaxJsonLength = 32 * 1024 * 1024 };
             var model = Map(json.DeserializeObject(modelJson)); var result = new List<HmiDocument>();
             foreach (object row in Rows(model, "objects"))
             {
                 var m = Map(row); var doc = NewDocument(version); int count = 0;
-                doc.DocumentElement.AppendChild(BuildTree(doc, Map(Val(m, "model")), 0, ref count));
+                var tree = Map(Val(m, "model"));
+                if (tree.ContainsKey("engineering_version") &&
+                    Configuration.PortalVersions.Normalize(Text(tree, "engineering_version")) != version)
+                    throw new ArgumentException("HMI 对象模型来自 " + Text(tree, "engineering_version") + "，目标为 " + version + "。请重新读取目标版本的对象。");
+                doc.DocumentElement.AppendChild(BuildTree(doc, tree, 0, ref count));
                 XmlNode name = doc.SelectSingleNode("/Document/*/AttributeList/Name");
                 result.Add(new HmiDocument { kind = Text(m, "kind"), group_path = Text(m, "group_path"), name = name == null ? "" : name.InnerText, xml = doc.OuterXml });
             }
@@ -133,10 +139,25 @@ namespace TiaPortalSourceBridge.Mcp
             if (!File.Exists(path)) path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "templates", "hmi", version.ToLowerInvariant(), type + ".xml");
             if (!File.Exists(path) && (version == "V17" || version == "V21")) path = Path.Combine(root, "templates", "hmi", "common", type + ".xml");
             if (!File.Exists(path) && (version == "V17" || version == "V21")) path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "templates", "hmi", "common", type + ".xml");
-            if (!File.Exists(path)) throw new InvalidOperationException("当前版本没有内置 HMI 控件模板。可使用同版本读取到的 objects 通用模型。版本：" + version);
+            if (!File.Exists(path)) throw new InvalidOperationException("当前版本没有内置 HMI 控件模板。请使用同版本读取的 objects 通用模型，或将只含一个该类控件的同版本导出 XML 放在 templates/hmi/" + version.ToLowerInvariant() + "/" + type + ".xml");
             var template = new XmlDocument { XmlResolver = null };
             using (XmlReader reader = XmlReader.Create(path, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null })) template.Load(reader);
-            return (XmlElement)doc.ImportNode(template.DocumentElement, true);
+            string expected = type == "Tag" ? "Hmi.Tag.Tag" : "Hmi.Screen." + type;
+            XmlElement fragment = template.DocumentElement;
+            if (fragment.Name == "Document")
+            {
+                XmlNode stamp = fragment.SelectSingleNode("Engineering/@version");
+                if (stamp == null || Configuration.PortalVersions.Normalize(stamp.Value) != version)
+                    throw new InvalidOperationException("HMI 模板 Engineering 版本与目标 " + version + " 不同：" + path);
+                var candidates = fragment.GetElementsByTagName(expected);
+                if (candidates.Count != 1)
+                    throw new InvalidOperationException("HMI 模板应包含一个 " + expected + " 对象：" + path);
+                fragment = (XmlElement)candidates[0];
+            }
+            if (fragment.Name != expected) throw new InvalidOperationException("HMI 模板根节点应为 " + expected + "：" + path);
+            if (fragment.SelectSingleNode("descendant-or-self::*[@TargetID and not(starts-with(@TargetID,'@'))]") != null)
+                throw new InvalidOperationException("此 HMI 样板包含局部对象 ID 引用，请使用同版本完整 objects 模型保留关联：" + path);
+            return (XmlElement)doc.ImportNode(fragment, true);
         }
         private static void SetText(XmlNode item, string text, string culture)
         {
@@ -154,8 +175,19 @@ namespace TiaPortalSourceBridge.Mcp
         }
         public static object ReadTree(XmlElement root)
         {
-            return new { element = root.Name, namespace_uri = root.NamespaceURI, attributes = root.Attributes.Cast<XmlAttribute>().ToDictionary(a => a.Name, a => a.Value),
-                content = root.ChildNodes.Cast<XmlNode>().Where(n => n is XmlElement || n is XmlCharacterData).Select(n => n is XmlElement ? ReadTree((XmlElement)n) : (object)n.Value).ToArray() };
+            var tree = new Dictionary<string, object>
+            {
+                { "element", root.Name }, { "namespace_uri", root.NamespaceURI },
+                { "attributes", root.Attributes.Cast<XmlAttribute>().ToDictionary(a => a.Name, a => a.Value) },
+                { "content", root.ChildNodes.Cast<XmlNode>().Where(n => n is XmlElement || n is XmlCharacterData)
+                    .Select(n => n is XmlElement ? ReadTree((XmlElement)n) : (object)n.Value).ToArray() }
+            };
+            if (root.ParentNode == root.OwnerDocument.DocumentElement)
+            {
+                XmlNode stamp = root.ParentNode.SelectSingleNode("Engineering/@version");
+                if (stamp != null) tree["engineering_version"] = stamp.Value;
+            }
+            return tree;
         }
         private static XmlElement BuildTree(XmlDocument doc, Dictionary<string, object> model, int depth, ref int count)
         {

@@ -42,13 +42,24 @@ namespace TiaPortalSourceBridge.Mcp
             HashSet<string> localVariables = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             string interfaceSectionsXml = BuildInterfaceSections(Text(args, "interface_json"), serializer, localVariables, isFb);
 
+            portalVersion = Configuration.PortalVersions.Normalize(portalVersion);
+            if (portalVersion == null) throw new ArgumentException("LAD 生成需要 V16 至 V21 的目标版本。");
+            int majorVersion = int.Parse(portalVersion.Substring(1), CultureInfo.InvariantCulture);
+            string blockNamespace = Text(args, "namespace").Trim();
+            if (majorVersion < 18 && blockNamespace.Length > 0)
+                throw new ArgumentException("此版本的 LAD 块不支持 Namespace 属性。");
+            // Use the schema supplied with the native SDK for new blocks. Full exported XML
+            // retains its own interface namespace, including V17 exports using Interface/v5.
+            string interfaceVersion = majorVersion <= 17 ? "v4" : "v5";
+            string flgNetVersion = majorVersion >= 19 ? "v5" : "v4";
+
             StringBuilder xml = new StringBuilder("<?xml version=\"1.0\" encoding=\"utf-8\"?><Document><Engineering version=\""
-                + E(portalVersion) + "\"/><SW.Blocks." + blockType + " ID=\"0\"><AttributeList><AutoNumber>false</AutoNumber><Interface><Sections xmlns=\"http://www.siemens.com/automation/Openness/SW/Interface/v5\">");
+                + E(portalVersion) + "\"/><SW.Blocks." + blockType + " ID=\"0\"><AttributeList><AutoNumber>false</AutoNumber><Interface><Sections xmlns=\"http://www.siemens.com/automation/Openness/SW/Interface/" + interfaceVersion + "\">");
             xml.Append(interfaceSectionsXml);
             xml.Append("</Sections></Interface><MemoryLayout>Optimized</MemoryLayout><Name>")
                 .Append(E(name)).Append("</Name>");
-            if (ParseMajorVersion(portalVersion) >= 21)
-                xml.Append("<Namespace/>");
+            if (majorVersion >= 18)
+                xml.Append(blockNamespace.Length == 0 ? "<Namespace/>" : "<Namespace>" + E(blockNamespace) + "</Namespace>");
             xml.Append("<Number>").Append(number)
                 .Append("</Number><ProgrammingLanguage>LAD</ProgrammingLanguage><SetENOAutomatically>false</SetENOAutomatically></AttributeList><ObjectList>");
 
@@ -176,7 +187,8 @@ namespace TiaPortalSourceBridge.Mcp
                     Wire(wires, ref uid, rail.ToString());
                 }
 
-                xml.Append("<SW.Blocks.CompileUnit ID=\"").Append(documentId++).Append("\" CompositionName=\"CompileUnits\"><AttributeList><NetworkSource><FlgNet xmlns=\"http://www.siemens.com/automation/Openness/SW/NetworkSource/FlgNet/v4\"><Parts>")
+                xml.Append("<SW.Blocks.CompileUnit ID=\"").Append(documentId++).Append("\" CompositionName=\"CompileUnits\"><AttributeList><NetworkSource><FlgNet xmlns=\"http://www.siemens.com/automation/Openness/SW/NetworkSource/FlgNet/")
+                    .Append(flgNetVersion).Append("\"><Parts>")
                     .Append(parts).Append("</Parts><Wires>").Append(wires).Append("</Wires></FlgNet></NetworkSource><ProgrammingLanguage>LAD</ProgrammingLanguage></AttributeList><ObjectList>");
                 xml.Append(Multilingual("Title", Text(network, "title"), ref documentId))
                     .Append(Multilingual("Comment", Text(network, "comment"), ref documentId));
@@ -369,16 +381,6 @@ namespace TiaPortalSourceBridge.Mcp
                 }
             }
             return xml.Append("</Symbol></Access>").ToString();
-        }
-
-        private static int ParseMajorVersion(string portalVersion)
-        {
-            if (string.IsNullOrWhiteSpace(portalVersion)) return 20;
-            string cleaned = portalVersion.Trim().TrimStart('V', 'v');
-            int dot = cleaned.IndexOfAny(new[] { '.', '_' });
-            if (dot > 0) cleaned = cleaned.Substring(0, dot);
-            int major;
-            return int.TryParse(cleaned, out major) ? major : 20;
         }
 
         private static string Pin(int uid, string pin) { return "<NameCon UId=\"" + uid + "\" Name=\"" + pin + "\"/>"; }

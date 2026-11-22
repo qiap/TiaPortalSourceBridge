@@ -19,6 +19,7 @@ namespace TiaPortalSourceBridge.Mcp
         private readonly JavaScriptSerializer _json = new JavaScriptSerializer();
         private TextWriter _protocolOutput;
         private readonly string _configPath;
+        private readonly string _workerMajor;
         private OpennessSession _session;
         private string _sessionPath;
         private string _loadedVersion;
@@ -31,6 +32,7 @@ namespace TiaPortalSourceBridge.Mcp
         public McpServer(string configPath, bool projectWorker = false)
         {
             _configPath = Path.GetFullPath(configPath);
+            if (projectWorker) _workerMajor = Environment.GetEnvironmentVariable(PortalRoute.WorkerEnvironmentKey);
             _online = new OnlineTools(Path.GetDirectoryName(_configPath));
             if (!projectWorker)
                 _projects = new ProjectRouter(identity => new ProjectWorker(System.Reflection.Assembly.GetEntryAssembly().Location, _configPath, identity), () => NewDiscoveryConfig().TiaPortalVersion);
@@ -128,6 +130,18 @@ namespace TiaPortalSourceBridge.Mcp
 
         private Dictionary<string, object> CallTool(string name, Dictionary<string, object> args)
         {
+            ValidateRoute(args);
+            return CallValidatedTool(name, args);
+        }
+
+        private void ValidateRoute(Dictionary<string, object> args)
+        {
+            string requested = PortalRoute.Requested(args);
+            PortalRoute.RequireMatch(requested, "V21");
+        }
+
+        private Dictionary<string, object> CallValidatedTool(string name, Dictionary<string, object> args)
+        {
             string responseMode = StringArg(args, "response_mode");
             if (responseMode.Length > 0 && responseMode != "full" && responseMode != "compact") throw new ArgumentException("response_mode 必须为 full 或 compact。");
             _knownTools = new HashSet<string>(ToolDefinitions().Cast<Dictionary<string, object>>().Select(t => Convert.ToString(t["name"])), StringComparer.Ordinal);
@@ -194,7 +208,8 @@ namespace TiaPortalSourceBridge.Mcp
             if (name == "tia_list_open_projects")
             {
                 AppConfig discoveryConfig = NewDiscoveryConfig();
-                if (!string.IsNullOrWhiteSpace(StringArg(args, "portal_version"))) discoveryConfig.TiaPortalVersion = StringArg(args, "portal_version");
+                discoveryConfig.TiaPortalVersion = PortalRoute.Requested(args) ?? _workerMajor ?? PortalRoute.Exact(discoveryConfig.TiaPortalVersion);
+                PortalRoute.RequireMatch(discoveryConfig.TiaPortalVersion, "V21");
                 if (_loadedVersion != null) discoveryConfig.TiaPortalVersion = _loadedVersion;
                 IList<PortalProcessInfo> processes = PortalDiscovery.List(discoveryConfig);
                 object[] rows = processes.Select(p => (object)Dict(
@@ -880,12 +895,10 @@ namespace TiaPortalSourceBridge.Mcp
 
         private string GenerationVersion(Dictionary<string, object> args)
         {
-            if (_projects != null) return _projects.GenerationVersion(StringArg(args, "project_path"));
-            if (!string.IsNullOrWhiteSpace(StringArg(args, "project_path")))
-            {
-                AppConfig config = NewDiscoveryConfig(); config.OverrideProject(StringArg(args, "project_path"), false); return config.TiaPortalVersion;
-            }
-            return _loadedVersion ?? NewDiscoveryConfig().TiaPortalVersion;
+            string version = PortalRoute.Requested(args) ?? _workerMajor ?? (_projects != null ? _projects.GenerationVersion("")
+                : PortalRoute.Exact(_loadedVersion ?? NewDiscoveryConfig().TiaPortalVersion));
+            PortalRoute.RequireMatch(version, "V21");
+            return version;
         }
 
         private OpennessSession Connect(AppConfig config)

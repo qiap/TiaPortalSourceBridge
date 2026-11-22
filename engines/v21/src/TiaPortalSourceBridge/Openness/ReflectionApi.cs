@@ -2,11 +2,9 @@ using System;
 using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using Microsoft.Win32;
 using TiaPortalSourceBridge.Configuration;
 
 namespace TiaPortalSourceBridge.Openness
@@ -15,7 +13,7 @@ namespace TiaPortalSourceBridge.Openness
     {
         private static readonly object SyncRoot = new object();
         private static readonly List<string> SharedSearchDirectories = new List<string>();
-        private static readonly ConcurrentDictionary<string, string> ResolvedDllCache = new ConcurrentDictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        private static readonly object AssemblyLoadLock = new object();
         // A lookup result must be non-null even when the target property does not exist:
         // ConcurrentDictionary does not permit null values. Cache misses explicitly.
         private static readonly ConcurrentDictionary<PropertyKey, PropertyLookup> PropertyCache =
@@ -84,25 +82,13 @@ namespace TiaPortalSourceBridge.Openness
 
         private static Assembly OnAssemblyResolve(object sender, ResolveEventArgs args)
         {
-            string simpleName;
-            try
-            {
-                simpleName = new AssemblyName(args.Name).Name;
-            }
-            catch
-            {
+            var requested = new AssemblyName(args.Name);
+            if (string.IsNullOrWhiteSpace(requested.Name) || requested.Name.EndsWith(".resources", StringComparison.OrdinalIgnoreCase))
                 return null;
-            }
-
-            if (string.IsNullOrWhiteSpace(simpleName) || simpleName.EndsWith(".resources", StringComparison.OrdinalIgnoreCase))
-            {
-                return null;
-            }
-            Assembly alreadyLoaded = AppDomain.CurrentDomain.GetAssemblies()
-                .FirstOrDefault(a => string.Equals(a.GetName().Name, simpleName, StringComparison.OrdinalIgnoreCase));
+            var alreadyLoaded = AppDomain.CurrentDomain.GetAssemblies()
+                .FirstOrDefault(a => OpennessSdk.MatchesReference(a.GetName(), requested));
             if (alreadyLoaded != null) return alreadyLoaded;
-
-            string fileName = simpleName + ".dll";
+            string fileName = requested.Name + ".dll";
             string[] directories;
             lock (SyncRoot)
             {
@@ -112,7 +98,7 @@ namespace TiaPortalSourceBridge.Openness
             foreach (string directory in directories)
             {
                 string dependency = Path.Combine(directory, fileName);
-                if (File.Exists(dependency))
+                if (File.Exists(dependency) && OpennessSdk.MatchesReference(OpennessSdk.ReadIdentity(dependency), requested))
                 {
                     return Assembly.LoadFrom(dependency);
                 }
@@ -122,14 +108,20 @@ namespace TiaPortalSourceBridge.Openness
 
         public ReflectionApi(AppConfig config)
         {
-            string dllPath = ResolveEngineeringApi(config);
+            string dllPath = OpennessSdk.Resolve(config.TiaPortalVersion, config.SiemensEngineeringDll, true);
             string dllDirectory = Path.GetDirectoryName(dllPath);
-            AddSearchDirectory(dllDirectory);
-            AddPortalSearchDirectories(dllPath);
-
-            LoadEngineeringAssemblies(dllPath);
-            LoadedPortalVersion = InferApiVersion(dllPath);
-            config.TiaPortalVersion = LoadedPortalVersion;
+            LoadedPortalVersion = PortalVersions.Normalize(config.TiaPortalVersion);
+            lock (AssemblyLoadLock)
+            {
+                var loaded = AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetName())
+                    .FirstOrDefault(a => (a.Name == "Siemens.Engineering" || a.Name == "Siemens.Engineering.Base")
+                        && "V" + a.Version.Major != LoadedPortalVersion);
+                if (loaded != null)
+                    throw new InvalidOperationException("当前进程已加载 " + loaded.FullName + "，请使用独立的 " + LoadedPortalVersion + " 工程进程。");
+                AddSearchDirectory(dllDirectory);
+                AddPortalSearchDirectories(dllPath);
+                LoadEngineeringAssemblies(dllPath);
+            }
             Console.WriteLine("Siemens API: " + dllDirectory);
             Console.WriteLine("使用 TIA Portal: " + LoadedPortalVersion);
         }
@@ -466,6 +458,9 @@ namespace TiaPortalSourceBridge.Openness
             {
                 try
                 {
+                    var identity = OpennessSdk.ReadIdentity(file);
+                    if (identity == null || "V" + identity.Version.Major != LoadedPortalVersion)
+                        throw new FileLoadException("模块版本与 " + LoadedPortalVersion + " 不匹配。", file);
                     Assembly assembly = Assembly.LoadFrom(file);
                     if (!_engineeringAssemblies.Any(a => string.Equals(a.FullName, assembly.FullName, StringComparison.OrdinalIgnoreCase)))
                     {
@@ -474,6 +469,7 @@ namespace TiaPortalSourceBridge.Openness
                 }
                 catch (Exception ex)
                 {
+                    if (file.Equals(primaryDllPath, StringComparison.OrdinalIgnoreCase)) throw;
                     Console.Error.WriteLine("[Siemens API] 跳过无法加载的模块 " + Path.GetFileName(file) + ": " + ex.Message);
                 }
             }
@@ -491,369 +487,6 @@ namespace TiaPortalSourceBridge.Openness
             if (string.Equals(fileName, "Siemens.Engineering.WinCC.dll", StringComparison.OrdinalIgnoreCase)) return 2;
             if (string.Equals(fileName, "Siemens.Engineering.WinCCUnified.dll", StringComparison.OrdinalIgnoreCase)) return 3;
             return 10;
-        }
-
-        private static string ResolveEngineeringApi(AppConfig config)
-        {
-            string requestedVersion = NormalizeVersionTag(config.TiaPortalVersion);
-            string cacheKey = (config.SiemensEngineeringDll ?? "") + "|"
-                + (Environment.GetEnvironmentVariable("SIEMENS_ENGINEERING_DLL") ?? "") + "|"
-                + requestedVersion + "|" + config.AllowProjectUpgrade + "|" + (!string.IsNullOrWhiteSpace(config.ProjectPath));
-            string cachedPath;
-            if (ResolvedDllCache.TryGetValue(cacheKey, out cachedPath) && File.Exists(cachedPath))
-            {
-                return cachedPath;
-            }
-
-            List<string> explicitCandidates = new List<string>();
-            if (!string.IsNullOrWhiteSpace(config.SiemensEngineeringDll))
-            {
-                AddConfiguredCandidate(explicitCandidates, config.SiemensEngineeringDll);
-            }
-
-            string environmentPath = Environment.GetEnvironmentVariable("SIEMENS_ENGINEERING_DLL");
-            if (!string.IsNullOrWhiteSpace(environmentPath))
-            {
-                AddConfiguredCandidate(explicitCandidates, environmentPath);
-            }
-
-            string explicitFound = explicitCandidates.FirstOrDefault(File.Exists);
-            if (explicitFound != null)
-            {
-                string fullExplicit = Path.GetFullPath(explicitFound);
-                ResolvedDllCache[cacheKey] = fullExplicit;
-                return fullExplicit;
-            }
-
-            List<string> allDiscovered = DiscoverAllPortalApiCandidates(requestedVersion);
-
-            // 1. 优先精确匹配目标版本（如 V17 或 V21）
-            string exactMatch = allDiscovered.FirstOrDefault(path =>
-                File.Exists(path) && VersionsMatch(InferApiVersion(path), requestedVersion));
-            if (exactMatch != null)
-            {
-                string fullExact = Path.GetFullPath(exactMatch);
-                ResolvedDllCache[cacheKey] = fullExact;
-                return fullExact;
-            }
-
-            // 2. 若不允许升级且已指定具体工程，严禁跨版本静默加载其他版本的 DLL
-            if (!config.AllowProjectUpgrade && !string.IsNullOrWhiteSpace(config.ProjectPath))
-            {
-                throw new FileNotFoundException(
-                    "找不到与目标版本 " + requestedVersion + " 匹配的 Siemens Openness API。"
-                    + "请确认本机已安装 TIA Portal " + requestedVersion + " Openness，或在配置文件的 siemensEngineeringDll 中指定对应版本的 DLL 路径。");
-            }
-
-            // 3. 允许升级或仅做进程探测时，选择版本最高且存在的 API
-            string fallback = allDiscovered
-                .Where(File.Exists)
-                .OrderByDescending(path => ParseVersion(InferApiVersion(path)))
-                .FirstOrDefault();
-
-            if (fallback != null)
-            {
-                string fullFallback = Path.GetFullPath(fallback);
-                ResolvedDllCache[cacheKey] = fullFallback;
-                return fullFallback;
-            }
-
-            throw new FileNotFoundException(
-                "找不到 Siemens Openness API。V20 及更早版本请填写 Siemens.Engineering.dll；V21 可填写 PublicAPI\\V21\\net48 目录或 Siemens.Engineering.Base.dll。尝试过: "
-                + string.Join("; ", explicitCandidates.Concat(allDiscovered).Distinct(StringComparer.OrdinalIgnoreCase)));
-        }
-
-        private static List<string> DiscoverAllPortalApiCandidates(string requestedVersion)
-        {
-            List<string> candidates = new List<string>();
-            string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
-            string programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
-
-            foreach (string root in new[] { programFiles, programFilesX86 })
-            {
-                if (string.IsNullOrWhiteSpace(root)) continue;
-                AddPortalFolderCandidates(candidates, Path.Combine(root, "Siemens", "Automation", "Portal " + requestedVersion), requestedVersion);
-                AddPortalFolderCandidates(candidates, Path.Combine(root, "Siemens", "Automation", "Portal " + requestedVersion.Replace('.', '_')), requestedVersion);
-            }
-
-            // 从正在运行的 Siemens.Automation.Portal 进程发现非默认盘安装位置（优先匹配 requestedVersion）
-            List<Tuple<string, string>> runningPortals = new List<Tuple<string, string>>();
-            foreach (Process process in Process.GetProcessesByName("Siemens.Automation.Portal"))
-            {
-                try
-                {
-                    string executable = process.MainModule == null ? "" : process.MainModule.FileName;
-                    string binDirectory = Path.GetDirectoryName(executable);
-                    DirectoryInfo portalDirectory = string.IsNullOrWhiteSpace(binDirectory) ? null : Directory.GetParent(binDirectory);
-                    if (portalDirectory != null)
-                    {
-                        string version = VersionFromPortalDirectory(portalDirectory.Name);
-                        runningPortals.Add(Tuple.Create(portalDirectory.FullName, version));
-                    }
-                }
-                catch
-                {
-                }
-                finally
-                {
-                    process.Dispose();
-                }
-            }
-
-            foreach (Tuple<string, string> item in runningPortals.OrderByDescending(p => VersionsMatch(p.Item2, requestedVersion)))
-            {
-                AddPortalFolderCandidates(candidates, item.Item1, item.Item2);
-            }
-
-            // 从 Windows 注册表查找西门子安装目录（支持 D:\ / E:\ 自定义安装路径）
-            DiscoverFromRegistry(candidates, requestedVersion);
-
-            // 扫描各磁盘常见目录（如 C:\Siemens\Automation, D:\Siemens\Automation, E:\plc\TIA*）
-            foreach (string root in new[] { programFiles, programFilesX86 })
-            {
-                if (string.IsNullOrWhiteSpace(root)) continue;
-                ScanAutomationRoot(candidates, Path.Combine(root, "Siemens", "Automation"));
-            }
-
-            try
-            {
-                foreach (DriveInfo drive in DriveInfo.GetDrives())
-                {
-                    if (drive.DriveType != DriveType.Fixed || !drive.IsReady) continue;
-                    string root = drive.RootDirectory.FullName;
-                    ScanAutomationRoot(candidates, Path.Combine(root, "Siemens", "Automation"));
-                    ScanAutomationRoot(candidates, Path.Combine(root, "TIA"));
-                    ScanAutomationRoot(candidates, Path.Combine(root, "plc"));
-                    ScanAutomationRoot(candidates, Path.Combine(root, "botuv_21"));
-                }
-            }
-            catch
-            {
-            }
-
-            return candidates;
-        }
-
-        private static void DiscoverFromRegistry(List<string> candidates, string requestedVersion)
-        {
-            string[] opennessRoots = new[]
-            {
-                @"SOFTWARE\Siemens\Automation\Openness",
-                @"SOFTWARE\WOW6432Node\Siemens\Automation\Openness"
-            };
-            foreach (string opennessRoot in opennessRoots)
-            {
-                try
-                {
-                    using (RegistryKey baseKey = Registry.LocalMachine.OpenSubKey(opennessRoot))
-                    {
-                        if (baseKey == null) continue;
-                        foreach (string verSub in baseKey.GetSubKeyNames().OrderByDescending(n => n, StringComparer.OrdinalIgnoreCase))
-                        {
-                            using (RegistryKey pubKey = baseKey.OpenSubKey(verSub + @"\PublicAPI"))
-                            {
-                                if (pubKey == null) continue;
-                                foreach (string apiVerSub in pubKey.GetSubKeyNames().OrderByDescending(n => n, StringComparer.OrdinalIgnoreCase))
-                                using (RegistryKey leaf = pubKey.OpenSubKey(apiVerSub))
-                                {
-                                    if (leaf == null) continue;
-                                    string dllVal = Convert.ToString(leaf.GetValue("Siemens.Engineering") ?? "").Trim().Trim('"');
-                                    if (string.IsNullOrWhiteSpace(dllVal)) continue;
-                                    string apiDir = Path.GetDirectoryName(dllVal);
-                                    if (!string.IsNullOrWhiteSpace(apiDir))
-                                    {
-                                        string net48Base = Path.Combine(apiDir, "net48", "Siemens.Engineering.Base.dll");
-                                        if (File.Exists(net48Base)) candidates.Add(net48Base);
-                                        if (File.Exists(dllVal)) candidates.Add(dllVal);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                catch
-                {
-                }
-            }
-
-            string[] regPaths = new[]
-            {
-                @"SOFTWARE\Siemens\Automation\_InstalledSW",
-                @"SOFTWARE\WOW6432Node\Siemens\Automation\_InstalledSW"
-            };
-            foreach (string regPath in regPaths)
-            {
-                try
-                {
-                    using (RegistryKey baseKey = Registry.LocalMachine.OpenSubKey(regPath))
-                    {
-                        if (baseKey == null) continue;
-                        ScanRegistryForPortalPaths(baseKey, candidates, requestedVersion, 0);
-                    }
-                }
-                catch
-                {
-                }
-            }
-        }
-
-        private static void ScanRegistryForPortalPaths(RegistryKey key, List<string> candidates, string requestedVersion, int depth)
-        {
-            if (key == null || depth > 3) return;
-            try
-            {
-                object pathObj = key.GetValue("Path") ?? key.GetValue("InstallDir") ?? key.GetValue("Directory");
-                string path = pathObj == null ? "" : Convert.ToString(pathObj).Trim().Trim('"');
-                if (!string.IsNullOrWhiteSpace(path) && Directory.Exists(path))
-                {
-                    DirectoryInfo dir = new DirectoryInfo(path);
-                    for (int i = 0; i < 3 && dir != null; i++, dir = dir.Parent)
-                    {
-                        if (dir.Name.StartsWith("Portal V", StringComparison.OrdinalIgnoreCase)
-                            || dir.Name.StartsWith("Portal_V", StringComparison.OrdinalIgnoreCase))
-                        {
-                            string ver = VersionFromPortalDirectory(dir.Name);
-                            AddPortalFolderCandidates(candidates, dir.FullName, string.IsNullOrWhiteSpace(ver) ? requestedVersion : ver);
-                            break;
-                        }
-                    }
-                }
-
-                foreach (string subName in key.GetSubKeyNames())
-                {
-                    using (RegistryKey sub = key.OpenSubKey(subName))
-                    {
-                        ScanRegistryForPortalPaths(sub, candidates, requestedVersion, depth + 1);
-                    }
-                }
-            }
-            catch
-            {
-            }
-        }
-
-        private static void ScanAutomationRoot(List<string> candidates, string rootDir)
-        {
-            if (string.IsNullOrWhiteSpace(rootDir) || !Directory.Exists(rootDir)) return;
-            try
-            {
-                foreach (string portalDir in Directory.GetDirectories(rootDir, "Portal V*"))
-                {
-                    string folderVersion = VersionFromPortalDirectory(Path.GetFileName(portalDir));
-                    AddPortalFolderCandidates(candidates, portalDir, folderVersion);
-                }
-                foreach (string subDir in Directory.GetDirectories(rootDir))
-                {
-                    foreach (string nested in Directory.GetDirectories(subDir, "Portal V*"))
-                    {
-                        string folderVersion = VersionFromPortalDirectory(Path.GetFileName(nested));
-                        AddPortalFolderCandidates(candidates, nested, folderVersion);
-                    }
-                    foreach (string nested2 in Directory.GetDirectories(subDir))
-                    {
-                        foreach (string nestedPortal in Directory.GetDirectories(nested2, "Portal V*"))
-                        {
-                            string folderVersion = VersionFromPortalDirectory(Path.GetFileName(nestedPortal));
-                            AddPortalFolderCandidates(candidates, nestedPortal, folderVersion);
-                        }
-                    }
-                }
-            }
-            catch
-            {
-            }
-        }
-
-        private static void AddPortalFolderCandidates(List<string> candidates, string portalDirectory, string version)
-        {
-            if (string.IsNullOrWhiteSpace(portalDirectory) || string.IsNullOrWhiteSpace(version)) return;
-            AddModularCandidates(candidates, portalDirectory, version);
-            AddLegacyCandidate(candidates, portalDirectory, version);
-        }
-
-        private static void AddConfiguredCandidate(List<string> candidates, string path)
-        {
-            if (Directory.Exists(path))
-            {
-                candidates.Add(Path.Combine(path, "net48", "Siemens.Engineering.Base.dll"));
-                candidates.Add(Path.Combine(path, "Siemens.Engineering.Base.dll"));
-                candidates.Add(Path.Combine(path, "Siemens.Engineering.dll"));
-                return;
-            }
-            candidates.Add(path);
-        }
-
-        private static void AddLegacyCandidate(List<string> candidates, string portalDirectory, string version)
-        {
-            if (string.IsNullOrWhiteSpace(version)) return;
-            candidates.Add(Path.Combine(portalDirectory, "PublicAPI", version, "Siemens.Engineering.dll"));
-        }
-
-        private static void AddModularCandidates(List<string> candidates, string portalDirectory, string version)
-        {
-            if (string.IsNullOrWhiteSpace(version)) return;
-            candidates.Add(Path.Combine(portalDirectory, "PublicAPI", version, "net48", "Siemens.Engineering.Base.dll"));
-        }
-
-        private static string VersionFromPortalDirectory(string name)
-        {
-            int marker = name.IndexOf('V');
-            if (marker < 0) marker = name.IndexOf('v');
-            return marker < 0 ? "" : "V" + name.Substring(marker + 1).Replace('_', '.').Trim();
-        }
-
-        private static string NormalizeVersionTag(string version)
-        {
-            if (string.IsNullOrWhiteSpace(version)) return "V21";
-            string trimmed = version.Trim().Replace('_', '.');
-            if (!trimmed.StartsWith("V", StringComparison.OrdinalIgnoreCase))
-            {
-                trimmed = "V" + trimmed;
-            }
-            else
-            {
-                trimmed = "V" + trimmed.Substring(1);
-            }
-            return trimmed;
-        }
-
-        private static bool VersionsMatch(string a, string b)
-        {
-            if (string.Equals(a, b, StringComparison.OrdinalIgnoreCase)) return true;
-            Version va = ParseVersion(a);
-            Version vb = ParseVersion(b);
-            if (va.Major > 0 && vb.Major > 0)
-            {
-                if (va.Minor <= 0 || vb.Minor <= 0) return va.Major == vb.Major;
-                return va.Major == vb.Major && va.Minor == vb.Minor;
-            }
-            return false;
-        }
-
-        private static string InferApiVersion(string dllPath)
-        {
-            DirectoryInfo directory = new DirectoryInfo(Path.GetDirectoryName(dllPath));
-            for (int i = 0; i < 4 && directory != null; i++, directory = directory.Parent)
-            {
-                if (directory.Name.StartsWith("V", StringComparison.OrdinalIgnoreCase)
-                    && directory.Name.Length >= 2
-                    && char.IsDigit(directory.Name[1]))
-                {
-                    return "V" + directory.Name.Substring(1).Replace('_', '.');
-                }
-            }
-            return "V" + FileVersionInfo.GetVersionInfo(dllPath).FileMajorPart;
-        }
-
-        private static Version ParseVersion(string value)
-        {
-            if (string.IsNullOrWhiteSpace(value)) return new Version(0, 0);
-            string cleaned = value.Trim().TrimStart('V', 'v').Replace('_', '.');
-            if (cleaned.IndexOf('.') < 0) cleaned = cleaned + ".0";
-            Version version;
-            return Version.TryParse(cleaned, out version)
-                ? version
-                : new Version(0, 0);
         }
 
         private Type[] AvailableTypes()

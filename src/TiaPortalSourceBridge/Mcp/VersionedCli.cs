@@ -7,6 +7,42 @@ namespace TiaPortalSourceBridge.Mcp
 {
     internal static class VersionedCli
     {
+        internal static int Discover(string configPath, string version, string projectPath)
+        {
+            var output = Console.Out;
+            try
+            {
+                var args = new Dictionary<string, object>();
+                if (version != null) args["portal_version"] = PortalRoute.Exact(version);
+                if (!string.IsNullOrWhiteSpace(projectPath)) args["project_path"] = projectPath;
+                using (var server = new McpServer(configPath))
+                {
+                    var result = server.DashboardRead("tia_list_open_projects", args);
+                    object data;
+                    if (Convert.ToBoolean(result["isError"]) || !result.TryGetValue("structuredContent", out data))
+                    {
+                        Console.Error.WriteLine(new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(result["content"]));
+                        return 1;
+                    }
+                    var summary = (Dictionary<string, object>)data;
+                    var rows = (object[])summary["processes"];
+                    output.WriteLine("FOUND " + rows.Length + " PORTAL PROCESSES:");
+                    foreach (Dictionary<string, object> row in rows)
+                        output.WriteLine("PID=" + row["process_id"] + " | Proj=" + row["project_path"] + " | Ver=" + row["portal_version"]);
+                    object errors;
+                    if (summary.TryGetValue("discovery_errors", out errors))
+                        foreach (string error in (string[])errors) Console.Error.WriteLine(error);
+                    return errors is string[] && ((string[])errors).Length > 0 ? 1 : 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine(ex.Message);
+                return 1;
+            }
+            finally { Console.SetOut(output); }
+        }
+
         internal static int Run(string command, string[] originalArgs, string configPath, string projectPath)
         {
             string root = null;

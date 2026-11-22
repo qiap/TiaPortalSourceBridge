@@ -19,6 +19,7 @@ namespace TiaPortalSourceBridge.Mcp
         private readonly JavaScriptSerializer _json = new JavaScriptSerializer();
         private TextWriter _protocolOutput;
         private readonly string _configPath;
+        private readonly string _workerMajor;
         private OpennessSession _session;
         private string _sessionPath;
         private string _loadedVersion;
@@ -32,6 +33,7 @@ namespace TiaPortalSourceBridge.Mcp
         public McpServer(string configPath, bool projectWorker = false)
         {
             _configPath = Path.GetFullPath(configPath);
+            if (projectWorker) _workerMajor = Environment.GetEnvironmentVariable(PortalRoute.WorkerEnvironmentKey);
             _online = new OnlineTools(Path.GetDirectoryName(_configPath));
             _simulation = new SimulationTools(Path.GetDirectoryName(_configPath));
             if (!projectWorker)
@@ -140,10 +142,22 @@ namespace TiaPortalSourceBridge.Mcp
 
         private Dictionary<string, object> CallTool(string name, Dictionary<string, object> args)
         {
+            ValidateRoute(args);
+            return CallValidatedTool(name, args);
+        }
+
+        private void ValidateRoute(Dictionary<string, object> args)
+        {
+            string requested = PortalRoute.Requested(args);
+            PortalRoute.RequireMatch(requested, _workerMajor);
+        }
+
+        private Dictionary<string, object> CallValidatedTool(string name, Dictionary<string, object> args)
+        {
             string responseMode = StringArg(args, "response_mode");
             if (responseMode.Length > 0 && responseMode != "full" && responseMode != "compact") throw new ArgumentException("response_mode 必须为 full 或 compact。");
-            if (_knownTools == null) _knownTools = new HashSet<string>(ToolDefinitions().Cast<Dictionary<string, object>>().Select(t => Convert.ToString(t["name"])), StringComparer.Ordinal);
-            if (!_knownTools.Contains(name)) throw new ArgumentException("未知工具：" + name);
+            if (_knownTools == null) _knownTools = new HashSet<string>((_projects == null ? LocalToolDefinitions() : ToolDefinitions()).Cast<Dictionary<string, object>>().Select(t => Convert.ToString(t["name"])), StringComparer.Ordinal);
+            if (!_knownTools.Contains(name)) throw new ArgumentException((_workerMajor == null ? "未知工具：" : _workerMajor + " 接口不支持该工具：") + name);
             if (name == "tia_compare_projects") return CompareProjects(args);
             if (IsRestrictedLogic(name)) {
                 ValidateRestrictedTarget(args);
@@ -226,8 +240,7 @@ namespace TiaPortalSourceBridge.Mcp
             if (name == "tia_list_open_projects")
             {
                 AppConfig discoveryConfig = NewDiscoveryConfig();
-                if (!string.IsNullOrWhiteSpace(StringArg(args, "portal_version"))) discoveryConfig.TiaPortalVersion = StringArg(args, "portal_version");
-                if (_loadedVersion != null) discoveryConfig.TiaPortalVersion = _loadedVersion;
+                discoveryConfig.SelectPortalVersion(_loadedVersion ?? PortalRoute.Requested(args) ?? _workerMajor ?? discoveryConfig.TiaPortalVersion);
                 IList<PortalProcessInfo> processes = PortalDiscovery.List(discoveryConfig);
                 object[] rows = processes.Select(p => (object)Dict(
                     "process_id", p.ProcessId,
@@ -250,7 +263,7 @@ namespace TiaPortalSourceBridge.Mcp
             if (IsBlockSnapshotRead(name)) {
                 BlockReadNames(name,args);
                 if (BlockReadMode(args)=="cache") return ReadCachedBlocks(name,args,config);
-                if(StringArg(args,"unit_name").Length>0)throw new ArgumentException("V17 实时读取不支持软件单元。");
+                if(StringArg(args,"unit_name").Length>0)throw new ArgumentException("V16–V20 的实时读取接口限普通 PLC 程序块，软件单元请使用 V21 接口。");
             }
             PrepareIndexContext(name, args, config);
 
@@ -460,7 +473,7 @@ namespace TiaPortalSourceBridge.Mcp
                 if (name == "tia_write_reviewed_blocks")
                 {
                     RequireConfirmation(args, "按预览写入源码并保存整个离线工程");
-                    if (AppConfig.DetectProjectVersion(projectPath) != "V17") throw new InvalidOperationException("当前源码审查写回流程仅支持 V17。");
+                    if (!PortalVersions.IsClassic(PortalVersions.FromProjectPath(projectPath))) throw new InvalidOperationException("源码审查写回支持 V16–V20 的普通 PLC 程序块。");
                     var result = ReviewedBlockWrite.Run(Path.GetDirectoryName(_configPath),StringArg(args,"bridge_operation_id"),projectPath,plc.DisplayName,StringArg(args,"items_json"),
                         (items,operation) => ops.ImportXmlBatch(items,backupRoot,()=>session.CompilePlc(plc),null,operation),
                         (block,group) => ops.Read(block,string.IsNullOrEmpty(group)?"/":group),()=>session.SaveProject());
@@ -469,7 +482,7 @@ namespace TiaPortalSourceBridge.Mcp
                 if (name == "tia_write_tag_table_review")
                 {
                     RequireConfirmation(args, "按已审查方案写入变量表并保存整个离线工程");
-                    if (AppConfig.DetectProjectVersion(projectPath) != "V17") throw new InvalidOperationException("当前审查写回流程仅支持 V17。");
+                    if (!PortalVersions.IsClassic(PortalVersions.FromProjectPath(projectPath))) throw new InvalidOperationException("点表审查写回支持 V16–V20 的普通 PLC 变量表。");
                     var result = TagTableTransaction.Run(Path.GetDirectoryName(_configPath), StringArg(args,"bridge_operation_id"), projectPath, plc.DisplayName,
                         StringArg(args,"table_name"),StringArg(args,"group_path"),StringArg(args,"xml"),StringArg(args,"dependencies_json"),
                         () => ops.ListTagTables().Select(row => { var item = new JavaScriptSerializer().Deserialize<Dictionary<string,object>>(new JavaScriptSerializer().Serialize(row)); return new TagTableDependency { table_name = StringArg(item,"name"), group_path = StringArg(item,"group_path") }; }).ToArray(),
@@ -797,14 +810,8 @@ namespace TiaPortalSourceBridge.Mcp
 
         private string GenerationVersion(Dictionary<string, object> args)
         {
-            string explicitVersion = StringArg(args, "portal_version");
-            if (!string.IsNullOrWhiteSpace(explicitVersion)) return explicitVersion;
-            if (_projects != null) return _projects.GenerationVersion(StringArg(args, "project_path"));
-            if (!string.IsNullOrWhiteSpace(StringArg(args, "project_path")))
-            {
-                AppConfig config = NewDiscoveryConfig(); config.OverrideProject(StringArg(args, "project_path"), false); return config.TiaPortalVersion;
-            }
-            return _loadedVersion ?? NewDiscoveryConfig().TiaPortalVersion;
+            return PortalRoute.Requested(args) ?? _workerMajor ?? (_projects != null ? _projects.GenerationVersion("")
+                : PortalRoute.Exact(_loadedVersion ?? NewDiscoveryConfig().TiaPortalVersion));
         }
 
         private OpennessSession Connect(AppConfig config)
@@ -850,7 +857,8 @@ namespace TiaPortalSourceBridge.Mcp
         public void Dispose()
         {
             if (_projects != null) _projects.Dispose();
-            if (_v21LocalWorker != null) _v21LocalWorker.Dispose();
+            foreach (var worker in _localWorkers.Values) worker.Dispose();
+            _localWorkers.Clear();
             _online.Dispose();
             _simulation.StopPeripheral();
             ResetSessionOnly();
@@ -879,7 +887,7 @@ namespace TiaPortalSourceBridge.Mcp
             if (_session != null && _session.IsAlive()) return _sessionPath;
 
             AppConfig discoveryConfig = NewDiscoveryConfig();
-            if (_loadedVersion != null) discoveryConfig.TiaPortalVersion = _loadedVersion;
+            if (_loadedVersion != null) discoveryConfig.SelectPortalVersion(_loadedVersion);
             IList<PortalProcessInfo> processes = PortalDiscovery.List(discoveryConfig);
             string[] projects = processes.Select(p => p.ProjectPath).Where(p => !string.IsNullOrWhiteSpace(p))
                 .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
@@ -977,11 +985,11 @@ namespace TiaPortalSourceBridge.Mcp
                     ObjectSchema(new[] { "project_path", "plc_name", "hmi_name", "bridge_operation_id", "configuration_json" }, Property("project_path",project), Property("plc_name",plc), Property("hmi_name",StringProperty("完整经典 HMI 名称")), Property("bridge_operation_id",StringProperty("32 位 GUID")), Property("configuration_json",StringProperty("机构列表及明确报警和文本绑定 JSON"))), true, false, false),
                 Tool("tia_write_hmi_companion", "V17 经典 WinCC：执行已审查报警与文本联动，核验编译后保存整个离线工程；失败保留现场。",
                     ObjectSchema(new[] { "project_path", "plc_name", "hmi_name", "bridge_operation_id", "fingerprint", "confirm" }, Property("project_path",project), Property("plc_name",plc), Property("hmi_name",StringProperty("完整经典 HMI 名称")), Property("bridge_operation_id",StringProperty("32 位 GUID")), Property("fingerprint",StringProperty("预览指纹")), Property("confirm",BooleanProperty("已核对绑定并确认保存整个工程"))), false, true, false),
-                Tool("tia_write_reviewed_blocks", "V17：按完整对象修改前指纹核对、备份并批量导入程序块，编译及完整回读通过后保存整个离线工程。失败保留现场，不下载 PLC。",
+                Tool("tia_write_reviewed_blocks", "V16–V20：按完整对象修改前指纹核对、备份并批量导入程序块，编译及完整回读通过后保存整个离线工程。失败保留现场，不下载 PLC。",
                     ObjectSchema(new[] { "project_path", "plc_name", "items_json", "bridge_operation_id", "confirm" },
                         Property("project_path", StringProperty("工程路径")), Property("plc_name", StringProperty("明确的 PLC")), Property("items_json", StringProperty("批量 XML 项，每项必须带 expected_recovery_signature")),
                         Property("bridge_operation_id", StringProperty("32 位 GUID 操作编号")), Property("confirm", BooleanProperty("确认写入并保存整个工程"))), false, true, false),
-                Tool("tia_write_tag_table_review", "V17：核对全部原始变量表指纹，备份目标表、导入、编译、回读后保存整个工程。失败保留现场，同一操作编号不重放。",
+                Tool("tia_write_tag_table_review", "V16–V20：核对全部原始变量表指纹，备份目标表、导入、编译、回读后保存整个工程。失败保留现场，同一操作编号不重放。",
                     ObjectSchema(new[] { "project_path", "plc_name", "table_name", "xml", "dependencies_json", "bridge_operation_id", "confirm" },
                         Property("project_path", project), Property("plc_name", plc), Property("table_name", StringProperty("变量表名称")), Property("group_path", StringProperty("精确组路径")),
                         Property("xml", StringProperty("已审查的完整变量表 XML")), Property("dependencies_json", StringProperty("全部变量表的 table_name/group_path/signature 数组 JSON")),
@@ -1004,8 +1012,8 @@ namespace TiaPortalSourceBridge.Mcp
                     Property("network_offset",Dict("type","integer","minimum",0)),Property("network_limit",Dict("type","integer","minimum",1,"maximum",20)),
                     Property("group_path", StringProperty("可选组路径，用 / 分隔；提供后可极速直达查找。"))), true, false, true),
                 Tool("tia_read_blocks_batch","批量读取混合语言程序块；auto 返回 SCL/DB 源码和 LAD/GRAPH XML，readable 返回网络接线结构。逐项返回失败和缓存证据。",MixedReadSchema(),true,false,true),
-                Tool("tia_compare_projects","只读双工程指定组对比：程序块增删改、结构化接口与网络差异。明确区分缓存缺失、读取失败和实时目录确认的删除。支持 V17/V21 读取，分页不证明原子快照。",CompareSchema(),true,false,true),
-                Tool("tia_read_logic_patch_plan","V17 LAD/GRAPH 受限触点修改预览：只替换指定触点的直接符号操作数或常开/常闭。绑定实时完整块指纹并持久保存方案；传 plan_id 查询方案及执行结果。",LogicPreviewSchema(),true,false,true),
+                Tool("tia_compare_projects","只读双工程指定组对比：程序块增删改、结构化接口与网络差异。明确区分缓存缺失、读取失败和实时目录确认的删除。支持 V16 至 V21 工程读取，分页不证明原子快照。",CompareSchema(),true,false,true),
+                Tool("tia_read_logic_patch_plan","V16–V20 LAD/GRAPH 受限触点修改预览：只替换指定触点的直接符号操作数或常开/常闭。绑定实时完整块指纹并持久保存方案；传 plan_id 查询方案及执行结果。",LogicPreviewSchema(),true,false,true),
                 Tool("tia_write_logic_patch","应用已审查的受限触点修改方案：实时指纹复核、完整备份、导入、编译、完整块回读。失败保留现场；不自动重试、保存或下载。",LogicApplySchema(),false,true,false),
                 Tool("tia_read_source", "读取单个 SCL/STL/DB 程序块或 UDT 数据类型的纯文本源码（.scl/.db/.udt/.awl）。", ObjectSchema(new[] { "block_name" },
                     Property("project_path", project), Property("plc_name", plc), Property("block_name", StringProperty("程序块或 UDT 名称")),
@@ -1087,7 +1095,7 @@ namespace TiaPortalSourceBridge.Mcp
                     Property("block_type", Dict("type", "string", "enum", new[] { "FC", "FB" }, "description", "可选：FC（默认）或 FB")),
                     Property("networks_json", StringProperty("例如 [{\"title\":\"启动保持\",\"coil\":\"Motor\",\"coil_type\":\"coil\",\"branches\":[[{\"symbol\":\"Start\"},{\"symbol\":\"Stop\",\"negated\":true}],[{\"symbol\":\"Motor\"}]]}]")),
                     Property("interface_json", StringProperty("可选接口定义 JSON，支持 Input/Output/InOut/Static(仅FB)/Temp/Constant"))), true, false, true),
-                Tool("tia_list_open_projects", "在独立进程中列出指定版本的 TIA 实例和已打开项目；不影响已有项目连接。省略 portal_version 时使用配置版本。", ObjectSchema(Property("portal_version", StringProperty("可选，如 V17、V21"))), true, false, true),
+                Tool("tia_list_open_projects", "在独立进程中列出指定版本的 TIA 实例和已打开项目；不影响已有项目连接。省略 portal_version 时按运行中的博途版本发现工程。", ObjectSchema(Property("portal_version", StringProperty("可选，V16 至 V21"))), true, false, true),
                 Tool("tia_list_plcs", "列出指定或当前唯一已打开项目中的 PLC 和经典 WinCC HMI。", ObjectSchema(Property("project_path", project)), true, false, true),
                 Tool("tia_export_plc_sources", "把 PLC 程序块、类型及经典 WinCC HMI 工程对象导出到源码目录；会写入该目录，但不修改博途项目。",
                     ObjectSchema(Property("project_path", project), Property("plc_name", plc), Property("source_directory", source)), false, false, true),

@@ -19,12 +19,13 @@ namespace TiaPortalSourceBridge.Mcp
                 log = ExecutionLog.Begin(_configPath, "MCP", name, string.Join(" · ", target.Where(s => !string.IsNullOrWhiteSpace(s))));
             }
             try {
+                ValidateRoute(args);
                 string project = StringArg(args, "project_path");
                 if (_projects == null && !string.IsNullOrWhiteSpace(project))
                     operation = ProjectOperationGuard.Enter(project, name, StringArg(args, "bridge_operation_id"), ProjectOperationGuard.IsMutation(name, args));
                 preparedIndexContext = null;
                 InvalidateIndexBeforeMutation(name, args);
-                var result = CallTool(name, args);
+                var result = CallValidatedTool(name, args);
                 AttachIndexHint(name, args, result);
                 if (operation != null) operation.Complete(Equals(Value(result, "isError"), true));
                 if (log != null) {

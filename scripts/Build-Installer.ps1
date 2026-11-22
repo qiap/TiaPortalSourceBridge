@@ -53,6 +53,7 @@ Get-ChildItem -LiteralPath $root -Filter '*.md' -File | Copy-Item -Destination $
 $payloadDocs = Join-Path $payload 'docs'
 New-Item -ItemType Directory -Force $payloadDocs | Out-Null
 Copy-Item -LiteralPath (Join-Path $root 'docs\HMI-Page-Editor.md') -Destination $payloadDocs
+Copy-Item -LiteralPath (Join-Path $root "docs\Release-$Version.md") -Destination $payloadDocs
 Copy-Item -LiteralPath (Join-Path $root 'installer\INSTALL.txt') -Destination $payload
 Copy-Item -LiteralPath (Join-Path $root 'installer\PORTABLE.txt') -Destination $payload
 Copy-Item -LiteralPath (Join-Path $root 'WebDashboard.cmd') -Destination $payload

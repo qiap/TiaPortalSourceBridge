@@ -17,7 +17,52 @@ class LogicCompareChecks
     static CompareSide Side(string project,params string[] names){return new CompareSide{project_path=project,plc_name="PLC",unit_name="",group_path="G",mode="live",absence_verified=true,blocks=names.Select(n=>D("name",n,"group_path","G")).ToList()};}
     static Dictionary<string,object>[] Rows(Dictionary<string,object> r){return (Dictionary<string,object>[])r["items"];}
     public static int Main(string[] args){try{Run(Path.GetFullPath(args[0]));Console.WriteLine("PASS: "+count+" restricted LAD/GRAPH edit, no-replay write and dual-project comparison checks; no TIA connection.");return 0;}catch(Exception ex){Console.Error.WriteLine("Checks before failure: "+count+"\n"+ex);return 1;}}
+
+    static void CheckGenerationVersions(string root)
+    {
+        var args = D("block_name","FormatCheck","block_number",1,"networks_json","[{\"coil\":\"Motor\",\"branches\":[[{\"symbol\":\"Start\"}]]}]");
+        string templateDirectory = Path.Combine(Path.GetTempPath(), "tia-xml-templates-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(templateDirectory);
+        try {
+            for (int major = 16; major <= 21; major++) {
+                string version = "V" + major;
+                var lad = BlockReadable.Parse(LadBuilder.Generate(args, version));
+                Check(lad.SelectSingleNode("/Document/Engineering/@version").Value == version, version+" LAD Engineering");
+                Check(lad.SelectSingleNode("//*[local-name()='Sections']").NamespaceURI.EndsWith(major <= 17 ? "/v4" : "/v5"), version+" interface format");
+                Check(lad.SelectSingleNode("//*[local-name()='FlgNet']").NamespaceURI.EndsWith(major >= 19 ? "/v5" : "/v4"), version+" LAD format");
+                Check((lad.SelectSingleNode("/Document/SW.Blocks.FC/AttributeList/Namespace") != null) == (major >= 18), version+" PLC namespace");
+                var hmi = BlockReadable.Parse("<Document><Engineering version='"+version+"'/><Hmi.Screen.Screen><AttributeList><Name>Sample</Name></AttributeList></Hmi.Screen.Screen></Document>");
+                var tree = HmiModelBuilder.ReadTree((XmlElement)hmi.DocumentElement.LastChild);
+                string model = J(D("objects",new[]{D("kind","screens","model",tree)}));
+                var screen = HmiModelBuilder.Generate(model,version,root).Single();
+                Check(screen.name == "Sample" && BlockReadable.Parse(screen.xml).SelectSingleNode("/Document/Engineering/@version").Value == version,version+" HMI same-version object");
+                Reject(()=>HmiModelBuilder.Generate(model,major == 21 ? "V20" : "V21",root),version+" HMI wrong-version object");
+            }
+            var argsWithNamespace = new Dictionary<string,object>(args) {{"namespace","Station.Tools"}};
+            Check(BlockReadable.Parse(LadBuilder.Generate(argsWithNamespace,"V18")).SelectSingleNode("/Document/SW.Blocks.FC/AttributeList/Namespace").InnerText == "Station.Tools","V18 LAD namespace retained");
+            Reject(()=>LadBuilder.Generate(argsWithNamespace,"V17"),"no block namespace before V18");
+            Reject(()=>LadBuilder.Generate(args,"V22"),"unknown LAD format rejected");
+            string v17Graph = File.ReadAllText(Path.Combine(root,"templates","graph","v17.xml"));
+            var preserved = BlockOperations.ParseBlock(v17Graph, true);
+            Check(preserved.SelectSingleNode("/Document/Engineering/@version").Value == "V17" &&
+                preserved.SelectSingleNode("//*[local-name()='Sections']").NamespaceURI.EndsWith("/v5"),
+                "full V17 exported XML retains its own v5 interface on the block import path");
+            foreach (string version in new[]{"V16","V18","V19","V20"}) {
+                Reject(()=>GraphBuilder.Generate("{}",v17Graph,version,root),version+" cannot relabel V17 GRAPH donor");
+            }
+            string buttons = J(D("screens",new[]{D("name","Panel","items",new[]{D("name","B","type","Button")})}));
+            string location = Path.Combine(templateDirectory,"templates","hmi","v18");
+            Directory.CreateDirectory(location);
+            string template = "<Document><Engineering version='V18'/><Hmi.Screen.Screen><ObjectList><Hmi.Screen.Button><AttributeList><Width>81</Width></AttributeList></Hmi.Screen.Button></ObjectList></Hmi.Screen.Screen></Document>";
+            string file = Path.Combine(location,"Button.xml");
+            File.WriteAllText(file, template);
+            Check(HmiModelBuilder.Generate(buttons,"V18",templateDirectory).Single().xml.Contains("<Width>81</Width>"),"same-version HMI template selected");
+            File.WriteAllText(file,template.Replace("V18","V17"));
+            Reject(()=>HmiModelBuilder.Generate(buttons,"V18",templateDirectory),"mismatching HMI document template rejected");
+        } finally { Directory.Delete(templateDirectory,true); }
+    }
     static void Run(string root){
+        CheckGenerationVersions(root);
         string xml=LadBuilder.Generate(D("block_name","Ladder","block_type","FB","block_number",1,"networks_json","[{\"title\":\"互锁\",\"coil\":\"Motor\",\"branches\":[[{\"symbol\":\"Permit\"},{\"symbol\":\"Start\"}]]},{\"title\":\"保持原样\",\"coil\":\"Other\",\"branches\":[[{\"symbol\":\"Keep\"}]]}]"),"V17");
         var edit=Edit(xml);string after=RestrictedLogic.Patch(xml,edit);var a=BlockReadable.Parse(xml);var b=BlockReadable.Parse(after);
         Reject(()=>RestrictedLogic.ParseEdit("{\"contact_uid\":\"1\",\"transition_expr\":\"false\",\"negated\":true}"),"unsupported requested edit not silently ignored");

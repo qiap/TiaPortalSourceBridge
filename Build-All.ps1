@@ -57,4 +57,4 @@ if (-not $NoTrust) {
 # Clean build leftovers: staging dirs and renamed old executables (locked ones are skipped; removed on the next build).
 Get-ChildItem -LiteralPath (Join-Path $root 'build-support') -Directory -Filter 'merged-*' -ErrorAction SilentlyContinue | ForEach-Object { Remove-Item -LiteralPath $_.FullName -Recurse -Force -ErrorAction SilentlyContinue }
 Get-ChildItem -LiteralPath $root -Recurse -File -Filter '*.previous-*' -ErrorAction SilentlyContinue | Where-Object { $_.FullName -notmatch '\\(_archive)\\' } | ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force -ErrorAction SilentlyContinue }
-Write-Output 'Unified V17/V21 build complete. Start from this folder only.'
+Write-Output 'Unified V16-V21 build complete. Start from this folder only.'

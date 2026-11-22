@@ -11,7 +11,7 @@ namespace TiaPortalSourceBridge.Mcp
     internal sealed partial class McpServer
     {
         private object[] _mergedToolDefinitions;
-        private IProjectWorker _v21LocalWorker;
+        private readonly Dictionary<string, IProjectWorker> _localWorkers = new Dictionary<string, IProjectWorker>(StringComparer.OrdinalIgnoreCase);
         internal object[] DashboardToolDefinitions() { return ToolDefinitions(); }
         internal Dictionary<string, object> DashboardRead(string name, Dictionary<string, object> arguments)
         {
@@ -63,15 +63,9 @@ namespace TiaPortalSourceBridge.Mcp
                 }
             throw new DirectoryNotFoundException("缺少合并版 V21 引擎 engines/v21，请运行 Build-All.ps1。");
         }
-        private static bool IsV21(string identity)
-        {
-            if (identity.StartsWith("discovery:", StringComparison.OrdinalIgnoreCase))
-                return string.Equals(identity.Substring(10), "V21", StringComparison.OrdinalIgnoreCase);
-            return string.Equals(AppConfig.DetectProjectVersion(identity), "V21", StringComparison.OrdinalIgnoreCase);
-        }
         private IProjectWorker CreateVersionedWorker(string identity)
         {
-            if (!IsV21(identity))
+            if (PortalRoute.FromIdentity(identity) != "V21")
                 return new ProjectWorker(System.Reflection.Assembly.GetEntryAssembly().Location, _configPath, identity);
             string root = BackendRoot();
             return new ProjectWorker(Path.Combine(root, "src", "TiaPortalSourceBridge", "bin", "Release", "net48", "TiaPortalSourceBridge.exe"), Path.Combine(root, "mcp-config.json"), identity);
@@ -103,9 +97,11 @@ namespace TiaPortalSourceBridge.Mcp
             {
                 string name = Convert.ToString(tool["name"]);
                 var props = (Dictionary<string, object>)((Dictionary<string, object>)tool["inputSchema"])["properties"];
+                if (props.ContainsKey("project_path"))
+                    props["portal_version"] = StringProperty("可选，V16 至 V21。指定工程时须与工程文件版本一致。");
                 if (name.StartsWith("tia_simulation_", StringComparison.Ordinal) || name.StartsWith("tia_generate_", StringComparison.Ordinal) || name == "tia_patch_graph")
                 {
-                    props["portal_version"] = StringProperty("可选 V17/V21；本地生成和仿真按此选择引擎，省略时按 project_path 或唯一连接项目判断，最后使用配置默认版本。");
+                    props["portal_version"] = StringProperty("可选 V16、V17、V18、V19、V20、V21；本地生成和仿真按此选择引擎，省略时按 project_path 或唯一连接项目判断，最后使用配置默认版本。");
                     props["project_path"] = StringProperty("可选：用项目版本选择引擎；同时管理多个项目时请明确指定。");
                 }
             }
@@ -118,22 +114,25 @@ namespace TiaPortalSourceBridge.Mcp
             bool local = name.StartsWith("tia_simulation_", StringComparison.Ordinal) && name != "tia_simulation_download"
                 || name == "tia_generate_lad" || name == "tia_generate_graph" || name == "tia_generate_hmi_configuration" || name == "tia_patch_graph";
             if (!local) return false;
-            string version = StringArg(arguments, "portal_version");
-            if (version.Length == 0 && name == "tia_patch_graph")
-            {
-                string xml = StringArg(arguments, "xml");
-                if (xml.Contains("version=\"V21\"")) version = "V21";
-            }
-            if (version.Length == 0) version = _projects.GenerationVersion(StringArg(arguments, "project_path"));
-            if (!string.Equals(version, "V21", StringComparison.OrdinalIgnoreCase))
-            {
-                if (name == "tia_simulation_stop") throw new ArgumentException("tia_simulation_stop 需要 portal_version=V21；旧版请使用 tia_simulation_control。");
-                return false;
-            }
-            if (name.StartsWith("tia_simulation_", StringComparison.Ordinal) && !new[] { "tia_simulation_status", "tia_simulation_start", "tia_simulation_stop" }.Contains(name))
+            string version = PortalRoute.Requested(arguments);
+            string xmlVersion = name == "tia_patch_graph" ? PortalRoute.XmlVersion(StringArg(arguments, "xml"))
+                : name == "tia_generate_graph" ? PortalRoute.XmlVersion(StringArg(arguments, "base_xml")) : null;
+            PortalRoute.RequireMatch(version, xmlVersion);
+            version = version ?? xmlVersion ?? _projects.GenerationVersion("");
+            if (name == "tia_simulation_stop" && version != "V21")
+                throw new ArgumentException("tia_simulation_stop 需要 portal_version=V21；V16 至 V20 请使用 tia_simulation_control。");
+            if (version == "V21" && name.StartsWith("tia_simulation_", StringComparison.Ordinal) && !new[] { "tia_simulation_status", "tia_simulation_start", "tia_simulation_stop" }.Contains(name))
                 throw new ArgumentException("该扩展仿真工具尚未适配 V21，请使用 V21 的 status/start/stop/download 接口。");
-            if (_v21LocalWorker == null) _v21LocalWorker = CreateVersionedWorker("discovery:V21");
-            result = _v21LocalWorker.Call(name, arguments);
+
+            IProjectWorker worker;
+            if (!_localWorkers.TryGetValue(version, out worker))
+            {
+                worker = CreateVersionedWorker("local:" + version);
+                _localWorkers.Add(version, worker);
+            }
+            var scoped = new Dictionary<string, object>(arguments);
+            scoped["portal_version"] = version;
+            result = worker.Call(name, scoped);
             return true;
         }
     }

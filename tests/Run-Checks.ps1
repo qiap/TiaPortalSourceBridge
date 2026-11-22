@@ -1,6 +1,8 @@
 ﻿param([string]$MainExecutable, [string]$V21Executable)
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
+& powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'Test-OpennessSdk.ps1')
+if ($LASTEXITCODE -ne 0) { throw 'Openness SDK selection checks failed' }
 if (-not $MainExecutable -or -not $V21Executable) {
     $stage = Join-Path $root '.work\regression-build'
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root 'build-online.ps1') -OutputDirectory (Join-Path $stage 'main') -NoSync

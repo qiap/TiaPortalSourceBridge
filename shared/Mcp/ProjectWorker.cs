@@ -49,6 +49,7 @@ namespace TiaPortalSourceBridge.Mcp
                 RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true,
                 StandardOutputEncoding = new UTF8Encoding(false), StandardErrorEncoding = new UTF8Encoding(false)
             };
+            start.EnvironmentVariables[PortalRoute.WorkerEnvironmentKey] = PortalRoute.FromIdentity(identity);
             process = new Process { StartInfo = start };
             process.ErrorDataReceived += delegate(object sender, DataReceivedEventArgs e)
             {

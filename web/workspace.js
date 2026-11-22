@@ -74,6 +74,6 @@
   window.addEventListener('bridge-tab-change',e=>{tick(true);if(e.detail==='tasks'||e.detail==='maintenance')loadTasks(true);});
   const header=n('div',null,'source-badge');header.id='workspaceConnection';header.setAttribute('role','status');document.querySelector('main').prepend(header);let lastConnected=0;
   window.addEventListener('bridge-status',e=>{if(e.detail.ok)lastConnected=Date.now();header.textContent=e.detail.ok?'已连接看板 · '+(target().project_path.split(/[\\/]/).pop()||'未选择工程')+' · '+(target().plc_name||'未选择 PLC')+' · 状态更新于 '+new Date().toLocaleTimeString()+'。工程源码需在对应页面重新读取。':'看板连接中断 · 最后成功更新 '+(lastConnected?new Date(lastConnected).toLocaleTimeString():'未知')+'。当前显示可能过期，请重新打开看板启动程序；不要重复提交写入。';});header.textContent='正在连接看板…';
-  const reasons={sourceWriteApply:'先选择源码快照并生成完整预览，再勾选确认；直接写回限 V17。',hmiCompanionApply:'先读取 HMI 并核对预览，再勾选确认；直接写回限 V17。',monitorConnect:'先选择工程和 PLC；已有连接时需先断开。',peripheralStart:'选择 V17 工程、填写受管实例并勾选确认；已有任务时先核对原任务。',tagReviewApply:'先勾选对账差异并生成预览，再确认保存工程。'};
+  const reasons={sourceWriteApply:'先选择源码快照并生成完整预览，再勾选确认；直接写回支持 V16–V20。',hmiCompanionApply:'先读取 HMI 并核对预览，再勾选确认；直接写回限 V17。',monitorConnect:'先选择工程和 PLC；已有连接时需先断开。',peripheralStart:'选择 V17 工程、填写受管实例并勾选确认；已有任务时先核对原任务。',tagReviewApply:'先勾选对账差异并生成预览，再确认保存工程。'};
   for(const [id,reason] of Object.entries(reasons))window.BridgeUI.watch(id,()=>window.BridgeUI.disabled(id,reason));
 })();

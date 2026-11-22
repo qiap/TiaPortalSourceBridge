@@ -11,7 +11,7 @@ namespace TiaPortalSourceBridge.Mcp
         internal static Dictionary<string,object> Run(string root,string id,string project,string plc,string itemsJson,Func<string,string,XmlBatchResult> import,Func<string,string,string> read,Action save)
         {
             Guid parsed;if(!Guid.TryParseExact(id,"N",out parsed))throw new ArgumentException("源码写回需要有效操作编号。");
-            var items=XmlBatch.Parse(itemsJson);if(items.Any(i=>string.IsNullOrEmpty(i.expected_recovery_signature)))throw new ArgumentException("每个对象均须提供完整的修改前指纹。");
+            var items=XmlBatch.Parse(itemsJson,project);if(items.Any(i=>string.IsNullOrEmpty(i.expected_recovery_signature)))throw new ArgumentException("每个对象均须提供完整的修改前指纹。");
             string folder=Path.Combine(root,"logs","source-write-jobs"),path=Path.Combine(folder,id+".json");Directory.CreateDirectory(folder);
             string hash=XmlBatch.Hash(project+"\n"+plc+"\n"+itemsJson);var json=new System.Web.Script.Serialization.JavaScriptSerializer{MaxJsonLength=32*1024*1024};
             if(File.Exists(path)){var prior=json.Deserialize<Dictionary<string,object>>(File.ReadAllText(path));if(Convert.ToString(prior["request_hash"])!=hash)throw new InvalidOperationException("该操作编号已绑定另一份方案。");return prior;}

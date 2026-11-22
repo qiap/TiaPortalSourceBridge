@@ -33,6 +33,10 @@ foreach ($path in @('README.md', 'README.en.md')) {
     $text = Read $path
     Check ($text -notmatch 'releases/latest/download/TiaPortalSourceBridge-\d') "$path combines latest release with a fixed-version asset name."
     Check ($text.Contains('https://github.com/qiap/TiaPortalSourceBridge/releases')) "$path has no published-release entry point."
+    foreach ($asset in @("TiaPortalSourceBridge-$version-Portable.zip", "TiaPortalSourceBridge-$version-Setup.exe", 'SHA256SUMS.txt')) {
+        Check ($text.Contains("releases/download/v$version/$asset")) "$path is missing the current release asset link: $asset"
+    }
+    Check ($text.Contains("docs/Release-$version.md") -and (Test-Path -LiteralPath (Join-Path $root "docs/Release-$version.md"))) "$path must link the release-specific verification notes."
     foreach ($link in [regex]::Matches($text, 'releases/download/v(?<tag>\d+\.\d+\.\d+)/TiaPortalSourceBridge-(?<asset>\d+\.\d+\.\d+)-(Portable\.zip|Setup\.exe)')) {
         Check ($link.Groups['tag'].Value -eq $link.Groups['asset'].Value) "$path links an asset from a different release tag."
     }

@@ -42,6 +42,17 @@ namespace TiaPortalSourceBridge
             }
 
             string command = args[0].Trim().ToLowerInvariant();
+            if (command == "list-apis")
+            {
+                var versions = Enumerable.Range(16, 6).Select(major => {
+                    string version = "V" + major;
+                    string path = OpennessSdk.FindInstalled(version);
+                    return new { portal_version = version, assembly = OpennessSdk.PrimaryName(version) + ".dll",
+                        detected = path != null, path = path };
+                }).ToArray();
+                Console.WriteLine(new System.Web.Script.Serialization.JavaScriptSerializer().Serialize(versions));
+                return 0;
+            }
             string configPath = GetConfigPath(args);
             if (command == "create-shortcuts")
                 return DashboardShortcut.Create(configPath, args.Contains("--folder-only"), args.Contains("--notify"));
@@ -50,16 +61,7 @@ namespace TiaPortalSourceBridge
                 return new McpServer(configPath, true).Run();
 
             if (command == "list-portals" || command == "discover-projects")
-            {
-                var cfg = ConfigLoader.Load(configPath);
-                var list = PortalDiscovery.List(cfg);
-                Console.WriteLine("FOUND " + list.Count + " PORTAL PROCESSES:");
-                foreach (var p in list)
-                {
-                    Console.WriteLine("PID=" + p.ProcessId + " | Proj=" + p.ProjectPath + " | Ver=" + p.PortalVersion);
-                }
-                return 0;
-            }
+                return VersionedCli.Discover(configPath, args.Contains("--portal-version") ? GetOption(args, "--portal-version") : null, GetOption(args, "--project"));
 
             if (command == "online-host") return PipeTransport.Host(configPath, "", true);
             if (command == "online-client") return PipeTransport.Client(true);
@@ -136,7 +138,12 @@ namespace TiaPortalSourceBridge
                     return WebServer.Start(configPath, 18980, true);
                 }
 
-                if (string.Equals(config.TiaPortalVersion, "V21", StringComparison.OrdinalIgnoreCase))
+                string targetMajor = PortalRoute.Exact(config.TiaPortalVersion);
+                if (args.Contains("--portal-version"))
+                    PortalRoute.RequireMatch(PortalRoute.Exact(GetOption(args, "--portal-version")), targetMajor);
+                if (!config.AllowProjectUpgrade)
+                    PortalRoute.RequireMatch(targetMajor, PortalRoute.FromProject(config.ProjectPath));
+                if (targetMajor == "V21")
                     return VersionedCli.Run(command, args, configPath, config.ProjectPath);
                 Console.WriteLine("配置: " + config.ConfigFilePath);
                 Console.WriteLine("项目文件版本: " + config.ProjectFileVersion);
@@ -437,9 +444,10 @@ namespace TiaPortalSourceBridge
 
         private static void PrintUsage()
         {
-            Console.WriteLine("TIA Portal Source Bridge (v2.2)");
+            Console.WriteLine("TIA Portal Source Bridge (v" + ProductVersion.Release + ")");
             Console.WriteLine();
             Console.WriteLine("用法:");
+            Console.WriteLine("  TiaPortalSourceBridge.exe list-apis  （查看本机自动发现的 V16–V21 Openness DLL）");
             Console.WriteLine("  TiaPortalSourceBridge.exe web [--port <端口>] [--no-browser] [--config <config.json>]");
 
             Console.WriteLine("  TiaPortalSourceBridge.exe interactive [--project <Project.apXX>] [--config <config.json>]");

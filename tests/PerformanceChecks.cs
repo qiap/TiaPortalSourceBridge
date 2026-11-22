@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -80,12 +80,16 @@ internal static class PerformanceChecks
             if(optimized)
             {
                 string apiDir=Path.Combine(root,"PublicAPI","V17");Directory.CreateDirectory(apiDir);
-                string apiFile=Path.Combine(apiDir,"Siemens.Engineering.dll");File.WriteAllText(apiFile,"");
-                var has=typeof(ReflectionApi).GetMethod("HasExactCandidate",BindingFlags.Static|BindingFlags.NonPublic);
-                Check((bool)has.Invoke(null,new object[]{new[]{apiFile},"V17"}),"exact API version accepted");
-                Check(!(bool)has.Invoke(null,new object[]{new[]{apiFile},"V20"}),"wrong API version not accepted as fast path");
+                const string fileName="Siemens.Engineering.dll";
+                string apiFile=Path.Combine(apiDir,fileName);
+                var assemblyName=new AssemblyName("Siemens.Engineering"){Version=new Version(17,0,0,0)};
+                var sample=AppDomain.CurrentDomain.DefineDynamicAssembly(assemblyName,System.Reflection.Emit.AssemblyBuilderAccess.Save,apiDir);
+                sample.DefineDynamicModule("api",fileName);sample.Save(fileName);
+                var has=typeof(ReflectionApi).Assembly.GetType("TiaPortalSourceBridge.Openness.OpennessSdk").GetMethod("MatchesPrimary",BindingFlags.Static|BindingFlags.NonPublic);
+                Check((bool)has.Invoke(null,new object[]{apiFile,"V17"}),"exact API manifest accepted");
+                Check(!(bool)has.Invoke(null,new object[]{apiFile,"V20"}),"wrong API version not accepted as fast path");
                 File.Delete(apiFile);
-                Check(!(bool)has.Invoke(null,new object[]{new[]{apiFile},"V17"}),"missing API not accepted");
+                Check(!(bool)has.Invoke(null,new object[]{apiFile,"V17"}),"missing API not accepted");
             }
             var transport=new FakeTransport();var online=new OnlineTools(root);
             Set(online,"profile",new OnlineProfile {Tags=new[]{new OnlineTag{Name="word",Address="DB1.DBW0",Type="Word"},new OnlineTag{Name="far",Address="DB1.DBB200",Type="Byte"},new OnlineTag{Name="other",Address="DB2.DBB0",Type="Byte"}}});

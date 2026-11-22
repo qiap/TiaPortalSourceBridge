@@ -25,7 +25,8 @@ namespace TiaPortalSourceBridge.Web
             try {
                 var result = new IoSnapshot { project_path = job.project, plc_name = job.plc, read_started_utc = DateTime.UtcNow.ToString("o") };
                 Func<Dictionary<string, object>> args = () => new Dictionary<string, object> { { "project_path", job.project }, { "plc_name", job.plc }, { "response_mode", "compact" } };
-                var store = new ProjectIndexStore(job.project, AppConfig.DetectProjectVersion(job.project));
+                var projectVersion = AppConfig.DetectProjectVersion(job.project);
+                var store = new ProjectIndexStore(job.project, projectVersion);
                 if (job.cached) {
                     if (!store.Exists) throw new InvalidOperationException("尚无本地源码，请先从博途重新读取。");
                     var cachedTables = store.Select("plc.tags",job.plc,"","").Where(e => string.Equals(e.owner,job.plc,StringComparison.OrdinalIgnoreCase)).ToArray();
@@ -34,7 +35,7 @@ namespace TiaPortalSourceBridge.Web
                         try {
                             string tableXml = store.IoSource(table);
                             result.rows.AddRange(IoTable.Parse(tableXml,table.name,table.group,table.unit_name));
-                            if (AppConfig.DetectProjectVersion(job.project) == "V17") result.nativeTableSignatures.Add((table.unit_name ?? "") + "\n" + (table.group ?? "") + "\n" + table.name, Mcp.TagTableXml.Signature(tableXml));
+                            if (PortalVersions.IsClassic(projectVersion)) result.nativeTableSignatures.Add((table.unit_name ?? "") + "\n" + (table.group ?? "") + "\n" + table.name, Mcp.TagTableXml.Signature(tableXml));
                             result.tables_read++;
                         } catch (Exception ex) { result.warnings.Add(table.name + "：" + ex.Message); }
                     }
@@ -56,11 +57,11 @@ namespace TiaPortalSourceBridge.Web
                             var a = args(); a["table_name"] = name; a["group_path"] = group.Length == 0 ? "/" : group; a["unit_name"] = unit;
                             string tableXml = Text(ReadDashboard(_configPath, "tia_read_tag_table", a), "xml");
                             result.rows.AddRange(IoTable.Parse(tableXml, name, group, unit));
-                            if (AppConfig.DetectProjectVersion(job.project) == "V17") result.nativeTableSignatures.Add(unit + "\n" + group + "\n" + name, Mcp.TagTableXml.Signature(tableXml));
+                            if (PortalVersions.IsClassic(projectVersion)) result.nativeTableSignatures.Add(unit + "\n" + group + "\n" + name, Mcp.TagTableXml.Signature(tableXml));
                             result.tables_read++;
                         } catch (Exception ex) { result.warnings.Add("变量表 " + unit + "/" + group + "/" + name + " 读取失败：" + ex.Message); }
                     }
-                    bool native = AppConfig.DetectProjectVersion(job.project) == "V21";
+                    bool native = projectVersion == "V21";
                     if (native) {
                         result.reference_source = "V21 官方交叉引用";
                         result.reference_coverage = "逐个变量表读取官方引用；仅在同一变量表和软件单元内关联精确符号或地址。无匹配结果不证明未使用。";

@@ -54,7 +54,7 @@ with tempfile.TemporaryDirectory(prefix='tia-block-read-') as temp:
     check(byname['A']['status']=='structurally_equal','cross-version cache compare ignores export envelope')
     check(byname['Ghost']['status']=='unknown' and result[1]['isError'],'catalog-only is not equal or removed')
     check(byname['A']['evidence_a']['write_baseline'] is False,'compare cache provenance')
-    check(result[2]['isError'] and 'V17' in result[2]['content'][0]['text'],'V21 restricted write rejected before connection')
+    check(result[2]['isError'] and 'V16' in result[2]['content'][0]['text'] and 'V20' in result[2]['content'][0]['text'],'V21 restricted write rejected before connection')
     check(result[3]['isError'] and 'confirm' in result[3]['content'][0]['text'],'unconfirmed write rejected before connection')
     check(result[4]['isError'] and 'AttachOnly' not in result[4]['content'][0]['text'],'saved-plan lookup does not connect TIA')
     scenario=defs['tia_simulation_peripheral_start']['inputSchema']['properties']

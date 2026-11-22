@@ -47,6 +47,7 @@ namespace TiaPortalSourceBridge.Web
             if(table==null)throw new InvalidOperationException("目标变量表缺少可用的源码快照。");
             if(archive.warnings.Count>0)throw new InvalidOperationException("源码快照不完整，请重新读取后再生成写回方案。");
             var plan=new TagReconcilePlan{id=Guid.NewGuid().ToString("N"),project_path=archive.project_path,plc_name=archive.plc_name,table_name=table.name,group_path=table.group,before_xml=archive.Sources[table.id],rows=selected,source_snapshot=archive.id,dependencies=new List<Dictionary<string,object>>()};
+            XmlBatch.CheckReviewedVersion(TagTableXml.Parse(plan.before_xml),archive.project_path);
             var all=new List<IoRow>();
             var tables=archive.entries.Where(e=>e.kind=="plc.tags").ToArray();
             if(report.nativeTableSignatures==null||report.nativeTableSignatures.Count!=tables.Length)throw new InvalidOperationException("对账报告缺少完整的变量表指纹，请重新读取并对账。");

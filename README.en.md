@@ -8,7 +8,7 @@ A local bridge between **Siemens TIA Portal** and **AI-assisted engineering and 
 
 Using TIA Portal Openness, the project provides PLC source import and export, project indexing, compilation diagnostics, and HMI and hardware configuration tools. Use the browser dashboard directly, or connect an AI client through MCP (Model Context Protocol).
 
-The application runs on Windows and provides a unified entry point for separate V17 and V21 engines.
+The application runs on Windows and provides one entry point for TIA Portal V16 through V21.
 
 ## Features
 
@@ -31,18 +31,18 @@ For the current tool list and parameters, use the dashboard's **MCP tool diction
 
 You do not need to download the source or compile the application. Choose either package:
 
-v4.15.2 provides both a portable Windows ZIP and an EXE installer.
+v4.16.0 provides both a portable Windows ZIP and an EXE installer.
 
-v4.15.2 combines VM automatic pairing with I/O layout, request/export timeout, stale-response and index-hash fixes. It synchronizes build assets, cleans successful packaging stages, preserves explicit local ports and isolates SSH host keys, tunnel records and logs per VM pairing.
+v4.16.0 selects the Openness API for each V16–V21 project. Native API checks ran on V17, V18 and V21. V17 also identified an open project. See [Version compatibility](#version-compatibility) for the evidence for each major.
 
 | Package | Download | How to run |
 | --- | --- | --- |
-| Portable ZIP | [Download v4.15.2 Portable.zip](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.15.2/TiaPortalSourceBridge-4.15.2-Portable.zip) | Extract the entire archive, then double-click `WebDashboard.cmd` or `LaunchWeb.vbs` |
-| Windows installer | [Download v4.15.2 Setup.exe](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.15.2/TiaPortalSourceBridge-4.15.2-Setup.exe) | Run the installer, then open the application from the desktop or Start menu |
+| Portable ZIP | [Download v4.16.0 Portable.zip](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.16.0/TiaPortalSourceBridge-4.16.0-Portable.zip) | Extract the entire archive, then double-click `WebDashboard.cmd` or `LaunchWeb.vbs` |
+| Windows installer | [Download v4.16.0 Setup.exe](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.16.0/TiaPortalSourceBridge-4.16.0-Setup.exe) | Run the installer, then open the application from the desktop or Start menu |
 
-Both packages include the V17/V21 engines, default configuration, and runtime templates. Open your project in TIA Portal first, then select the project and PLC in the dashboard. The target computer must meet the requirements below.
+Both packages include the V16–V20 engine and the dedicated V21 engine, default configuration, and runtime templates. Open your project in TIA Portal first, then select the project and PLC in the dashboard. The target computer must meet the requirements below.
 
-[All releases and release notes](https://github.com/qiap/TiaPortalSourceBridge/releases) · See the release attachment `SHA256SUMS.txt` for ZIP and EXE hashes.
+[All releases and release notes](https://github.com/qiap/TiaPortalSourceBridge/releases) · [v4.16.0 release notes (Chinese)](docs/Release-4.16.0.md) · [SHA-256 hashes for both downloads](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.16.0/SHA256SUMS.txt).
 
 GitHub's **Code → Download ZIP** and the automatically generated **Source code** release archives contain source code, not a ready-to-run application. For portable use, download **Portable.zip** above. The EXE installer is currently unsigned.
 
@@ -74,7 +74,7 @@ In **I/O 表与引用** (I/O tables and references), open **电气 Excel 点表�
 
 The read-only report identifies changed fields, entries listed on only one side, duplicate names/addresses, overlapping address ranges, ambiguous matches, and invalid Excel data. It retains original Excel row numbers and PLC candidate values. I/Q/M bit, byte, word, and double-word addresses are normalized, including `%`, German E/A notation, and leading zeros. Mapped points use complete symbolic names. Overlaps can be intentional aliases, and zero reference evidence does not establish that an address is unused. Target, snapshot, or column changes invalidate the displayed comparison.
 
-Reconciliation itself is read-only. V17 can turn selected changed or Excel-only rows from one ordinary native tag table into a reviewed write plan. Execution checks every native table fingerprint again, backs up the selected table, imports, compiles, verifies the result, and saves the entire offline project. Conflicts, software units, mapped DBs and incomplete/unsupported declarations are excluded. Renaming does not automatically refactor PLC/HMI external references. Failed writes retain their records and state; restoration requires unchanged post-operation evidence. V21 retains read-only reconciliation.
+Reconciliation itself is read-only. V16–V20 can turn selected changed or Excel-only rows from one ordinary native tag table into a reviewed write plan. Execution checks every native table fingerprint again, backs up the selected table, imports, compiles, verifies the result, and saves the entire offline project. Conflicts, software units, mapped DBs and incomplete/unsupported declarations are excluded. Renaming does not automatically refactor PLC/HMI external references. Failed writes retain their records and state; restoration requires unchanged post-operation evidence. V21 retains read-only reconciliation.
 
 The importer accepts `.xlsx` files up to 8 MB, 20 sheets, 20000 nonempty rows in total, and 128 columns; save legacy `.xls` files as `.xlsx` first. Hidden rows are included and Excel filters are not applied. Formulas, error cells, and merged data cells are explicitly marked for correction; paste them as individual values first. Comparisons use the selected snapshot, not live values, unassigned hardware channels, or external device usage. The process keeps the latest three uploads and reports in memory. Export to retain the overview, all comparison rows, and PLC candidate evidence independently of the page filter.
 
@@ -92,7 +92,7 @@ The change-review tab can preserve the indexed PLC sources as independent, hash-
 
 The documentation ZIP contains the source catalog and XML, call-graph JSON/Mermaid, I/O and reference workbooks, translations, supported GRAPH structure diagrams, and coverage notes. Unread HMI resources are not included.
 
-### Reviewed text and parameter migration — V17
+### Reviewed text and parameter migration — V16–V20
 
 - **Translations:** export a selected snapshot's workbook, edit `Translation`, mark selected rows `update`, then upload for review. Snapshot, source hash, original text, resource and language identities must still match. A language-coverage worksheet lists empty, missing and duplicate entries relative to languages observed in that snapshot. It does not add project languages automatically.
 - **Parameters:** configure read-only monitoring using `symbol name | absolute DB address | type`, read and archive values, then select a source snapshot and the parameter archive ID in change review. Migration matches standard global DB scalars by name, type and DB number. Arrays, optimized DBs, instance DBs and unmatched fields are excluded. User-supplied symbolic names and physical offsets are not proof of the online program's identity; samples may span scan cycles.
@@ -119,7 +119,7 @@ The simulation tab supports delayed Bool command-to-feedback rules, stuck feedba
 
 Runs persist configurations, assertion results and write-intent logs. Missed deadlines fail rather than passing with late values. The UI shows the latest 500 events; completed runs support full event-log export. Fake-adapter tests verify orchestration and guards, not the actual SDK, downloaded program or machine behavior.
 
-Snapshots, parameter archives, trace files, simulation results, HMI backups and templates are local engineering data excluded from Git. New write workflows target **V17 and Classic WinCC**; V21 retains its existing capabilities.
+Snapshots, parameter archives, trace files, simulation results, HMI backups and templates are local engineering data excluded from Git. The Classic WinCC companion and peripheral simulation wizards target **V17**; V21 retains its existing capabilities.
 
 ### Program audit
 
@@ -148,9 +148,27 @@ TIA Portal, Siemens DLLs, and related software licenses are not included.
 
 ### Version compatibility
 
-The unified entry point manages V17 and V21 projects. Projects with `.ap21` / `.als21` extensions are handled by the `engines/v21` subprocess; you do not need to start the internal engine separately.
+The dashboard and MCP accept `.ap16` through `.ap21` and their corresponding `.als` files. Select a project or pass its full `project_path`. Each project uses an isolated worker.
 
-Feature coverage differs between engines. Refer to individual tool descriptions for V21-specific interfaces and simulation capabilities. Other TIA versions, devices, and HMI types require separate validation and should not be assumed to be fully compatible. Passing offline tests does not establish that a target project compiles or runs correctly in TIA Portal.
+| Project | Required Openness API | Coverage |
+| --- | --- | --- |
+| V16, V17, V18, V19, V20 | The matching Portal major's `Siemens.Engineering.dll` | Project connections, ordinary PLC blocks and tag tables, source, indexing, I/O, project comparison and reviewed writes. I/O references come from the index. |
+| V21 | V21 .NET Framework modular API, starting with `Siemens.Engineering.Base.dll` | The entry point launches `engines/v21`. Its catalog includes Software Units, SimaticSD and native cross-references. |
+
+Run `.\src\TiaPortalSourceBridge\bin\Release\net48\TiaPortalSourceBridge.exe list-apis` on the machine hosting the bridge to list automatically detected primary API assemblies and their paths without opening a project. Install the corresponding Portal, Openness and product options on that machine. Multiuser local sessions require the native `LocalSessions` API. Use a standard `.ap16` project on V16. GRAPH generation for V16, V18, V19 and V20 requires a `base_xml` export from the same major. The built-in GRAPH templates cover V17 and V21. The Classic WinCC screen editor and peripheral simulation wizard target V17. Offline checks cover routing and file handling. Validate compilation and simulation on an engineering machine running the target major. [Siemens installation registry](https://docs.tia.siemens.cloud/r/en-us/v20/tia-portal-openness-api-for-automation-of-engineering-workflows/tia-portal-openness-api/general-functions/information-about-installed-tia-portal-openness-versions) · [V21 API changes](https://docs.tia.siemens.cloud/r/en-us/v21/readme-tia-portal-openness/major-changes-for-long-term-stability-in-tia-portal-openness-v21).
+
+#### Tested versions
+
+| Version | Evidence from this release |
+| --- | --- |
+| V16 | Offline regression and LAD interface/network XML validation using the V16 compatibility schemas shipped with V17. The native V16 environment was unavailable. |
+| V17 | Loaded the native API, checked types and methods, and found one open project through read-only discovery. Generated LAD passed schema validation. |
+| V18 | Loaded the native API, checked types and methods, and validated LAD XML against its schemas. Read-only discovery completed with no V18 project open. |
+| V19 | Offline project routing, XML generation, version checks and missing-SDK diagnostics. The native V19 environment was unavailable. |
+| V20 | Offline project routing, XML generation, version checks and missing-SDK diagnostics. The native V20 environment was unavailable. |
+| V21 | Loaded the native modular API, checked types and methods, and validated LAD XML against its schemas. Read-only discovery completed with no V21 project open. |
+
+Offline cases cover all six majors. This release check did not import into, compile or save a real project, download to a PLC, or validate simulation for any major.
 
 ## Run from source
 
@@ -223,7 +241,7 @@ Select a project and PLC, open **I/O 表与引用** (I/O and references), then c
 - **导出 Excel** (Export Excel) downloads an `.xlsx` with all filtered pages, reference details, and read coverage notes.
 - Changing project or PLC requires a new read. Failed or incomplete reads are reported explicitly.
 
-The view includes declared PLC tags, not unassigned hardware channels or live values. V17 shows explicit indexed references; V21 uses the official cross-reference interface. Indirect addressing and cross-unit bindings may not be fully covered. Zero references does not prove a tag is unused. Coverage and warnings are included in the workbook.
+The view includes declared PLC tags, not unassigned hardware channels or live values. V16–V20 shows explicit indexed references; V21 uses the official cross-reference interface. Indirect addressing and cross-unit bindings may not be fully covered. Zero references does not prove a tag is unused. Coverage and warnings are included in the workbook.
 
 ## Connect an MCP client
 
@@ -368,7 +386,7 @@ Three MCP entry points are available; this release does not add a Web page:
 - `tia_write_logic_patch`: apply the reviewed plan with `confirm: true`.
 - `tia_compare_projects`: compare selected program groups in two projects, with block, interface and network differences.
 
-Restricted editing currently targets **V17**. Select a LAD `compile_unit_id`, or a GRAPH `sequence_index` (zero-based) plus `transition` number, and a `contact_uid` from a live read. `edit_json` may replace the direct symbolic operand using `scope` (`GlobalVariable` or `LocalVariable`) and `components`, and/or set `negated` (true means normally closed). It cannot rewrite arbitrary Boolean expressions, shared operands, edge contacts, arrays, indirect addressing, actions or network topology. V21 retains its existing write tools.
+Restricted editing supports recognized LAD/GRAPH networks in **V16–V20**. Select a LAD `compile_unit_id`, or a GRAPH `sequence_index` (zero-based) plus `transition` number, and a `contact_uid` from a live read. `edit_json` may replace the direct symbolic operand using `scope` (`GlobalVariable` or `LocalVariable`) and `components`, and/or set `negated` (true means normally closed). It cannot rewrite arbitrary Boolean expressions, shared operands, edge contacts, arrays, indirect addressing, actions or network topology. V21 retains its existing write tools.
 
 Plans in `logs/logic-plans/` bind the project, PLC, full-block fingerprint and exact edit. Applying rechecks the live baseline, backs up before importing, compiles and verifies a full readback. Only `verified_unsaved` indicates all checks passed; it is not a proof of logical safety. There is no automatic project save, PLC download, retry or rollback. Failed or interrupted writes retain their evidence and cannot replay the same plan. Query the plan to inspect results; stale baselines require a new preview.
 

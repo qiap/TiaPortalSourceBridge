@@ -11,7 +11,7 @@ namespace TiaPortalSourceBridge.Interactive
             using (OpenFileDialog dialog = new OpenFileDialog())
             {
                 dialog.Title = "选择 TIA Portal 项目";
-                dialog.Filter = "TIA Portal 项目 (*.ap*)|*.ap*|所有文件 (*.*)|*.*";
+                dialog.Filter = "TIA Portal V16–V21 项目|*.ap16;*.ap17;*.ap18;*.ap19;*.ap20;*.ap21;*.als16;*.als17;*.als18;*.als19;*.als20;*.als21|所有文件 (*.*)|*.*";
                 dialog.CheckFileExists = true;
                 dialog.Multiselect = false;
 

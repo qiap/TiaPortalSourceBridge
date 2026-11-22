@@ -25,12 +25,15 @@ namespace TiaPortalSourceBridge.Openness
 
             foreach (object process in api.Items(processes))
             {
+                string project = PathText(api.Get(process, "ProjectPath", false));
+                string executable = PathText(api.Get(process, "Path", false));
+                if (!OpennessSdk.MatchesProcess(project, executable, api.LoadedPortalVersion)) continue;
                 result.Add(new PortalProcessInfo
                 {
                     ProcessId = Convert.ToInt32(api.Get(process, "Id", false) ?? 0),
-                    ExecutablePath = PathText(api.Get(process, "Path", false)),
+                    ExecutablePath = executable,
                     Mode = Convert.ToString(api.Get(process, "Mode", false) ?? ""),
-                    ProjectPath = PathText(api.Get(process, "ProjectPath", false)),
+                    ProjectPath = project,
                     PortalVersion = api.LoadedPortalVersion
                 });
             }

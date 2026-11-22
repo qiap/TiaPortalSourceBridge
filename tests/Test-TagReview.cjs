@@ -35,6 +35,13 @@ const root=path.join(__dirname,'..'),html=fs.readFileSync(path.join(root,'web/in
   f=await fixture('many');await preview(f);await f.page.locator('#tagReviewConfirm').isDisabled().then(v=>assert.equal(v,true));checks++;await f.context.close();
   f=await fixture('lost');await preview(f);await f.page.locator('#tagReviewConfirm').check();await f.page.locator('#tagReviewApply').click();await f.page.waitForFunction(()=>document.getElementById('tagReviewStatus').textContent.includes('连接中断'));assert.equal(await f.page.locator('#tagReviewApply').isDisabled(),true);assert.equal(f.calls.filter(c=>c.action==='apply').length,1);checks++;await f.context.close();
   f=await fixture('delay');await f.page.getByLabel('选择 Excel 第 2 行').check();await f.page.locator('#tagReviewPreview').click();while(!f.pending())await new Promise(r=>setTimeout(r,10));await f.page.evaluate(()=>{reviewState.target.plc_name='Other';tagReviewReset();});f.release();await f.page.waitForFunction(()=>!document.getElementById('tagReviewHistory').disabled);assert.equal(await f.page.locator('#tagReviewPlan').textContent(),'');checks++;await f.context.close();
+  for(const ext of ['ap16','als18','AP19','ap20']){
+   f=await fixture();await f.page.evaluate(ext=>{reviewState.target.project_path='E:/Fixture.'+ext;tagReviewReset();},ext);
+   await f.page.waitForFunction(()=>!document.getElementById('tagReviewHistory').disabled);
+   await f.page.locator('#tagReviewHistory').click();
+   await f.page.waitForFunction(()=>document.getElementById('tagReviewRecords').textContent.includes('需要核对'));
+   assert.equal(f.calls.find(c=>c.action==='history').data.project_path,'E:/Fixture.'+ext);checks++;await f.context.close();
+  }
   f=await fixture();await f.page.evaluate(()=>reviewState.target.project_path='E:/Fixture.ap21');await f.page.waitForTimeout(800);assert.equal(await f.page.locator('#tagReviewPreview').isDisabled(),true);assert.equal(await f.page.locator('#tagReviewHistory').isDisabled(),true);checks++;await f.context.close();
   console.log('PASS: '+checks+' reviewed tag write UI checks');
  }finally{await browser.close();}

@@ -4,7 +4,7 @@
   const node=(tag,text)=>{const n=document.createElement(tag);n.textContent=text??'';return n;};
   const state=()=>window.ioReconcileReview?.()||{target:{}};
   const key=()=>JSON.stringify([state().target.project_path,state().target.plc_name]);
-  const v17=()=>/\.ap17$/i.test(state().target.project_path||'');
+  const supportsTagReview=()=>/\.(?:ap|als)(?:1[6-9]|20)$/i.test(state().target.project_path||'');
   let selected=new Set(),plan=null,busy=false,generation=0,scope='',reportId='',pollTimer=null;
   const message=text=>el('tagReviewStatus').textContent=text;
   function reset(){selected.clear();plan=null;generation++;el('tagReviewPlan').replaceChildren();el('tagReviewConfirm').checked=false;}
@@ -13,16 +13,16 @@
     if(scope!==key()){scope=key();reset();clearTimeout(pollTimer);el('tagReviewRecords').replaceChildren();message('请选择当前工程的原始变量表进行对账。');}
     const s=state(),id=s.report?.id||'';if(id!==reportId){reportId=id;reset();}
     const blocked=busy||s.busy||!!window.cylinderApplying||!!window.cylinderRecoveryPending;
-    el('tagReviewPreview').disabled=blocked||!v17()||!s.valid||!selected.size||s.report?.options.scope!=='native'||!!s.report?.options.unit||!s.report?.options.table;
-    el('tagReviewApply').disabled=blocked||!v17()||!plan||!el('tagReviewConfirm').checked;
-    el('tagReviewHistory').disabled=busy||!v17()||!s.target.target_token;
+    el('tagReviewPreview').disabled=blocked||!supportsTagReview()||!s.valid||!selected.size||s.report?.options.scope!=='native'||!!s.report?.options.unit||!s.report?.options.table;
+    el('tagReviewApply').disabled=blocked||!supportsTagReview()||!plan||!el('tagReviewConfirm').checked;
+    el('tagReviewHistory').disabled=busy||!supportsTagReview()||!s.target.target_token;
     el('tagReviewCulture').disabled=blocked;el('tagReviewConfirm').disabled=blocked||!plan;
-    document.querySelectorAll('[data-tag-review-row]').forEach(c=>c.disabled=blocked||!v17());
-    document.querySelectorAll('[data-tag-review-restore]').forEach(c=>c.disabled=blocked||!v17());
+    document.querySelectorAll('[data-tag-review-row]').forEach(c=>c.disabled=blocked||!supportsTagReview());
+    document.querySelectorAll('[data-tag-review-restore]').forEach(c=>c.disabled=blocked||!supportsTagReview());
   }
   window.tagReviewRow=(row,cell)=>{
     sync();
-    if(!['different','excel_only'].includes(row.status)||!v17())return;
+    if(!['different','excel_only'].includes(row.status)||!supportsTagReview())return;
     const c=document.createElement('input');c.type='checkbox';c.dataset.tagReviewRow=row.excel_row;c.setAttribute('aria-label','选择 Excel 第 '+row.excel_row+' 行');c.checked=selected.has(row.excel_row);
     c.onchange=()=>{if(c.checked)selected.add(row.excel_row);else selected.delete(row.excel_row);plan=null;generation++;el('tagReviewConfirm').checked=false;el('tagReviewPlan').replaceChildren();sync();};cell.prepend(c);
   };

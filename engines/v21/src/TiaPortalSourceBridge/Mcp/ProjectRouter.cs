@@ -32,6 +32,7 @@ namespace TiaPortalSourceBridge.Mcp
         }
         internal static string Normalize(string path)
         {
+            PortalRoute.RequireMatch(PortalRoute.FromProject(path), "V21");
             var config = new AppConfig(); config.OverrideProject(path, false); return config.ProjectPath;
         }
         internal void ConfigureInitialProject(string path) { initialProject = string.IsNullOrWhiteSpace(path) ? null : Normalize(path); }
@@ -48,7 +49,7 @@ namespace TiaPortalSourceBridge.Mcp
         internal string GenerationVersion(string projectPath)
         {
             string path = string.IsNullOrWhiteSpace(projectPath) ? SingleProject() ?? initialProject : Normalize(projectPath);
-            if (path == null) return defaultVersion();
+            if (path == null) { PortalRoute.RequireMatch(PortalRoute.Exact(defaultVersion()), "V21"); return "V21"; }
             var config = new AppConfig(); config.OverrideProject(path, false); return config.TiaPortalVersion;
         }
         private Dictionary<string, object> Discover(Dictionary<string, object> arguments)

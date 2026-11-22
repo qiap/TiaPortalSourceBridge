@@ -82,6 +82,13 @@ internal static class ReviewServerChecks
             Request(server,listener,url,"/api/io/tasks","POST",target,405);
             var graphRequest=new Dictionary<string,object>(target){{"id",saved["id"]}};Request(server,listener,url,"/api/io/review/graph-list","POST",graphRequest,200);
             graphRequest["object_id"]="missing";Request(server,listener,url,"/api/io/review/graph","POST",graphRequest,409);
+            foreach (string extension in new[]{".ap16",".als18",".AP19",".ap20"}) {
+                string other = Path.Combine(root,"SameName" + extension);
+                File.WriteAllText(other,"offline fixture");
+                string targetQuery="?project_path="+Uri.EscapeDataString(other)+"&plc_name=PLC&target_token="+Uri.EscapeDataString(targets.Sign(other,"PLC"));
+                var history = Request(server,listener,url,"/api/io/tag-review/history"+targetQuery,"GET",null,200);
+                Check(Text(history,"body")=="[]",extension+" has its own reviewed-write history");
+            }
             string v21=Path.Combine(root,"Fixture.ap21");File.WriteAllText(v21,"");var unsupported=new Dictionary<string,object>(body);unsupported["project_path"]=v21;unsupported["target_token"]=targets.Sign(v21,"PLC");Request(server,listener,url,"/api/io/tag-review/preview","POST",unsupported,409);
             Request(server,listener,url,"/api/io/hmi-editor/read","POST",unsupported,409);
             Request(server,listener,url,"/api/io/hmi-editor/catalog","GET",null,405);

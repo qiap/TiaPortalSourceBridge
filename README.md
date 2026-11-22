@@ -8,7 +8,7 @@
 
 通过 TIA Portal Openness，提供 PLC 源码读写、工程索引、编译诊断、HMI 与硬件组态等能力。既可以在浏览器看板中操作，也可以通过 MCP（Model Context Protocol）接入 AI 客户端。
 
-目前采用统一入口与 V17 / V21 双引擎架构，运行于 Windows。
+Windows 上从同一个看板或 MCP 入口操作 TIA Portal V16–V21 工程。
 
 ## 功能
 
@@ -33,18 +33,18 @@
 
 普通用户无需下载源码或自行编译，选择一种方式即可：
 
-v4.15.2 同时提供 Windows 便携 ZIP 与 EXE 安装包。
+v4.16.0 同时提供 Windows 便携 ZIP 与 EXE 安装包。
 
-v4.15.2 合并虚拟机自动连接与本地稳定性修复：修复 I/O 窄屏布局、读取和导出超时、过期错误提示，以及源码索引与完整 XML 指纹混用；同步构建页面资源，成功打包后自动清理暂存目录。虚拟机连接尊重本地端口设置，并按配对隔离主机密钥、隧道记录和日志。
+v4.16.0 按工程版本选择 Openness API，支持 V16–V21。V17、V18、V21 做过原生 API 实测，其中 V17 实际发现了打开的工程。各版测试深度见下方[版本兼容性](#版本兼容性)。
 
 | 方式 | 下载 | 使用方法 |
 | --- | --- | --- |
-| ZIP 免安装版 | [下载 v4.15.2 Portable.zip](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.15.2/TiaPortalSourceBridge-4.15.2-Portable.zip) | 完整解压后双击 `WebDashboard.cmd` 或 `LaunchWeb.vbs` |
-| EXE 安装版 | [下载 v4.15.2 Setup.exe](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.15.2/TiaPortalSourceBridge-4.15.2-Setup.exe) | 运行安装程序，通过桌面或开始菜单打开 |
+| ZIP 免安装版 | [下载 v4.16.0 Portable.zip](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.16.0/TiaPortalSourceBridge-4.16.0-Portable.zip) | 完整解压后双击 `WebDashboard.cmd` 或 `LaunchWeb.vbs` |
+| EXE 安装版 | [下载 v4.16.0 Setup.exe](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.16.0/TiaPortalSourceBridge-4.16.0-Setup.exe) | 运行安装程序，通过桌面或开始菜单打开 |
 
-两种方式均包含 V17/V21 引擎、默认配置和运行模板。先在 TIA Portal 中打开工程，再在看板选择工程和 PLC；目标电脑需满足下面的运行环境要求。
+两种方式均包含 V16–V20 共用引擎和 V21 独立引擎、默认配置和运行模板。先在 TIA Portal 中打开工程，再在看板选择工程和 PLC；目标电脑需满足下面的运行环境要求。
 
-[全部版本与发布说明](https://github.com/qiap/TiaPortalSourceBridge/releases) · v4.15.2 的 ZIP / EXE 校验值见发布附件 `SHA256SUMS.txt`。
+[全部版本与发布说明](https://github.com/qiap/TiaPortalSourceBridge/releases) · [v4.16.0 版本说明](docs/Release-4.16.0.md) · [ZIP / EXE 的 SHA-256](https://github.com/qiap/TiaPortalSourceBridge/releases/download/v4.16.0/SHA256SUMS.txt)。
 
 GitHub 的 **Code → Download ZIP** 和 Release 中自动生成的 **Source code** 是源码压缩包；需要解压即用，请选择上面的 **Portable.zip**。EXE 安装包目前未做代码签名。
 
@@ -76,7 +76,7 @@ HMI 联动、外设仿真和在线监测变量默认使用表单，原始配置�
 
 结果区分字段差异、两边各自列出的项、重复地址/名称、地址范围重叠、多个匹配及无效 Excel 数据；每项显示 Excel 原始行号和 PLC 候选值。地址按 I/Q/M 位、字节、字、双字统一格式比较，支持 `%`、德语 E/A 和前导零。映射点位按完整符号名称核对。字节/位重叠可能是合法别名，零条引用证据也不等于未使用。切换工程、重新读取点表或改变列对应关系后，需要重新对账。
 
-对账本身只读。V17 可选择单个普通原始变量表中的“字段差异”或“仅 Excel”行，生成审查方案；确认后重新核对全部变量表指纹、备份、导入、编译、回读，再保存整个离线工程。冲突、软件单元、映射 DB、类型宽度不明确或读取不完整的行不直接回写。重命名不自动改写 PLC/HMI 外部引用，需在预览中核对。失败保留记录和现场，恢复需先确认执行后内容未再改变。V21 保留只读对账。
+对账本身只读。V16–V20 可选择单个普通原始变量表中的“字段差异”或“仅 Excel”行，生成审查方案；确认后重新核对全部变量表指纹、备份、导入、编译、回读，再保存整个离线工程。冲突、软件单元、映射 DB、类型宽度不明确或读取不完整的行不直接回写。重命名不自动改写 PLC/HMI 外部引用，需在预览中核对。失败保留记录和现场，恢复需先确认执行后内容未再改变。V21 保留只读对账。
 
 支持不超过 8 MB、20 张工作表、总计 20000 个非空行和 128 列的 `.xlsx`；旧 `.xls` 请先另存。包含隐藏行，不应用 Excel 筛选；公式、错误值与合并数据单元格明确列为待修正，建议先粘贴为逐行普通值。比较的是已读取的快照，不包含未分配的硬件通道、在线值或外部设备占用。上传文件与报告只暂存于当前进程，各保留最近 3 份；需要留档请导出完整报告，包含概览、全部对账结果与 PLC 候选证据，不受页面筛选影响。
 
@@ -94,7 +94,7 @@ HMI 联动、外设仿真和在线监测变量默认使用表单，原始配置�
 
 “交付资料”导出 ZIP，包含源码目录、原始 XML、调用关系 JSON/Mermaid、I/O 与交叉引用 Excel、翻译表及可解析的 GRAPH 结构图。覆盖说明随包提供，未读取的 HMI 不会被当作已交付。
 
-### 名称、初始值与源码恢复 · V17
+### 名称、初始值与源码恢复 · V16–V20
 
 - **多语言文本**：选择源码快照，导出翻译表；只编辑 `Translation` 并将待回填行的 `Action` 改成 `update`。重新上传后核对原文、语言、资源身份和源码指纹。“语言覆盖”页对照快照已出现的语言列出空文本、未声明与重复项，不自动新增工程语言。
 - **参数归档**：在“在线监测与参数”按 `符号名称 | DB 地址 | 类型` 配置只读通信，读取并归档实际值。在审查页选源码快照，填写归档编号，预览回填。仅处理同名、同类型、同 DB 编号的标准全局 DB 标量；数组、优化 DB、实例 DB 与无法核对项明确排除。名称与物理偏移由用户配置，不能证明与在线工程符号一致；快照也不保证来自同一扫描周期。
@@ -121,7 +121,7 @@ GRAPH 面板选择已保存的源码快照、块与步，显示该步互锁/监�
 
 每次运行保存配置、检查结果和写入意图日志；时间窗口错过会判为失败，不用延迟结果冒充通过。页面展示最近 500 条事件，运行结束后可导出完整记录。离线假适配器测试只验证规则与保护流程，不能替代实际 SDK、下载和产线逻辑验证。
 
-源码快照、参数归档、监测记录、仿真结果、HMI 联动备份和模板均为本机工程数据，不随 Git 源码上传。上述新增写入流程以 **V17＋经典 WinCC** 为目标；V21 原有能力保持独立。
+源码快照、参数归档、监测记录、仿真结果、HMI 联动备份和模板均为本机工程数据，不随 Git 源码上传。经典 WinCC 联动与外设仿真向导以 **V17** 为目标；V21 原有能力保持独立。
 
 ### 程序体检
 
@@ -150,9 +150,29 @@ SCL 检查读取完整缓存源码，识别受支持的直接赋值，以及根�
 
 ### 版本兼容性
 
-主要入口统一管理 V17 与 V21 工程。`.ap21` / `.als21` 工程由 `engines/v21` 子进程处理，无需单独启动内部引擎。
+选择工程文件或在 MCP 请求中传入完整的 `project_path`。入口识别 `.ap16` 至 `.ap21` 及对应的 `.als` 文件，多项目按目标工程隔离执行。
 
-两个版本的功能范围并不完全一致：V21 专属接口及仿真能力以工具说明为准。其他 TIA 版本、设备和 HMI 类型需要分别验证，不应视为已经完整兼容。离线测试通过也不代表目标工程已经通过 TIA 编译或运行验证。
+| 工程版本 | 目标电脑需要的 API | 接口范围 |
+| --- | --- | --- |
+| V16、V17、V18、V19、V20 | 对应 Portal 主版本的 `Siemens.Engineering.dll` | 工程连接、普通 PLC 块和变量表读写、源码、索引、I/O、双工程对比及审查写回。I/O 页提供索引显式引用。 |
+| V21 | .NET Framework 模块化 API，以 `Siemens.Engineering.Base.dll` 为入口 | 自动路由至 `engines/v21`，支持 Software Units、SimaticSD 和官方交叉引用。 |
+
+在工具根目录运行 `.\src\TiaPortalSourceBridge\bin\Release\net48\TiaPortalSourceBridge.exe list-apis`，可查看这台电脑自动发现的各版本主程序集及其路径。该命令只读取安装信息。通过虚拟机使用博途时，请在运行服务的虚拟机内执行。
+
+工程机须安装对应版本的 Portal、Openness 和所用产品选件。多用户本地会话还要求原生 API 提供 `LocalSessions`，V16 请使用普通 `.ap16` 工程。V16、V18、V19、V20 的 GRAPH 生成请提供同版工程导出的 `base_xml`。内置 GRAPH 模板覆盖 V17、V21。经典 WinCC 页面编辑和外设仿真向导面向 V17。离线回归覆盖路由与文件处理，各版本的工程编译和仿真联调须在相应安装环境验证。参见[西门子 Openness 安装信息](https://docs.tia.siemens.cloud/r/en-us/v20/tia-portal-openness-api-for-automation-of-engineering-workflows/tia-portal-openness-api/general-functions/information-about-installed-tia-portal-openness-versions) 和 [V21 API 变更说明](https://docs.tia.siemens.cloud/r/en-us/v21/readme-tia-portal-openness/major-changes-for-long-term-stability-in-tia-portal-openness-v21)。
+
+#### 各版本实测记录
+
+| 版本 | 本次实际验证 |
+| --- | --- |
+| V16 | 六版本离线回归；使用 V17 安装附带的 V16 兼容 XSD 校验生成的 LAD 接口和网络。未安装 V16 原生环境。 |
+| V17 | 加载原生 Openness，核实 API 类型与方法，运行只读发现并识别到 1 个已打开的工程；通过 LAD XSD 校验。 |
+| V18 | 加载原生 Openness，核实 API 类型与方法，通过 LAD XSD 校验。只读发现成功，当时没有打开的 V18 工程。 |
+| V19 | 离线验证工程路由、XML 生成与版本检查，以及缺少 SDK 时的诊断。未安装 V19 原生环境。 |
+| V20 | 离线验证工程路由、XML 生成与版本检查，以及缺少 SDK 时的诊断。未安装 V20 原生环境。 |
+| V21 | 加载原生模块化 Openness，核实 API 类型与方法，通过 LAD XSD 校验。只读发现成功，当时没有打开的 V21 工程。 |
+
+六个版本均有离线用例。本次没有在真实工程中执行导入、编译、保存或 PLC 下载，各版本的工程写入和仿真仍需在目标环境验收。
 
 ## 从源码运行
 
@@ -225,7 +245,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\Build-All.ps1 -NoTrust
 - **导出 Excel** 下载 `.xlsx`，包含当前筛选的全部分页、交叉引用明细和读取说明。
 - 切换工程或 PLC 后需重新读取，避免混用旧结果；读取失败或覆盖不完整会明确提示。
 
-数据来自 PLC 已声明变量表，不含未分配变量的硬件通道或在线实时值。V17 显示索引提取的显式引用，V21 使用官方交叉引用接口；间接寻址、跨软件单元绑定等不能保证完整覆盖。零条引用不表示变量未使用，具体范围及警告会随 Excel 一并导出。
+数据来自 PLC 已声明变量表，不含未分配变量的硬件通道或在线实时值。V16–V20 显示索引提取的显式引用，V21 使用官方交叉引用接口；间接寻址、跨软件单元绑定等不能保证完整覆盖。零条引用不表示变量未使用，具体范围及警告会随 Excel 一并导出。
 
 ## 接入 MCP 客户端
 
@@ -387,7 +407,7 @@ MCP 新增以下入口（本次不新增 Web 页面）：
 | `tia_write_logic_patch` | 按审查过的 `plan_id` 应用修改，要求 `confirm: true` |
 | `tia_compare_projects` | 指定两份工程、PLC 与程序组，分页比较块增删改、接口和网络结构 |
 
-**受限修改当前仅支持 V17**：LAD 指定 `compile_unit_id`，GRAPH 指定 `sequence_index`（从 0 开始）和 `transition` 编号，再用 `contact_uid` 定位普通触点。`edit_json` 只能更换直接符号路径（`scope` 与 `components`）或设置 `negated`（true 为常闭）。例如 LAD：`{"compile_unit_id":"12","contact_uid":"23","scope":"GlobalVariable","components":["DB_Permit","Ready"],"negated":false}`；GRAPH 将 `compile_unit_id` 换为 `"sequence_index":0,"transition":"114"`。编号应取自本次实时读取，不能照抄示例。
+**受限修改支持 V16–V20 中可识别的 LAD/GRAPH 网络**：LAD 指定 `compile_unit_id`，GRAPH 指定 `sequence_index`（从 0 开始）和 `transition` 编号，再用 `contact_uid` 定位普通触点。`edit_json` 只能更换直接符号路径（`scope` 与 `components`）或设置 `negated`（true 为常闭）。例如 LAD：`{"compile_unit_id":"12","contact_uid":"23","scope":"GlobalVariable","components":["DB_Permit","Ready"],"negated":false}`；GRAPH 将 `compile_unit_id` 换为 `"sequence_index":0,"transition":"114"`。编号应取自本次实时读取，不能照抄示例。
 
 方案绑定工程、PLC、完整块指纹与具体修改，保存在 `logs/logic-plans/`。应用时复核实时源码，全部备份后导入、编译并回读完整块。只有 `verified_unsaved` 表示这些检查通过，仍须用户检查逻辑；**不自动保存工程或下载 PLC**。失败保留现场与批次日志，不自动回滚或重试。同一方案有执行记录或未完成声明后不会再次写入；用 `tia_read_logic_patch_plan(plan_id)` 查询结果。过期方案须重新预览。共享操作数、沿触点、数组/切片/间接寻址、任意表达式替换、拓扑重排和动作改写均不在这一版范围内，V21 保持已有写入能力。
 

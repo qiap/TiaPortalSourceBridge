@@ -112,7 +112,20 @@ namespace TiaPortalSourceBridge.Mcp
                 throw new InvalidOperationException("关联块内容、标题或注释已变化；尚未写入：" + item.block_name);
             item.Before = xml; item.before_signature = signature; item.status = "validated";
         }
-        internal static XmlBatchItem[] Parse(string json)
+        internal static void CheckReviewedVersion(XmlDocument document, string projectPath)
+        {
+            string target = Configuration.PortalVersions.FromProjectPath(projectPath);
+            var header = document.SelectNodes("/Document/Engineering");
+            // V17 review plans predate recording the Engineering header.
+            if (target == "V17" && header.Count == 0) return;
+            string exported = header.Count == 1 ? ((XmlElement)header[0]).GetAttribute("version") : "";
+            if (!Configuration.PortalVersions.IsClassic(target) ||
+                !string.Equals(target, Configuration.PortalVersions.Normalize(exported), StringComparison.Ordinal))
+                throw new ArgumentException("审查写回需要与目标工程同版本的 SimaticML 导出。工程 " +
+                    (target ?? "未知") + "，XML " + (exported.Length == 0 ? "未标明版本" : exported) + "。");
+        }
+
+        internal static XmlBatchItem[] Parse(string json, string reviewedProject = null)
         {
             var rows = new JavaScriptSerializer { MaxJsonLength = 32 * 1024 * 1024 }.DeserializeObject(json) as object[];
             if (rows == null || rows.Length == 0 || rows.Length > 50)
@@ -125,6 +138,7 @@ namespace TiaPortalSourceBridge.Mcp
                 Func<string, string> get = key => map.ContainsKey(key) ? Convert.ToString(map[key]) : "";
                 string xml = get("xml");
                 var doc = BlockOperations.ParseBlock(xml);
+                if (reviewedProject != null) CheckReviewedVersion(doc, reviewedProject);
                 BlockOperations.ValidateCompileUnitOrder(doc);
                 var name = doc.SelectSingleNode("/Document/*[starts-with(local-name(),'SW.Blocks.')]/AttributeList/Name");
                 if (name == null || string.IsNullOrWhiteSpace(name.InnerText) || !names.Add(name.InnerText.Trim()))

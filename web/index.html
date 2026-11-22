@@ -1008,7 +1008,7 @@
           <div class="audit-actions" style="margin-top:12px"><button class="btn btn-sm" id="recPrev">上一页</button><span id="recPage"></span><button class="btn btn-sm" id="recNext">下一页</button></div>
         </div>
         <div style="margin-top:24px">
-          <h3>点表写回与执行记录 · V17</h3>
+          <h3>点表写回与执行记录 · V16–V20</h3>
           <p style="color:var(--text-muted)">选择一个原始变量表进行对账，再勾选需要新增或更新的行。先预览，再确认写入；不会自动删除仅 PLC 存在的变量。</p>
           <div class="audit-actions"><label>注释语言 <select id="tagReviewCulture"><option value="zh-CN">简体中文</option><option value="en-US">英语</option><option value="de-DE">德语</option></select></label><button class="btn" id="tagReviewPreview">预览所选修改</button><button class="btn" id="tagReviewHistory">刷新执行记录</button></div>
           <p id="tagReviewStatus" role="status"></p><div id="tagReviewPlan"></div>
@@ -1042,7 +1042,7 @@
         <p id="reviewStatus" role="status"></p>
         <input id="reviewSearch" placeholder="筛选对象名称、组路径或变化类型" aria-label="筛选快照变化" style="margin:12px 0;width:100%;">
         <div id="reviewResults" style="max-height:600px;overflow:auto;"></div>
-        <details style="margin-top:22px"><summary>多语言文本与参数初始值回填 · V17</summary>
+        <details style="margin-top:22px"><summary>多语言文本与参数初始值回填 · V16–V20</summary>
           <p>使用上方“之后”快照作为修改基线。先预览，确认后写入离线工程。支持已有语言的 PLC 文本，不含未读取的 HMI 文本。</p>
           <div class="audit-actions"><button id="sourceTextExport" class="btn">导出翻译表</button><input id="sourceTextFile" type="file" accept=".xlsx" aria-label="已校对翻译表"><button id="sourceTextPreview" class="btn">预览翻译回填</button></div>
           <p>参数快照来自“在线监测与参数”页。需人工核对符号名与标准 DB 地址对应关系；不会猜测改名或类型转换。</p>
@@ -1393,7 +1393,7 @@
         <button onclick="closeProjectModal()" style="background:none;border:none;color:var(--ui-fff);cursor:pointer;">✕</button>
       </div>
       <p style="font-size:13px; color:var(--text-muted); margin-bottom:12px;">
-        输入工程文件完整绝对路径（.ap16 / .ap17 / .ap20 / .ap21）：
+        输入 V16–V21 工程文件的完整路径（.ap16 至 .ap21 或对应的 .als 文件）：
       </p>
       <input type="text" class="search-input" id="switchProjectInput" style="width:100%;margin-bottom:14px;" placeholder="E:\Projects\Line\Line.ap17">
       <div class="modal-actions">
@@ -1502,7 +1502,7 @@
         const dot = document.getElementById('connectionDot');
         const tiaBadge = document.getElementById('tiaStatusBadge');
         if (tiaBadge) tiaBadge.title = discovery.detail;
-        const effectiveVer = data.detected_version || data.tia_portal_version || 'V17';
+        const effectiveVer = data.detected_version || '未识别';
         document.getElementById('tiaVersionVal').textContent = effectiveVer;
 
         if (discoveryPending) {
@@ -1832,7 +1832,7 @@
                   <span class="status-dot online"></span>
                   <div style="min-width:0;">
                     <div class="project-item-title">${escapeHtml(p.name)}</div>
-                    <div class="project-item-sub">PID: ${p.pid || '--'} · 版本: ${p.version || 'V17'} · ${escapeHtml(p.path)}</div>
+                    <div class="project-item-sub">PID: ${p.pid || '--'} · 版本: ${p.version || '未识别'} · ${escapeHtml(p.path)}</div>
                   </div>
                 </div>
                 <div class="project-item-right">

@@ -74,7 +74,7 @@ namespace TiaPortalSourceBridge.Mcp
             string mode=StringArg(args,"read_mode");if(mode.Length==0)mode="live";if(mode!="live"&&mode!="cache")throw new ArgumentException("read_mode 必须为 live/cache。");
             string group=StringArg(args,"group_path_"+suffix).Replace('\\','/').Trim('/');
             var side=new CompareSide { project_path=Path.GetFullPath(project),plc_name=plc,unit_name=StringArg(args,"unit_name_"+suffix),group_path=group,mode=mode };
-            if(AppConfig.DetectProjectVersion(side.project_path)!="V21"&&side.unit_name.Length>0)throw new ArgumentException("V17 对比不支持 Software Unit，不能忽略 unit_name。");
+            if(AppConfig.DetectProjectVersion(side.project_path)!="V21"&&side.unit_name.Length>0)throw new ArgumentException("当前版本的对比接口不支持 Software Unit，不能忽略 unit_name。");
             try {
                 if(mode=="cache") {
                     var store=new ProjectIndexStore(side.project_path,AppConfig.DetectProjectVersion(side.project_path));var catalog=store.Load();side.catalog_utc=catalog.built_utc;
@@ -90,8 +90,8 @@ namespace TiaPortalSourceBridge.Mcp
                     side.blocks=catalogRows.Where(e=>ProjectCompare.InGroup(ProjectCompare.S(e,"group_path"),group)&&ProjectCompare.S(e,"unit_name")==side.unit_name).ToList();
                     // V21's existing scoped enumerator can suppress unavailable containers.
                     // Keep its current read capability, but never promote absence to deletion.
-                    side.absence_verified=AppConfig.DetectProjectVersion(side.project_path)=="V17";
-                    if(!side.absence_verified)side.coverage_warning="V21 目录接口未提供容器读取完整度证明；仅单侧出现的块保留为待核对，不确认删除。";
+                    side.absence_verified=PortalVersions.IsClassic(PortalVersions.FromProjectPath(side.project_path));
+                    if(!side.absence_verified)side.coverage_warning="当前版本的目录接口未提供容器读取完整度证明；仅单侧出现的块保留为待核对，不确认删除。";
                 }
             }catch(Exception ex){side.error=ex.Message;side.absence_verified=false;}
             return side;

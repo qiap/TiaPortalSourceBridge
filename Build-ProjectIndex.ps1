@@ -36,14 +36,14 @@ function Select-IndexProject {
     $dialog=[Windows.Forms.OpenFileDialog]::new()
     try {
         $dialog.Title='选择要建立索引的 TIA Portal 工程'
-        $dialog.Filter='TIA Portal 工程 (*.ap*)|*.ap*|所有文件 (*.*)|*.*'
+        $dialog.Filter='TIA Portal V16–V21 工程|*.ap16;*.ap17;*.ap18;*.ap19;*.ap20;*.ap21;*.als16;*.als17;*.als18;*.als19;*.als20;*.als21|所有文件 (*.*)|*.*'
         $dialog.CheckFileExists=$true;$dialog.CheckPathExists=$true
         $dialog.Multiselect=$false;$dialog.RestoreDirectory=$true
         if($lastProject){$dialog.InitialDirectory=Split-Path -Parent $lastProject;$dialog.FileName=Split-Path -Leaf $lastProject}
         else{$dialog.InitialDirectory=Split-Path -Parent $PSScriptRoot}
         if($dialog.ShowDialog() -ne [Windows.Forms.DialogResult]::OK){return ''}
         $selected=$dialog.FileName
-        if([IO.Path]::GetExtension($selected) -match '^\.ap\d+$'){
+        if([IO.Path]::GetExtension($selected) -match '^\.(?:ap|als)(?:1[6-9]|2[01])$'){
             try{
                 [IO.Directory]::CreateDirectory((Split-Path -Parent $recentPath))|Out-Null
                 [IO.File]::WriteAllText($recentPath,(@{LastProjectPath=$selected}|ConvertTo-Json -Compress),$utf8)
@@ -81,7 +81,7 @@ try {
     }
     $project=[IO.Path]::GetFullPath($ProjectPath)
     if(-not (Test-Path -LiteralPath $project -PathType Leaf)){throw ('工程文件不存在：'+$project)}
-    if([IO.Path]::GetExtension($project) -notmatch '^\.ap\d+$'){throw '请指定博途工程文件，例如 .ap17 或 .ap21。'}
+    if([IO.Path]::GetExtension($project) -notmatch '^\.(?:ap|als)(?:1[6-9]|2[01])$'){throw '请选择 V16–V21 的 .ap 或 .als 工程文件。'}
     if(-not $ExecutablePath){
         $ExecutablePath=Join-Path $PSScriptRoot 'src\TiaPortalSourceBridge\bin\Release\net48\TiaPortalSourceBridge.exe'
         if(-not (Test-Path -LiteralPath $ExecutablePath)){$ExecutablePath=Join-Path $PSScriptRoot 'online-bin\TiaPortalSourceBridge.exe'}

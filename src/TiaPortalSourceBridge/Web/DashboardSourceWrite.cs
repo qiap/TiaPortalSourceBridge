@@ -27,7 +27,7 @@ namespace TiaPortalSourceBridge.Web
         {string file=SourceWriteFile(id,".plan.json");if(!File.Exists(file)||new FileInfo(file).Length>32*1024*1024)throw new InvalidOperationException("源码方案不存在或过大。");var plan=CylinderWritePipeline.Json().Deserialize<ReviewedSourcePlan>(File.ReadAllText(file));if(plan.id!=id||!PathsEqual(plan.project_path,project)||plan.plc_name!=plc)throw new InvalidOperationException("源码方案目标不一致。");return plan;}
         private object SourceWritePreview(ReviewedSourcePlan plan)
         {
-            bool supported=plan.patches.Count>0&&plan.patches.Count<=50&&plan.patches.All(p=>p.kind=="plc.block"&&p.diff.status=="structural");
+            bool supported=PortalVersions.IsClassic(PortalVersions.FromProjectPath(plan.project_path))&&plan.patches.Count>0&&plan.patches.Count<=50&&plan.patches.All(p=>p.kind=="plc.block"&&p.diff.status=="structural");
             return new{plan.id,state="preview",plan.purpose,plan.note,plan.unmatched,fingerprint=XmlBatch.Hash(CylinderWritePipeline.Json().Serialize(plan)),can_apply=supported,
                 limitation=supported?"将备份、写入、编译并完整回读所选程序块，全部通过后保存整个离线工程。不会下载到 PLC。":"直接写回仅支持 1–50 个普通 PLC 程序块；变量表、UDT 或未识别对象请单独处理。",
                 patches=plan.patches.Select(p=>new{p.object_name,p.group,p.kind,p.diff}).ToArray()};
@@ -79,7 +79,7 @@ namespace TiaPortalSourceBridge.Web
                         SaveSourceWritePlan(plan);SendJson(response,200,SourceWritePreview(plan));return true;
                     }
                     if(action!="apply"){SendJson(response,404,new{error="源码写回接口不存在"});return true;}
-                    if(shutdownRequested)throw new InvalidOperationException("看板正在退出。");if(AppConfig.DetectProjectVersion(project)!="V17")throw new InvalidOperationException("新增源码写回流程仅支持 V17。");
+                    if(shutdownRequested)throw new InvalidOperationException("看板正在退出。");if(!PortalVersions.IsClassic(PortalVersions.FromProjectPath(project)))throw new InvalidOperationException("源码审查写回支持 V16–V20 的普通 PLC 程序块。");
                     object confirm;if(!map.TryGetValue("confirm",out confirm)||!Equals(confirm,true))throw new InvalidOperationException("请先核对全部对象变化并确认保存整个离线工程。");
                     var selected=LoadSourceWritePlan(Text(map,"id"),project,plc);if(Text(map,"fingerprint")!=XmlBatch.Hash(json.Serialize(selected)))throw new InvalidOperationException("方案与已查看的预览不一致。");
                     if(selected.patches.Count==0||selected.patches.Count>50||selected.patches.Any(p=>p.kind!="plc.block"||p.diff.status!="structural"))throw new InvalidOperationException("当前方案不支持直接写入，请查看预览中的范围说明。");
